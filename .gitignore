@@ -4,6 +4,7 @@ node_modules/
 .expo/
 dist/
 web-build/
+.vscode/
 npm-debug.*
 *.jks
 *.p8
