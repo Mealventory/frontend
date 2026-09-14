@@ -52,12 +52,85 @@ The application adheres to an **Executive Consumer-Grade Aesthetic**—blending 
 ---
 
 ## 3. Technology Stack & Architectural Pillars
-- **Framework**: React Native 0.74+ with Expo SDK 51+ (Managed Workflow).
-- **Navigation**: Expo Router v3 (Strict TypeScript file-based routing with route groups `(auth)`, `(onboarding)`, `(app)`, `(modal)`).
-- **Styling**: NativeWind v4 (Tailwind CSS engine optimized for React Native).
+- **Framework**: React Native 0.86+ with Expo SDK 57 (Managed Workflow).
+- **Navigation**: Expo Router v57 (Strict TypeScript file-based routing with route groups `(auth)`, `(onboarding)`, `(app)`, `(modal)`).
+- **Styling**: NativeWind v4 (Tailwind CSS engine with application-wide CSS variables in `global.css`).
 - **State Management**:
   - **Server Cache State**: TanStack React Query v5 with `persistQueryClient` and `createSyncStoragePersister`.
   - **Local Persistence Storage**: `react-native-mmkv` (synchronous, C++ backed, sub-millisecond I/O).
   - **Ephemeral Client State**: Zustand (active filter toggles, camera flash, scanner draft state).
 - **Network Layer**: OpenAPI-generated TypeScript client (`openapi-fetch`) synced to FastAPI backend `/openapi.json`.
-- **Sensors & Hardware**: `expo-camera`, `expo-haptics`, `expo-notifications`, `expo-barcode-scanner`.
+- **Sensors & Hardware**: `expo-camera`, `expo-haptics`, `expo-notifications`, `react-native-svg`.
+
+---
+
+## 4. Quickstart & Launch Guide (Windows & Mac)
+
+### Step 1: Install Dependencies
+```powershell
+# Inside frontend/
+npm install
+```
+
+### Step 2: Configure Environment Variables
+Copy `.env.example` to `.env`:
+```powershell
+cp .env.example .env
+```
+Configure your service URLs:
+- **Physical iPhone / Android testing (same Wi-Fi)**:
+  - Find your computer's local IP:
+    - **Windows**: run `ipconfig` (find IPv4, e.g. `192.168.51.91`)
+    - **Mac**: run `ipconfig getifaddr en0`
+  - Set `EXPO_PUBLIC_BACKEND_URL=http://<YOUR_LOCAL_IP>:8000`
+  - Set `EXPO_PUBLIC_API_URL=http://<YOUR_LOCAL_IP>:8000`
+  - Set `EXPO_PUBLIC_AI_SERVICE_URL=http://<YOUR_LOCAL_IP>:8001`
+- **Mac iOS Simulator (Xcode)**:
+  - Use `http://localhost:8000` and `http://localhost:8001`.
+
+---
+
+### Step 3: Launch the Application
+
+#### Option A: Windows Developers (Tunnel Mode - Recommended)
+Windows Defender Firewall often blocks incoming connections on port `8081`. Using tunnel mode bypasses local firewall and router AP isolation completely:
+```powershell
+npm run start:tunnel
+```
+*(Or `npx expo start --tunnel`)*.
+- A QR code will display in your terminal.
+- Open the native **Camera** app on your iPhone (or **Expo Go** on Android).
+- Tap the pop-up banner to open in **Expo Go**.
+
+#### Option B: Mac Developers (iOS Simulator or Physical Device)
+- **To run on Mac's on-screen iOS Simulator**:
+  ```bash
+  npm run ios
+  ```
+  *(Or press `i` in the Expo terminal)*. Requires Xcode installed.
+- **To run on a physical iPhone**:
+  ```bash
+  npm start
+  ```
+  Scan the terminal QR code with your iPhone camera.
+
+#### Option C: Android Emulator or Web
+- **Android Emulator**: `npm run android` (or press `a` in terminal)
+- **Web Browser Preview**: `npm run web` (or press `w` in terminal)
+
+---
+
+### Step 4: Common Troubleshooting & Gotchas
+
+1. **"You're signed in to Expo Go as 'username', but not signed in to Expo CLI"**:
+   - When using tunnel mode with a logged-in Expo Go app on iPhone, the CLI must use the same account.
+   - Run `npx expo login` on your computer and sign in with the same account.
+   - *Alternative*: Tap **Go home** in Expo Go on your phone, go to your profile icon, and tap **Sign Out** to run in anonymous/guest mode.
+2. **"Could not connect to the server" on physical iPhone**:
+   - Ensure both PC and phone are on the exact same Wi-Fi network, or use `npm run start:tunnel`.
+3. **Resetting Metro Bundler Cache**:
+   - If styles or dependencies don't reflect immediately, restart with:
+     ```powershell
+     npm start -- -c
+     ```
+

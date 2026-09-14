@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Mealventory",
+    "slug": "mealventory",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "mealventory",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#020617"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mealventory.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Mealventory requires camera access to scan grocery receipts and barcodes."
+      }
+    },
+    "android": {
+      "package": "com.mealventory.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

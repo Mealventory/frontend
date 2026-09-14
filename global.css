@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* -------------------------------------------------------------------------- */
+    /* 1. Brand & Vitality Colors                                                 */
+    /* -------------------------------------------------------------------------- */
+    --color-brand-500: #10B981;
+    --color-brand-600: #059669;
+    --color-brand-400: #34D399;
+
+    /* -------------------------------------------------------------------------- */
+    /* 2. Grounds & Backgrounds (Executive Dark Theme Default)                    */
+    /* -------------------------------------------------------------------------- */
+    --color-ground-dark: #020617;
+    --color-ground-dark-surface: #0F172A;
+    --color-ground-card: rgba(30, 41, 59, 0.7);
+    --color-ground-elevated: #1E293B;
+    --color-ground-light: #F8FAFC;
+
+    /* -------------------------------------------------------------------------- */
+    /* 3. Text & Typography Colors                                                */
+    /* -------------------------------------------------------------------------- */
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+    --color-text-brand: #10B981;
+
+    /* -------------------------------------------------------------------------- */
+    /* 4. Borders & Dividers                                                      */
+    /* -------------------------------------------------------------------------- */
+    --color-border-subtle: #1E293B;
+    --color-border-default: #334155;
+    --color-border-brand: rgba(16, 185, 129, 0.3);
+
+    /* -------------------------------------------------------------------------- */
+    /* 5. Urgency Semantic Tokens (Expiration Radar)                              */
+    /* -------------------------------------------------------------------------- */
+    --color-urgency-critical: #F43F5E;
+    --color-urgency-soon: #F59E0B;
+    --color-urgency-fresh: #10B981;
+    --color-urgency-frozen: #0EA5E9;
+
+    /* -------------------------------------------------------------------------- */
+    /* 6. Typography Font Families                                                */
+    /* -------------------------------------------------------------------------- */
+    --font-regular: Inter_400Regular;
+    --font-semibold: Inter_600SemiBold;
+    --font-bold: Inter_700Bold;
+
+    /* -------------------------------------------------------------------------- */
+    /* 7. Typography Font Sizes & Hierarchies                                     */
+    /* -------------------------------------------------------------------------- */
+    --text-h1: 32px;
+    --text-h2: 24px;
+    --text-h3: 18px;
+    --text-body: 15px;
+    --text-caption: 12px;
+    --text-tiny: 10px;
+
+    /* -------------------------------------------------------------------------- */
+    /* 8. Radii & Surface Shapes                                                  */
+    /* -------------------------------------------------------------------------- */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+  }
+}
