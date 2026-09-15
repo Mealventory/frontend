@@ -5,43 +5,55 @@
 @layer base {
   :root {
     /* -------------------------------------------------------------------------- */
-    /* 1. Brand & Vitality Colors                                                 */
+    /* 1. Brand & Vitality Colors (Light Theme)                                   */
     /* -------------------------------------------------------------------------- */
+    --color-brand-50: #F2FAF4;
+    --color-brand-100: #E2F5E7;
+    --color-brand-400: #34D399;
     --color-brand-500: #10B981;
     --color-brand-600: #059669;
-    --color-brand-400: #34D399;
+    --color-brand-surface: #F2FAF4;
 
     /* -------------------------------------------------------------------------- */
-    /* 2. Grounds & Backgrounds (Executive Dark Theme Default)                    */
+    /* 2. Grounds & Backgrounds (Light Theme Default)                             */
     /* -------------------------------------------------------------------------- */
+    --color-ground-canvas: #FAFAFA;
+    --color-ground-surface: #FFFFFF;
+    --color-ground-card: #FFFFFF;
+    --color-ground-elevated: #F8FAFC;
+    --color-ground-subtle: #F1F5F9;
+    --color-ground-muted: #E2E8F0;
     --color-ground-dark: #020617;
-    --color-ground-dark-surface: #0F172A;
-    --color-ground-card: rgba(30, 41, 59, 0.7);
-    --color-ground-elevated: #1E293B;
     --color-ground-light: #F8FAFC;
 
     /* -------------------------------------------------------------------------- */
-    /* 3. Text & Typography Colors                                                */
+    /* 3. Text & Typography Colors (Light Theme)                                  */
     /* -------------------------------------------------------------------------- */
-    --color-text-primary: #F8FAFC;
-    --color-text-secondary: #94A3B8;
-    --color-text-muted: #64748B;
+    --color-text-primary: #0F172A;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94A3B8;
+    --color-text-subtle: #CBD5E1;
     --color-text-brand: #10B981;
+    --color-text-inverse: #FFFFFF;
 
     /* -------------------------------------------------------------------------- */
-    /* 4. Borders & Dividers                                                      */
+    /* 4. Borders & Dividers (Light Theme)                                        */
     /* -------------------------------------------------------------------------- */
-    --color-border-subtle: #1E293B;
-    --color-border-default: #334155;
+    --color-border-subtle: #F1F5F9;
+    --color-border-default: #E2E8F0;
     --color-border-brand: rgba(16, 185, 129, 0.3);
 
     /* -------------------------------------------------------------------------- */
-    /* 5. Urgency Semantic Tokens (Expiration Radar)                              */
+    /* 5. Urgency Semantic Tokens (Expiration Radar - Light Theme)                */
     /* -------------------------------------------------------------------------- */
     --color-urgency-critical: #F43F5E;
+    --color-urgency-critical-bg: #FFF1F2;
     --color-urgency-soon: #F59E0B;
+    --color-urgency-soon-bg: #FFFBEB;
     --color-urgency-fresh: #10B981;
+    --color-urgency-fresh-bg: #F2FAF4;
     --color-urgency-frozen: #0EA5E9;
+    --color-urgency-frozen-bg: #F0F9FF;
 
     /* -------------------------------------------------------------------------- */
     /* 6. Typography Font Families                                                */
@@ -63,10 +75,66 @@
     /* -------------------------------------------------------------------------- */
     /* 8. Radii & Surface Shapes                                                  */
     /* -------------------------------------------------------------------------- */
+    --radius-xs: 6px;
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 16px;
-    --radius-xl: 24px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-3xl: 28px;
     --radius-full: 9999px;
+  }
+
+  .dark {
+    /* -------------------------------------------------------------------------- */
+    /* 1. Brand & Vitality Colors (Dark Theme)                                    */
+    /* -------------------------------------------------------------------------- */
+    --color-brand-50: #064E3B;
+    --color-brand-100: #065F46;
+    --color-brand-400: #34D399;
+    --color-brand-500: #10B981;
+    --color-brand-600: #059669;
+    --color-brand-surface: rgba(16, 185, 129, 0.12);
+
+    /* -------------------------------------------------------------------------- */
+    /* 2. Grounds & Backgrounds (Executive Dark Theme)                            */
+    /* -------------------------------------------------------------------------- */
+    --color-ground-canvas: #020617;
+    --color-ground-surface: #0F172A;
+    --color-ground-card: rgba(30, 41, 59, 0.75);
+    --color-ground-elevated: #1E293B;
+    --color-ground-subtle: #1E293B;
+    --color-ground-muted: #334155;
+    --color-ground-dark: #020617;
+    --color-ground-light: #F8FAFC;
+
+    /* -------------------------------------------------------------------------- */
+    /* 3. Text & Typography Colors (Dark Theme)                                   */
+    /* -------------------------------------------------------------------------- */
+    --color-text-primary: #F8FAFC;
+    --color-text-secondary: #94A3B8;
+    --color-text-muted: #64748B;
+    --color-text-subtle: #475569;
+    --color-text-brand: #34D399;
+    --color-text-inverse: #0F172A;
+
+    /* -------------------------------------------------------------------------- */
+    /* 4. Borders & Dividers (Dark Theme)                                         */
+    /* -------------------------------------------------------------------------- */
+    --color-border-subtle: #1E293B;
+    --color-border-default: #334155;
+    --color-border-brand: rgba(16, 185, 129, 0.35);
+
+    /* -------------------------------------------------------------------------- */
+    /* 5. Urgency Semantic Tokens (Expiration Radar - Dark Theme)                 */
+    /* -------------------------------------------------------------------------- */
+    --color-urgency-critical: #FB7185;
+    --color-urgency-critical-bg: rgba(244, 63, 94, 0.18);
+    --color-urgency-soon: #FBBF24;
+    --color-urgency-soon-bg: rgba(245, 158, 11, 0.18);
+    --color-urgency-fresh: #34D399;
+    --color-urgency-fresh-bg: rgba(16, 185, 129, 0.18);
+    --color-urgency-frozen: #38BDF8;
+    --color-urgency-frozen-bg: rgba(14, 165, 233, 0.18);
   }
 }

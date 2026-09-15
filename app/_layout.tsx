@@ -9,8 +9,35 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
+import { ThemeProvider, useAppTheme } from "@/src/context/ThemeContext";
+import { InventoryProvider } from "@/src/context/InventoryContext";
 
 SplashScreen.preventAutoHideAsync();
+
+function RootLayoutContent() {
+  const { isDark } = useAppTheme();
+
+  return (
+    <>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor: isDark ? "#020617" : "#FAFAFA",
+          },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(app)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(modal)" options={{ presentation: "modal" }} />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -30,16 +57,10 @@ export default function RootLayout() {
   }
 
   return (
-    <>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: "#020617" },
-        }}
-      >
-        <Stack.Screen name="index" />
-      </Stack>
-    </>
+    <ThemeProvider>
+      <InventoryProvider>
+        <RootLayoutContent />
+      </InventoryProvider>
+    </ThemeProvider>
   );
 }

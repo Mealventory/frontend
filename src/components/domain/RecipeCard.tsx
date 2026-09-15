@@ -1,0 +1,82 @@
+import React from "react";
+import { TouchableOpacity, View, Text } from "react-native";
+import { Recipe } from "@/src/types";
+
+export interface RecipeCardProps {
+  recipe: Recipe;
+  inventoryItemNames: Set<string>;
+  onPress: (recipe: Recipe) => void;
+  className?: string;
+}
+
+export function RecipeCard({
+  recipe,
+  inventoryItemNames,
+  onPress,
+  className = "",
+}: RecipeCardProps) {
+  const haveCount = recipe.uses.filter((u) =>
+    inventoryItemNames.has(u.toLowerCase())
+  ).length;
+  const pct = Math.round((haveCount / recipe.uses.length) * 100);
+  const isHighMatch = recipe.match >= 90;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => onPress(recipe)}
+      className={`p-4 bg-ground-surface dark:bg-ground-card rounded-[22px] border border-border-default shadow-sm ${className}`}
+    >
+      <View className="flex-row items-start">
+        {/* 48x48 Emoji Container */}
+        <View className="w-12 h-12 rounded-[16px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center mr-3">
+          <Text className="text-2xl">{recipe.emoji}</Text>
+        </View>
+
+        {/* Content */}
+        <View className="flex-1 min-w-0">
+          <View className="flex-row items-start justify-between">
+            <Text
+              numberOfLines={1}
+              className="text-[15px] font-bold text-text-primary flex-1 mr-2 leading-tight"
+            >
+              {recipe.name}
+            </Text>
+            <View
+              className={`px-2.5 py-0.5 rounded-full border ${
+                isHighMatch
+                  ? "bg-brand-50 border-brand-500/30 dark:bg-brand-500/20"
+                  : "bg-ground-subtle border-border-default"
+              }`}
+            >
+              <Text
+                className={`text-[13px] font-bold ${
+                  isHighMatch ? "text-brand-500" : "text-text-muted"
+                }`}
+              >
+                {recipe.match}%
+              </Text>
+            </View>
+          </View>
+
+          <Text className="text-[12px] font-regular text-text-muted mt-1">
+            {recipe.tag} · {recipe.time}
+          </Text>
+
+          {/* Match progress bar */}
+          <View className="flex-row items-center gap-2 mt-2.5">
+            <View className="flex-1 h-1.5 bg-ground-subtle dark:bg-ground-elevated rounded-full overflow-hidden">
+              <View
+                className="h-full bg-brand-500 rounded-full"
+                style={{ width: `${pct}%` }}
+              />
+            </View>
+            <Text className="text-[11px] font-semibold text-text-muted">
+              {haveCount}/{recipe.uses.length}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}

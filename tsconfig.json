@@ -31,5 +31,9 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "App template",
+    "node_modules"
   ]
 }
