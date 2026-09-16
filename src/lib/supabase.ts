@@ -10,6 +10,10 @@ WebBrowser.maybeCompleteAuthSession();
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+// Capture recovery intent before the client consumes and clears the URL fragment.
+export const initialRecovery = Platform.OS === 'web' && typeof window !== 'undefined'
+  && new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
+
 // First live slice: sessions stay in memory. Reloading requires sign-in again.
 // Never put a service-role key, JWT signing secret, or database password here.
 export const supabase = url && key ? createClient(url, key, {
@@ -73,4 +77,3 @@ export async function signInWithOAuthProvider(provider: 'google' | 'apple') {
 
   return result;
 }
-

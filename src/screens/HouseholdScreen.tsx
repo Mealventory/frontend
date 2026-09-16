@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, Home, Leaf, LogOut, RefreshCw, Users } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { signOutAccount, usernameFor } from '../lib/account';
 import { backendConfigured, Household, householdRequest, Member } from '../lib/householdApi';
 
 const green = '#087F5B';
@@ -20,19 +22,20 @@ function Action({ title, onPress, disabled, secondary = false }: { title: string
   </Pressable>;
 }
 
-export function HouseholdScreen() {
+export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boolean }) {
   const router = useRouter();
-  const [session, setSession] = useState<Session | null>(null);
+  const { session, selectHousehold } = useAuth();
   const sessionRef = useRef<Session | null>(null);
   const generation = useRef(0);
   const memberRequest = useRef(0);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [signUp, setSignUp] = useState(false);
+  const [signUp, setSignUp] = useState(initialSignUp);
   const [forgot, setForgot] = useState(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [householdsLoaded, setHouseholdsLoaded] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -45,25 +48,17 @@ export function HouseholdScreen() {
   const [code, setCode] = useState('');
 
   useEffect(() => {
-    if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
-      const changedUser = sessionRef.current?.user.id !== next?.user.id;
-      sessionRef.current = next;
-      setSession(next);
-      if (changedUser) {
-        generation.current++;
-        memberRequest.current++;
-        setHouseholds([]); setSelected(null); setMembers([]); setPage('home');
-        setError(''); setNotice(''); setBusy(false); setLoading(false);
-      }
-    });
-    if (AppState.currentState === 'active') supabase.auth.startAutoRefresh();
-    const subscription = AppState.addEventListener('change', state => {
-      if (state === 'active') supabase?.auth.startAutoRefresh();
-      else supabase?.auth.stopAutoRefresh();
-    });
-    return () => { generation.current++; data.subscription.unsubscribe(); subscription.remove(); supabase?.auth.stopAutoRefresh(); };
-  }, []);
+    const changedUser = sessionRef.current?.user.id !== session?.user.id;
+    sessionRef.current = session;
+    if (changedUser) {
+      generation.current++;
+      memberRequest.current++;
+      setHouseholds([]); setSelected(null); setMembers([]); setPage('home');
+      setHouseholdsLoaded(false);
+      setError(''); setNotice(''); setBusy(false); setLoading(false);
+    }
+  }, [session]);
+  useEffect(() => () => { generation.current++; memberRequest.current++; }, []);
 
   async function accessToken() {
     if (!supabase) throw new Error('Sign-in is not configured yet.');
@@ -79,6 +74,7 @@ export function HouseholdScreen() {
       const rows = await householdRequest<Household[]>('/me', await accessToken());
       if (current !== generation.current) return;
       setHouseholds(rows);
+      setHouseholdsLoaded(true);
       setSelected(previous => rows.find(row => row.id === previous?.id) || rows[0] || null);
     } catch (e) { if (current === generation.current) setError(message(e)); }
     finally { if (current === generation.current) setLoading(false); }
@@ -102,7 +98,7 @@ export function HouseholdScreen() {
     if (!supabase || !backendConfigured || busy) return;
     setBusy(true); setError(''); setNotice('');
     try {
-      const defaultUsername = username.trim() || email.trim().split('@')[0];
+      const defaultUsername = usernameFor(email, username);
       const credentials = {
         email: email.trim(),
         password,
@@ -129,8 +125,8 @@ export function HouseholdScreen() {
     setBusy(true); setError(''); setNotice('');
     try {
       const redirectUrl = Platform.OS === 'web' && typeof window !== 'undefined'
-        ? window.location.origin
-        : Linking.createURL('/');
+        ? `${window.location.origin}/reset-password`
+        : Linking.createURL('/reset-password');
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: redirectUrl,
       });
@@ -158,11 +154,10 @@ export function HouseholdScreen() {
   async function signOut() {
     setBusy(true);
     try {
-      if (supabase) {
-        await supabase.auth.signOut();
-      }
+      await signOutAccount(supabase);
       sessionRef.current = null;
-      setSession(null);
+      selectHousehold(null);
+      setPassword(''); setUsername('');
       setHouseholds([]);
       setSelected(null);
       setMembers([]);
@@ -246,7 +241,7 @@ export function HouseholdScreen() {
           </> : <>
             <Text style={styles.eyebrow}>BETTER TOGETHER</Text><Text style={styles.title}>Your household.</Text>
             <Text style={styles.subtitle}>A home for your shared kitchen.</Text>
-            {loading ? <ActivityIndicator accessibilityLabel="Loading households" color={green} style={{ margin: 30 }} /> : !selected ? <View style={styles.empty}><Users size={38} color={green} /><Text style={styles.heading}>Who’s in your kitchen?</Text><Text style={styles.center}>Create a household for your family or roommates, or join one with an invite code.</Text></View> : <>
+            {loading ? <ActivityIndicator accessibilityLabel="Loading households" color={green} style={{ margin: 30 }} /> : !householdsLoaded ? <View style={styles.empty}><Text style={styles.heading}>Couldn’t load your households</Text><Text style={styles.center}>Your membership hasn’t been checked yet. Retry once the backend connection is restored.</Text><Action title="Retry" onPress={refreshHouseholds} /></View> : !selected ? <View style={styles.empty}><Users size={38} color={green} /><Text style={styles.heading}>Who’s in your kitchen?</Text><Text style={styles.center}>Create a household for your family or roommates, or join one with an invite code.</Text></View> : <>
               {households.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>{households.map(household => <Pressable accessibilityRole="button" accessibilityState={{ selected: selected.id === household.id }} key={household.id} onPress={() => setSelected(household)} style={[styles.chip, household.id === selected.id && styles.selectedChip]}><Text style={{ color: green }}>{household.name}</Text></Pressable>)}</ScrollView>}
               <View style={styles.householdCard}>
                 <View style={styles.row}><Home size={25} color={green} /><Text style={styles.badge}>{selected.role}</Text></View>
@@ -257,10 +252,10 @@ export function HouseholdScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Enter ${selected.name} Kitchen`}
-                  onPress={() => router.push('/(app)/(tabs)' as any)}
+                  onPress={() => { selectHousehold(selected); router.push('/(app)/(tabs)' as any); }}
                   style={styles.cardEnterButton}
                 >
-                  <Text style={styles.cardEnterButtonText}>Enter Kitchen (Menu)</Text>
+                  <Text style={styles.cardEnterButtonText}>Enter kitchen</Text>
                   <ArrowRight color="white" size={16} />
                 </Pressable>
               </View>
@@ -269,23 +264,10 @@ export function HouseholdScreen() {
                 {!!memberError && <Text accessibilityRole="alert" style={styles.error}>{memberError}</Text>}
               </View>
             </>}
-            <Action title="Create a household" onPress={() => openPage('create')} disabled={loading} />
-            <Action title="Join with an invite code" secondary onPress={() => openPage('join')} disabled={loading} />
+            <Action title="Create a household" onPress={() => openPage('create')} disabled={loading || !householdsLoaded} />
+            <Action title="Join with an invite code" secondary onPress={() => openPage('join')} disabled={loading || !householdsLoaded} />
             <Pressable accessibilityRole="button" disabled={loading} onPress={refreshHouseholds}><Text style={styles.link}>Refresh households</Text></Pressable>
           </>}
-
-          {session && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Log out of account"
-              disabled={busy}
-              onPress={signOut}
-              style={styles.bottomLogoutButton}
-            >
-              <LogOut size={18} color="#B42318" />
-              <Text style={styles.bottomLogoutText}>Log out of account</Text>
-            </Pressable>
-          )}
 
           {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
           {!!notice && <Text accessibilityLiveRegion="polite" style={styles.info}>{notice}</Text>}

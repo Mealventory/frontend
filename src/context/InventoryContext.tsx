@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, { createContext, useContext, useState, useMemo, useEffect } from "react";
+import { useAuth } from './AuthContext';
 import { FoodItem, Recipe } from "../types";
 
 export const initialInventory: FoodItem[] = [
@@ -139,12 +140,24 @@ const defaultUser: UserProfile = {
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
+  const { session, household } = useAuth();
   const [inventory, setInventory] = useState<FoodItem[]>(initialInventory);
   const [currentScreen, setCurrentScreen] = useState<FigmaScreen>("home");
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(initialInventory[0]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [user, setUser] = useState<UserProfile>(defaultUser);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  useEffect(() => {
+    setInventory(initialInventory);
+    setSelectedItem(null);
+    setSelectedRecipe(null);
+    setCurrentScreen('home');
+  }, [session?.user.id, household?.id]);
+  const accountName = session?.user.user_metadata?.username || session?.user.user_metadata?.display_name || session?.user.email?.split('@')[0] || '';
+  const accountUser = session ? {
+    name: accountName, email: session.user.email || '',
+    household: household?.name || 'Choose a household', initials: accountName.slice(0, 2).toUpperCase(),
+  } : user;
 
   const expiringSoonCount = useMemo(
     () => inventory.filter((item) => item.daysLeft <= 3).length,
@@ -207,7 +220,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         selectedItem,
         selectedRecipe,
         expiringSoonCount,
-        user,
+        user: accountUser,
         isAuthenticated,
         navigate: setCurrentScreen,
         addItem,

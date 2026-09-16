@@ -1,28 +1,11 @@
-import { useEffect } from "react";
-import { Stack, useRouter, useNavigation } from "expo-router";
-import { supabase } from "@/src/lib/supabase";
+import { Redirect, Stack } from "expo-router";
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function AppGroupLayout() {
-  const router = useRouter();
-  const rootNavigation = useNavigation("/");
-
-  useEffect(() => {
-    if (!supabase) return;
-    const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session || event === "SIGNED_OUT") {
-        if (router.canDismiss()) {
-          router.dismissAll();
-        } else {
-          try {
-            rootNavigation.navigate("index" as never);
-          } catch {
-            router.replace("/" as any);
-          }
-        }
-      }
-    });
-    return () => data.subscription.unsubscribe();
-  }, [router, rootNavigation]);
+  const { session, ready, recovery, household } = useAuth();
+  if (!ready) return null;
+  if (recovery) return <Redirect href={'/reset-password' as any} />;
+  if (!session || !household) return <Redirect href="/" />;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

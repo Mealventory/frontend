@@ -5,11 +5,16 @@ import { useRouter, useNavigation } from "expo-router";
 import { Typography, Button, Icon, Badge, Input } from "@/src/components/atoms";
 import { useAppTheme } from "@/src/context/ThemeContext";
 import { supabase } from "@/src/lib/supabase";
+import { accountClient, signOutAccount, changePassword } from "@/src/lib/account";
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function SettingsTabScreen() {
   const router = useRouter();
   const rootNavigation = useNavigation("/");
   const { colorScheme, isDark, toggleTheme } = useAppTheme();
+  const { session, household } = useAuth();
+  const [logoutError, setLogoutError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const [currentUsername, setCurrentUsername] = useState("");
   const [newUsername, setNewUsername] = useState("");
@@ -22,19 +27,11 @@ export default function SettingsTabScreen() {
   const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   useEffect(() => {
-    async function loadUserProfile() {
-      if (!supabase) return;
-      const { data } = await supabase.auth.getUser();
-      const u =
-        data?.user?.user_metadata?.username ||
-        data?.user?.user_metadata?.display_name ||
-        data?.user?.email?.split("@")[0] ||
-        "";
-      setCurrentUsername(u);
-      setNewUsername(u);
-    }
-    loadUserProfile();
-  }, []);
+    const user = session?.user;
+    const name = user?.user_metadata?.username || user?.user_metadata?.display_name || user?.email?.split('@')[0] || '';
+    setCurrentUsername(name);
+    setNewUsername(name);
+  }, [session?.user]);
 
   const handleUpdateUsername = async () => {
     const trimmed = newUsername.trim();
@@ -45,9 +42,9 @@ export default function SettingsTabScreen() {
     setUsernameLoading(true);
     setUsernameMsg(null);
     try {
-      const { error } = await supabase?.auth.updateUser({
+      const { error } = await accountClient(supabase).auth.updateUser({
         data: { username: trimmed, display_name: trimmed },
-      }) || {};
+      });
       if (error) throw error;
       setCurrentUsername(trimmed);
       setUsernameMsg({ type: "success", text: "Username updated successfully!" });
@@ -74,10 +71,7 @@ export default function SettingsTabScreen() {
     setPasswordLoading(true);
     setPasswordMsg(null);
     try {
-      const { error } = await supabase?.auth.updateUser({
-        password: newPassword,
-      }) || {};
-      if (error) throw error;
+      await changePassword(supabase, newPassword, confirmPassword);
       setNewPassword("");
       setConfirmPassword("");
       setPasswordMsg({ type: "success", text: "Password updated successfully!" });
@@ -221,7 +215,7 @@ export default function SettingsTabScreen() {
         {/* Household Section */}
         <View className="p-5 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6 gap-3">
           <Typography variant="h3" className="font-bold mb-1">
-            Household
+            {household?.name || 'Household'}
           </Typography>
           <Button
             label="Manage Members"
@@ -258,26 +252,20 @@ export default function SettingsTabScreen() {
               }
             }}
           />
+          {!!logoutError && <Typography color="critical">{logoutError}</Typography>}
           <Button
-            label="Log Out"
+            label={loggingOut ? 'Signing out…' : 'Log Out'}
+            disabled={loggingOut}
             variant="danger"
             leadingIcon={<Icon name="LogOut" size={16} />}
             onPress={async () => {
+              setLoggingOut(true); setLogoutError('');
               try {
-                if (supabase) {
-                  await supabase.auth.signOut();
-                }
-              } finally {
-                if (router.canDismiss()) {
-                  router.dismissAll();
-                } else {
-                  try {
-                    rootNavigation.navigate("index" as never);
-                  } catch {
-                    router.replace("/" as any);
-                  }
-                }
-              }
+                await signOutAccount(supabase);
+                router.replace('/');
+              } catch (e) {
+                setLogoutError(e instanceof Error ? e.message : 'Could not sign out. Please try again.');
+              } finally { setLoggingOut(false); }
             }}
           />
         </View>

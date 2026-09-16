@@ -6,6 +6,7 @@ import { RoutePlaceholder } from "@/src/components/layout/RoutePlaceholder";
 import { FormField } from "@/src/components/molecules";
 import { Button, Icon, Typography } from "@/src/components/atoms";
 import { supabase } from "@/src/lib/supabase";
+import { accountClient } from "@/src/lib/account";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -25,11 +26,11 @@ export default function ForgotPasswordScreen() {
     try {
       const redirectUrl =
         Platform.OS === "web" && typeof window !== "undefined"
-          ? window.location.origin
-          : Linking.createURL("/");
-      const { error: resetError } = await supabase?.auth.resetPasswordForEmail(email.trim(), {
+          ? `${window.location.origin}/reset-password`
+          : Linking.createURL("/reset-password");
+      const { error: resetError } = await accountClient(supabase).auth.resetPasswordForEmail(email.trim(), {
         redirectTo: redirectUrl,
-      }) || {};
+      });
       if (resetError) throw resetError;
       setNotice("Password recovery email sent! Check your inbox for instructions.");
     } catch (err) {
