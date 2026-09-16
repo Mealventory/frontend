@@ -38,7 +38,7 @@ function getDaysLabel(days: number): string {
 
 export function FoodItemCard({ item, onPress, className = "" }: FoodItemCardProps) {
   const expiryStyle = getExpiryStyle(item.daysLeft);
-  const daysLabel = getDaysLabel(item.daysLeft);
+  const daysLabel = item.expiryDate === null ? 'No date' : getDaysLabel(item.daysLeft);
 
   return (
     <TouchableOpacity

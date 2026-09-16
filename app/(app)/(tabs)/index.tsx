@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, ScrollView, TextInput, TouchableOpacity } from "react-native";
+import { View, ScrollView, TextInput, TouchableOpacity, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useNavigation } from "expo-router";
 import { Typography, Badge } from "@/src/components/atoms";
@@ -13,7 +13,7 @@ const categories = ["All", "Produce", "Dairy", "Meat", "Bakery", "Pantry"];
 export default function PantryDashboardScreen() {
   const router = useRouter();
   const rootNavigation = useNavigation("/");
-  const { inventory, openItem, expiringSoonCount } = useInventory();
+  const { inventory, openItem, expiringSoonCount, refreshInventory, inventoryLoading, inventoryError } = useInventory();
   const [selectedCat, setSelectedCat] = useState("All");
   const [search, setSearch] = useState("");
 
@@ -100,11 +100,14 @@ export default function PantryDashboardScreen() {
 
       {/* Items List */}
       <ScrollView
+        refreshControl={<RefreshControl refreshing={inventoryLoading} onRefresh={() => void refreshInventory()} />}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         className="flex-1"
       >
         <View className="gap-2.5">
+          {!!inventoryError && <Typography color="critical">{inventoryError}</Typography>}
+          {!inventoryError && !inventoryLoading && inventory.length === 0 && <Typography>Your household pantry is empty. Add your first item.</Typography>}
           {filtered.map((item) => (
             <FoodItemCard
               key={item.id}

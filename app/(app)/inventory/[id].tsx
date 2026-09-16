@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, ScrollView, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,9 +10,11 @@ import { useInventory } from "@/src/context/InventoryContext";
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { inventory, selectedItem, removeItem } = useInventory();
+  const { inventory, removeItem } = useInventory();
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
 
-  const item = inventory.find((i) => i.id === id) || selectedItem;
+  const item = inventory.find((i) => i.id === id);
 
   if (!item) {
     return (
@@ -30,9 +32,12 @@ export default function ItemDetailScreen() {
     );
   }
 
-  const handleDelete = () => {
-    removeItem(item.id);
-    router.back();
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true); setError('');
+    try { await removeItem(item.id); router.back(); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Could not delete item.'); }
+    finally { setDeleting(false); }
   };
 
   const infoRows = [
@@ -60,12 +65,15 @@ export default function ItemDetailScreen() {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={handleDelete}
+          disabled={deleting}
+          accessibilityLabel={deleting ? 'Deleting item' : 'Delete item'}
           className="w-[38px] h-[38px] rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
         >
           <Icon name="Trash2" size={16} color="#F43F5E" />
         </TouchableOpacity>
       </View>
 
+      {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', padding: 20 }}>{error}</Text>}
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
@@ -75,7 +83,7 @@ export default function ItemDetailScreen() {
         <FreshnessHero item={item} />
 
         {/* Freshness Bar */}
-        <FreshnessMeter daysLeft={item.daysLeft} />
+        {item.expiryDate !== null && <FreshnessMeter daysLeft={item.daysLeft} />}
 
         {/* Info Rows Table */}
         <View className="bg-ground-surface dark:bg-ground-card rounded-[22px] border border-border-default shadow-sm mb-4 overflow-hidden">

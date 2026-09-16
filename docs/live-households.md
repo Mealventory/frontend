@@ -1,6 +1,6 @@
 # Live household flow
 
-The app's home route now uses real Supabase email/password authentication and the backend household API. Create/join actions wait for the backend response before showing success. The member list comes from the database; because the backend returns UUIDs rather than names, other members currently show a short ID. Inventory, scanning and recipe designs remain prototypes; they are not presented as live inventory in this flow.
+The app's home route uses real Supabase email/password authentication and the backend household API. Create/join actions wait for the backend response before showing success. The member list comes from the database; because the backend returns UUIDs rather than names, other members currently show a short ID. The pantry now loads, adds, and deletes shared database inventory; see [shared inventory setup and testing](shared-inventory.md). Scanning and recipe designs remain prototypes.
 
 ## Run
 

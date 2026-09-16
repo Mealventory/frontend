@@ -11,7 +11,7 @@ In Authentication → URL Configuration, allow the exact recovery redirect for e
 
 Keep the recovery email template's confirmation link so Supabase verifies the link before redirecting. Never put service-role keys in the frontend. This change does not modify dashboard settings or send test emails.
 
-The app receives a recovery session and asks for a new password before returning to households. Sessions currently remain in memory; a full reload requires signing in again. The pantry remains sample data, not a live inventory integration.
+The app receives a recovery session and asks for a new password before returning to households. Sessions currently remain in memory; a full reload requires signing in again. The pantry uses shared database inventory; see [shared inventory testing](shared-inventory.md).
 
 ## Manual checks with a test account
 
