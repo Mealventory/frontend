@@ -1,13 +1,92 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Typography, Button, Icon, Badge } from "@/src/components/atoms";
+import { useRouter, useNavigation } from "expo-router";
+import { Typography, Button, Icon, Badge, Input } from "@/src/components/atoms";
 import { useAppTheme } from "@/src/context/ThemeContext";
+import { supabase } from "@/src/lib/supabase";
 
 export default function SettingsTabScreen() {
   const router = useRouter();
+  const rootNavigation = useNavigation("/");
   const { colorScheme, isDark, toggleTheme } = useAppTheme();
+
+  const [currentUsername, setCurrentUsername] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameLoading, setUsernameLoading] = useState(false);
+  const [usernameMsg, setUsernameMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    async function loadUserProfile() {
+      if (!supabase) return;
+      const { data } = await supabase.auth.getUser();
+      const u =
+        data?.user?.user_metadata?.username ||
+        data?.user?.user_metadata?.display_name ||
+        data?.user?.email?.split("@")[0] ||
+        "";
+      setCurrentUsername(u);
+      setNewUsername(u);
+    }
+    loadUserProfile();
+  }, []);
+
+  const handleUpdateUsername = async () => {
+    const trimmed = newUsername.trim();
+    if (!trimmed) {
+      setUsernameMsg({ type: "error", text: "Username cannot be empty." });
+      return;
+    }
+    setUsernameLoading(true);
+    setUsernameMsg(null);
+    try {
+      const { error } = await supabase?.auth.updateUser({
+        data: { username: trimmed, display_name: trimmed },
+      }) || {};
+      if (error) throw error;
+      setCurrentUsername(trimmed);
+      setUsernameMsg({ type: "success", text: "Username updated successfully!" });
+    } catch (err) {
+      setUsernameMsg({ type: "error", text: err instanceof Error ? err.message : "Failed to update username." });
+    } finally {
+      setUsernameLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword) {
+      setPasswordMsg({ type: "error", text: "Please enter a new password." });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: "error", text: "Password must be at least 6 characters." });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: "error", text: "Passwords do not match." });
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordMsg(null);
+    try {
+      const { error } = await supabase?.auth.updateUser({
+        password: newPassword,
+      }) || {};
+      if (error) throw error;
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordMsg({ type: "success", text: "Password updated successfully!" });
+    } catch (err) {
+      setPasswordMsg({ type: "error", text: err instanceof Error ? err.message : "Failed to update password." });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
@@ -53,6 +132,92 @@ export default function SettingsTabScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Profile & Security Section */}
+        <View className="p-5 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6 gap-4">
+          <Typography variant="h3" className="font-bold mb-1">
+            Profile & Security
+          </Typography>
+
+          {/* Username Subsection */}
+          <View className="gap-2">
+            <Typography variant="caption" className="font-semibold text-text-secondary uppercase tracking-wider">
+              Username
+            </Typography>
+            <Input
+              placeholder="e.g. chef_pablo"
+              value={newUsername}
+              onChangeText={(val) => {
+                setNewUsername(val);
+                if (usernameMsg) setUsernameMsg(null);
+              }}
+              leadingIcon={<Icon name="User" size={16} color="#94A3B8" />}
+            />
+            {usernameMsg && (
+              <Typography
+                variant="caption"
+                color={usernameMsg.type === "success" ? "fresh" : "critical"}
+                className="font-medium mt-0.5"
+              >
+                {usernameMsg.text}
+              </Typography>
+            )}
+            <Button
+              label={usernameLoading ? "Saving…" : "Update Username"}
+              size="sm"
+              variant="outline"
+              disabled={usernameLoading || !newUsername.trim() || newUsername.trim() === currentUsername}
+              onPress={handleUpdateUsername}
+              className="self-start mt-1"
+            />
+          </View>
+
+          <View className="h-[1px] bg-border-default my-1" />
+
+          {/* Password Subsection */}
+          <View className="gap-2">
+            <Typography variant="caption" className="font-semibold text-text-secondary uppercase tracking-wider">
+              Change Password
+            </Typography>
+            <Input
+              placeholder="New password (min. 6 characters)"
+              value={newPassword}
+              onChangeText={(val) => {
+                setNewPassword(val);
+                if (passwordMsg) setPasswordMsg(null);
+              }}
+              secureTextEntry
+              leadingIcon={<Icon name="Lock" size={16} color="#94A3B8" />}
+            />
+            <Input
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChangeText={(val) => {
+                setConfirmPassword(val);
+                if (passwordMsg) setPasswordMsg(null);
+              }}
+              secureTextEntry
+              leadingIcon={<Icon name="Lock" size={16} color="#94A3B8" />}
+            />
+            {passwordMsg && (
+              <Typography
+                variant="caption"
+                color={passwordMsg.type === "success" ? "fresh" : "critical"}
+                className="font-medium mt-0.5"
+              >
+                {passwordMsg.text}
+              </Typography>
+            )}
+            <Button
+              label={passwordLoading ? "Updating…" : "Update Password"}
+              size="sm"
+              variant="outline"
+              disabled={passwordLoading || !newPassword || !confirmPassword}
+              onPress={handleUpdatePassword}
+              className="self-start mt-1"
+            />
+          </View>
+        </View>
+
         {/* Household Section */}
         <View className="p-5 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6 gap-3">
           <Typography variant="h3" className="font-bold mb-1">
@@ -72,11 +237,56 @@ export default function SettingsTabScreen() {
           />
         </View>
 
+        {/* Account Section */}
+        <View className="p-5 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6 gap-3">
+          <Typography variant="h3" className="font-bold mb-1">
+            Account & Session
+          </Typography>
+          <Button
+            label="Switch / Manage Households"
+            variant="outline"
+            leadingIcon={<Icon name="Home" size={16} />}
+            onPress={() => {
+              if (router.canDismiss()) {
+                router.dismissAll();
+              } else {
+                try {
+                  rootNavigation.navigate("index" as never);
+                } catch {
+                  router.replace("/" as any);
+                }
+              }
+            }}
+          />
+          <Button
+            label="Log Out"
+            variant="danger"
+            leadingIcon={<Icon name="LogOut" size={16} />}
+            onPress={async () => {
+              try {
+                if (supabase) {
+                  await supabase.auth.signOut();
+                }
+              } finally {
+                if (router.canDismiss()) {
+                  router.dismissAll();
+                } else {
+                  try {
+                    rootNavigation.navigate("index" as never);
+                  } catch {
+                    router.replace("/" as any);
+                  }
+                }
+              }
+            }}
+          />
+        </View>
+
         <Button
           label="View Design System Showcase"
           variant="secondary"
           leadingIcon={<Icon name="Layers" size={16} />}
-          onPress={() => router.replace("/" as any)}
+          onPress={() => router.push("/prototype" as any)}
         />
       </ScrollView>
     </SafeAreaView>

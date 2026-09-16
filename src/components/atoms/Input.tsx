@@ -3,8 +3,8 @@ import {
   View,
   TextInput,
   TextInputProps,
-  TouchableOpacity,
   Text,
+  StyleSheet,
 } from "react-native";
 import { useAppTheme } from "@/src/context/ThemeContext";
 
@@ -37,24 +37,30 @@ export function Input({
         </Text>
       )}
       <View
-        className={`flex-row items-center px-4 h-[52px] rounded-xl bg-ground-subtle border ${
-          error
-            ? "border-urgency-critical"
-            : isFocused
-            ? "border-brand-500 shadow-sm shadow-brand-500/10"
-            : "border-border-default"
-        }`}
+        style={[
+          styles.inputContainer,
+          {
+            backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
+            borderColor: error
+              ? "#EF4444"
+              : isFocused
+              ? "#10B981"
+              : isDark
+              ? "#334155"
+              : "#E2E8F0",
+          },
+        ]}
       >
-        {leadingIcon && <View className="mr-3">{leadingIcon}</View>}
+        {leadingIcon && <View style={styles.leadingIcon}>{leadingIcon}</View>}
         <TextInput
           placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={`flex-1 text-[15px] font-regular text-text-primary ${className}`}
-          style={[{ paddingVertical: 0 }, style]}
+          style={[{ paddingVertical: 0, color: isDark ? "#F8FAFC" : "#0F172A" }, style]}
           {...props}
         />
-        {trailingIcon && <View className="ml-2">{trailingIcon}</View>}
+        {trailingIcon && <View style={styles.trailingIcon}>{trailingIcon}</View>}
       </View>
       {error && (
         <Text className="text-[12px] font-medium text-urgency-critical mt-1 ml-1">
@@ -64,3 +70,20 @@ export function Input({
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    height: 52,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  leadingIcon: {
+    marginRight: 12,
+  },
+  trailingIcon: {
+    marginLeft: 8,
+  },
+});
