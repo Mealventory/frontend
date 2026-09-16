@@ -4,13 +4,25 @@ The app's home route now uses real Supabase email/password authentication and th
 
 ## Run
 
-Use Node 24 (or a version supported by Expo SDK 57), then `npm install` and `npm start`. On a physical phone, open the QR code in a compatible Expo Go version. Use the same Wi-Fi as the backend computer.
+Use Node 24 (or a version supported by Expo SDK 57), then `npm install` and `npm start`. On a physical phone, open the QR code in a compatible Expo Go version. A shared HTTPS backend tunnel does not require the phone to be on the backend computer's Wi-Fi. Expo's own LAN connection still requires the phone and frontend computer to share a reachable network; use Expo tunnel mode if needed.
 
 Create a git-ignored `.env.local` using `.env.example`. Set:
 
 - `EXPO_PUBLIC_SUPABASE_URL`: your Supabase project URL.
 - `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: publishable key (legacy anon key is also supported through EXPO_PUBLIC_SUPABASE_ANON_KEY).
-- `EXPO_PUBLIC_BACKEND_URL`: `http://<computer-LAN-IP>:8000` for a phone, `http://127.0.0.1:8000` for web or iOS simulator.
+- `EXPO_PUBLIC_BACKEND_URL`: the current shared backend tunnel URL. The supplied address is `https://reverse-singh-biggest-mid.trycloudflare.com`; confirm that the backend host is still running this tunnel before using it. Alternatively, use your own backend tunnel, `http://<computer-LAN-IP>:8000` on the same Wi-Fi, or `http://127.0.0.1:8000` for a browser on the backend computer.
+
+### Shared tunnel versus individual tunnels
+
+All teammates may use the same URL when connecting to one shared backend. The developer hosting it must keep both the backend and `cloudflared tunnel --url http://localhost:8000` running. Other teammates do not need to run a local backend for household requests in this setup. The shared backend must use the same Supabase project as their frontend.
+
+Cloudflare Quick Tunnels generate a random hostname for each tunnel. The address is not tied to a teammate's account or permanently assigned to this project. When the host starts a replacement tunnel, share the newly printed URL and update each frontend's `.env.local`. Developers running independent backends use their own tunnel URLs instead. A named tunnel with a stable hostname is a separate option for a persistent team address.
+
+`.env.example` is a setup template; Expo does not load it directly. `.env.local` overrides matching values in `.env`. Keep Supabase public settings in either loaded file, and keep `.env.local` ignored by Git. Restart Expo after changing the backend URL (`npx.cmd expo start --clear` in Windows PowerShell), then reload the app.
+
+To check connectivity, open `<backend-URL>/docs`. A DNS error means the hostname could not be found; a Cloudflare tunnel error means the tunnel or its origin needs attention. Neither is a household-role restriction.
+
+References: [Expo environment files](https://docs.expo.dev/guides/environment-variables/) and [Cloudflare Quick Tunnels](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/).
 
 Public environment variables are included in the app bundle. Never use a service-role key, signing secret or database password. Restart/reload Expo after changing these values. An Expo tunnel shares the app bundle, not the backend; the phone must still reach the backend URL.
 
