@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { AppState } from 'react-native';
+import { supabase } from '../lib/supabase';
+import { inventoryRequest, toFoodItem, InventoryRow } from '../lib/inventoryApi';
 import { useAuth } from './AuthContext';
 import { FoodItem, Recipe } from "../types";
 
@@ -122,8 +125,11 @@ interface InventoryContextType {
   user: UserProfile;
   isAuthenticated: boolean;
   navigate: (screen: FigmaScreen) => void;
-  addItem: (item: FoodItem) => void;
-  removeItem: (id: string) => void;
+  addItem: (item: FoodItem) => Promise<void>;
+  removeItem: (id: string) => Promise<void>;
+  refreshInventory: () => Promise<void>;
+  inventoryLoading: boolean;
+  inventoryError: string;
   openItem: (item: FoodItem) => void;
   openRecipe: (recipe: Recipe) => void;
   login: (email?: string) => void;
@@ -139,20 +145,53 @@ const defaultUser: UserProfile = {
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
-export function InventoryProvider({ children }: { children: React.ReactNode }) {
+export function InventoryProvider({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
   const { session, household } = useAuth();
-  const [inventory, setInventory] = useState<FoodItem[]>(initialInventory);
+  const [storedInventory, setInventory] = useState<FoodItem[]>(demo ? initialInventory : []);
+  const scope = demo ? 'demo' : `${session?.user.id || ''}:${household?.id || ''}`;
+  const activeScope = useRef(scope); activeScope.current = scope;
+  const [loadedScope, setLoadedScope] = useState(scope);
+  const inventory = loadedScope === scope ? storedInventory : [];
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [inventoryError, setInventoryError] = useState('');
+  const revision = useRef(0);
+  const inFlight = useRef(false);
+  const mutations = useRef(0);
+  const token = async () => {
+    const result = await supabase?.auth.getSession();
+    if (!result?.data.session || result.error || result.data.session.user.id !== session?.user.id) throw new Error('Please sign in again.');
+    return result.data.session.access_token;
+  };
+  const refreshInventory = useCallback(async (quiet = false) => {
+    if (demo || !session?.user.id || !household?.id || inFlight.current || mutations.current) return;
+    inFlight.current = true;
+    const current = revision.current;
+    if (!quiet) setInventoryLoading(true);
+    try {
+      const rows = await inventoryRequest<InventoryRow[]>(await token(), household.id);
+      if (activeScope.current !== scope || current !== revision.current) return;
+      setInventory(rows.map(toFoodItem)); setLoadedScope(scope); setInventoryError('');
+    } catch (e) {
+      if (activeScope.current === scope && current === revision.current) setInventoryError(e instanceof Error ? e.message : 'Could not load inventory.');
+    } finally { inFlight.current = false; if (activeScope.current === scope) setInventoryLoading(false); }
+  }, [demo, scope, session?.user.id, household?.id]);
   const [currentScreen, setCurrentScreen] = useState<FigmaScreen>("home");
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(initialInventory[0]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [user, setUser] = useState<UserProfile>(defaultUser);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   useEffect(() => {
-    setInventory(initialInventory);
+    revision.current++;
+    setInventory(demo ? initialInventory : []);
+    setLoadedScope(scope); setInventoryError(''); setInventoryLoading(false);
     setSelectedItem(null);
     setSelectedRecipe(null);
     setCurrentScreen('home');
-  }, [session?.user.id, household?.id]);
+    void refreshInventory();
+    const timer = setInterval(() => { if (AppState.currentState === 'active') void refreshInventory(true); }, 5000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshInventory(); });
+    return () => { clearInterval(timer); listener.remove(); revision.current++; };
+  }, [scope, demo, refreshInventory]);
   const accountName = session?.user.user_metadata?.username || session?.user.user_metadata?.display_name || session?.user.email?.split('@')[0] || '';
   const accountUser = session ? {
     name: accountName, email: session.user.email || '',
@@ -175,12 +214,31 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     });
   }, [inventory]);
 
-  const addItem = (item: FoodItem) => {
-    setInventory((prev) => [item, ...prev]);
+  const addItem = async (item: FoodItem) => {
+    if (demo) { setInventory(prev => [item, ...prev]); return; }
+    if (!household || !session) throw new Error('Choose a household first.');
+    const quantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    if (!quantity || Number(quantity[1]) <= 0) throw new Error('Enter a quantity such as 2 items or 500 g.');
+    mutations.current++; revision.current++;
+    try {
+      const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, {
+        name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null,
+      });
+      if (activeScope.current === scope) { setInventory(prev => [toFoodItem(row), ...prev.filter(i => i.id !== row.id)]); setInventoryError(''); }
+    } finally { mutations.current--; revision.current++; }
   };
 
-  const removeItem = (id: string) => {
-    setInventory((prev) => prev.filter((item) => item.id !== id));
+  const removeItem = async (id: string) => {
+    if (demo) { setInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
+    if (!household || !session) throw new Error('Choose a household first.');
+    mutations.current++; revision.current++;
+    try {
+      await inventoryRequest<void>(await token(), household.id, 'DELETE', id);
+      if (activeScope.current === scope) {
+        setInventory(prev => prev.filter(item => item.id !== id));
+        setSelectedItem(prev => prev?.id === id ? null : prev); setInventoryError('');
+      }
+    } finally { mutations.current--; revision.current++; }
   };
 
   const openItem = (item: FoodItem) => {
@@ -215,6 +273,9 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     <InventoryContext.Provider
       value={{
         inventory,
+        refreshInventory,
+        inventoryLoading,
+        inventoryError,
         recipes: dynamicRecipes,
         currentScreen,
         selectedItem,

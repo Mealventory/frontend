@@ -13,6 +13,7 @@ export type FoodCategory =
   | "Snacks";
 
 export interface FoodItem {
+  expiryDate?: string | null;
   id: string;
   name: string;
   category: string;

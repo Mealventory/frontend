@@ -29,7 +29,7 @@ export function FreshnessHero({ item }: FreshnessHeroProps) {
     : "border-urgency-fresh/30";
 
   const expLabel =
-    item.daysLeft === 0
+    item.expiryDate === null ? 'Expiration date unknown' : item.daysLeft === 0
       ? "Expires today"
       : item.daysLeft === 1
       ? "Expires tomorrow"

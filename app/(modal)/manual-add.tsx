@@ -26,36 +26,29 @@ export default function ManualAddModal() {
   const [expDate, setExpDate] = useState("");
   const [selectedCat, setSelectedCat] = useState("Produce");
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
     const trimmedName = name.trim();
     if (!trimmedName) {
       setError("Please enter an item name.");
       return;
     }
 
-    let days = 7;
-    let formattedDate = expDate.trim();
-
-    if (expDate.trim()) {
-      const parsed = new Date(expDate.trim());
-      if (!isNaN(parsed.getTime())) {
-        const diffMs = parsed.getTime() - Date.now();
-        days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
-        formattedDate = parsed.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      }
-    } else {
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + 7);
-      formattedDate = targetDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const date = expDate.trim();
+    if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date)) {
+      setError('Enter a valid expiration date as YYYY-MM-DD.'); return;
     }
-
-    addItem({
+    setSaving(true); setError('');
+    try {
+    await addItem({
       id: Date.now().toString(),
       name: trimmedName,
       category: selectedCat,
-      expDate: formattedDate,
-      daysLeft: days,
+      expDate: date || 'Not set',
+      expiryDate: date || null,
+      daysLeft: 0,
       quantity: quantity.trim() || "1 item",
       emoji: categoryEmojis[selectedCat] || "🍽️",
     });
@@ -65,6 +58,8 @@ export default function ManualAddModal() {
     } else {
       router.replace("/(app)/(tabs)" as any);
     }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save item.'); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -126,17 +121,17 @@ export default function ManualAddModal() {
             placeholder="YYYY-MM-DD (e.g. 2026-09-25)"
             value={expDate}
             onChangeText={setExpDate}
-            helperText="Leave blank to default to 7 days from now"
+            helperText="Leave blank if the expiration date is unknown"
             leadingIcon={<Icon name="Calendar" size={16} color="#94A3B8" />}
           />
         </View>
 
         <Button
-          label="Add to Pantry"
+          label={saving ? 'Saving…' : 'Add to Pantry'}
           variant="primary"
           leadingIcon={<Icon name="Plus" size={18} color="#FFFFFF" />}
           onPress={handleSave}
-          disabled={!name.trim()}
+          disabled={saving || !name.trim()}
         />
       </ScrollView>
     </SafeAreaView>
