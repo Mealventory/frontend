@@ -1,3 +1,7 @@
+# Current working flow
+
+Real sign-in, household creation/joining, invite codes and members are available on the home route. Follow [the live household guide](docs/live-households.md) to connect your backend and run in Expo Go. The rest of this document describes the target product.
+
 # Mealventory Mobile Client: Target Final State & Purpose
 
 ## 1. Purpose of the Repository
