@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, Home, Leaf, LogOut, RefreshCw, Users } from 'lucide-react-native';
 import type { Session } from '@supabase/supabase-js';
@@ -19,6 +20,7 @@ function Action({ title, onPress, disabled, secondary = false }: { title: string
 }
 
 export function HouseholdScreen() {
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const generation = useRef(0);
@@ -175,7 +177,14 @@ export function HouseholdScreen() {
                 {!!memberError && <Text accessibilityRole="alert" style={styles.error}>{memberError}</Text>}
               </View>
             </>}
-            <Action title="Create a household" onPress={() => openPage('create')} disabled={loading} />
+            {selected && (
+              <Action
+                title={`Enter ${selected.name} (Kitchen)`}
+                onPress={() => router.push('/(app)/(tabs)' as any)}
+                disabled={loading}
+              />
+            )}
+            <Action title="Create a household" onPress={() => openPage('create')} disabled={loading} secondary={!!selected} />
             <Action title="Join with an invite code" secondary onPress={() => openPage('join')} disabled={loading} />
             <Pressable accessibilityRole="button" disabled={loading} onPress={refreshHouseholds}><Text style={styles.link}>Refresh households</Text></Pressable>
           </>}

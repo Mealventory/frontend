@@ -1,24 +1,51 @@
 import React, { useState } from "react";
-import { View } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { RoutePlaceholder } from "@/src/components/layout/RoutePlaceholder";
 import { FormField } from "@/src/components/molecules";
 import { Button, Icon } from "@/src/components/atoms";
+import { supabase } from "@/src/lib/supabase";
 
 export default function SignInScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSignIn = async () => {
+    if (!supabase || busy || !email.trim() || !password) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (signInError) throw signInError;
+      router.replace("/" as any);
+    } catch (err: any) {
+      setError(err?.message || "Could not sign in. Check your credentials.");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <RoutePlaceholder
       title="Sign In"
       category="Auth"
       routePath="/(auth)/sign-in"
-      description="Authentication screen allowing existing household users to authenticate via Supabase Auth (Email or OAuth)."
+      description="Authenticate via Supabase Auth (Email & Password)."
       iconName="LogIn"
     >
       <View className="gap-4">
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
         <FormField
           label="Email Address"
           placeholder="name@example.com"
@@ -37,10 +64,12 @@ export default function SignInScreen() {
           leadingIcon={<Icon name="Lock" size={18} color="#94A3B8" />}
         />
         <Button
-          label="Sign In to Kitchen"
+          label={busy ? "Signing in..." : "Sign In to Kitchen"}
           variant="primary"
-          onPress={() => router.replace("/(app)/(tabs)" as any)}
+          disabled={busy || !email.trim() || !password}
+          onPress={handleSignIn}
         />
+
         <Button
           label="Forgot Password?"
           variant="ghost"
@@ -51,3 +80,16 @@ export default function SignInScreen() {
     </RoutePlaceholder>
   );
 }
+
+const styles = StyleSheet.create({
+  errorBox: {
+    backgroundColor: "#FEE2E2",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 4,
+  },
+  errorText: {
+    color: "#DC2626",
+    fontSize: 13,
+  },
+});
