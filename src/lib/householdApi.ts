@@ -20,6 +20,9 @@ export async function householdRequest<T>(path: string, token: string, body?: ob
     if (!response.ok) {
       if (response.status === 401) throw new Error('Your sign-in could not be verified. Sign out and sign in again.');
       if (response.status === 404 && path === '/join') throw new Error('That invite code wasn’t found. Check the code and try again.');
+      if ([502, 503, 530].includes(response.status) && backendUrl.includes('.trycloudflare.com')) {
+        throw new Error('The temporary backend tunnel is unavailable. Restart the backend tunnel, update the app connection address, and restart Expo.');
+      }
       if (response.status >= 500) throw new Error('The household service is unavailable. Please try again shortly.');
       throw new Error(typeof data?.detail === 'string' ? data.detail : 'Could not complete that request. Please try again.');
     }

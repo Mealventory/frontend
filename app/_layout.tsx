@@ -1,6 +1,6 @@
 import "../global.css";
 import { useEffect } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import {
@@ -11,11 +11,18 @@ import {
 } from "@expo-google-fonts/inter";
 import { ThemeProvider, useAppTheme } from "@/src/context/ThemeContext";
 import { InventoryProvider } from "@/src/context/InventoryContext";
+import { AuthProvider, useAuth } from "@/src/context/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutContent() {
   const { isDark } = useAppTheme();
+  const { recovery } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  useEffect(() => {
+    if (recovery && pathname !== '/reset-password') router.replace('/reset-password' as any);
+  }, [recovery, pathname, router]);
 
   return (
     <>
@@ -58,9 +65,11 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
+      <AuthProvider>
       <InventoryProvider>
         <RootLayoutContent />
       </InventoryProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

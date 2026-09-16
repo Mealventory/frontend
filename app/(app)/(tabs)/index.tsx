@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { View, ScrollView, TextInput } from "react-native";
+import { View, ScrollView, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useNavigation } from "expo-router";
 import { Typography, Badge } from "@/src/components/atoms";
 import { Icon } from "@/src/components/atoms/Icon";
 import { FoodItemCard } from "@/src/components/domain/FoodItemCard";
@@ -12,6 +12,7 @@ const categories = ["All", "Produce", "Dairy", "Meat", "Bakery", "Pantry"];
 
 export default function PantryDashboardScreen() {
   const router = useRouter();
+  const rootNavigation = useNavigation("/");
   const { inventory, openItem, expiringSoonCount } = useInventory();
   const [selectedCat, setSelectedCat] = useState("All");
   const [search, setSearch] = useState("");
@@ -30,16 +31,50 @@ export default function PantryDashboardScreen() {
           <View>
             <Typography variant="h1">My Kitchen</Typography>
             <Typography variant="caption" color="muted" className="mt-0.5">
-              {inventory.length} items in pantry
+              {`${inventory.length} items in pantry`}
             </Typography>
           </View>
-          {expiringSoonCount > 0 && (
-            <Badge
-              label={`${expiringSoonCount} expiring soon`}
-              variant="soon"
-              showDot
-            />
-          )}
+          <View className="flex-row items-center gap-2">
+            {expiringSoonCount > 0 && (
+              <Badge
+                label={`${expiringSoonCount} expiring soon`}
+                variant="soon"
+                showDot
+              />
+            )}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => router.push("/(modal)/manual-add" as any)}
+              className="flex-row items-center gap-1 px-2.5 py-1.5 bg-brand-500 rounded-xl shadow-sm"
+              accessibilityLabel="Add food item manually"
+            >
+              <Icon name="Plus" size={14} color="#FFFFFF" />
+              <Typography variant="caption" className="font-bold text-white">
+                Add
+              </Typography>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                if (router.canDismiss()) {
+                  router.dismissAll();
+                } else {
+                  try {
+                    rootNavigation.navigate("index" as never);
+                  } catch {
+                    router.replace("/" as any);
+                  }
+                }
+              }}
+              className="flex-row items-center gap-1.5 px-3 py-1.5 bg-ground-surface dark:bg-ground-card border border-border-default rounded-xl shadow-sm"
+              accessibilityLabel="Households and log out"
+            >
+              <Icon name="Home" size={15} color="#10B981" />
+              <Typography variant="caption" className="font-semibold text-brand-600 dark:text-brand-400">
+                Households
+              </Typography>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search */}

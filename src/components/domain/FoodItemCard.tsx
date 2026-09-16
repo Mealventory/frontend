@@ -60,7 +60,7 @@ export function FoodItemCard({ item, onPress, className = "" }: FoodItemCardProp
           {item.name}
         </Text>
         <Text className="text-[12px] font-regular text-text-muted mt-0.5">
-          {item.quantity} · {item.category}
+          {`${item.quantity} · ${item.category}`}
         </Text>
       </View>
 

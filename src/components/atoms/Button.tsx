@@ -30,14 +30,14 @@ export interface ButtonProps extends TouchableOpacityProps {
 
 const variantButtonStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-500 active:bg-brand-600 shadow-sm shadow-brand-500/30 border border-transparent",
+    "bg-brand-500 active:bg-brand-600 shadow-sm border border-transparent",
   secondary:
     "bg-ground-subtle active:bg-ground-muted border border-border-default",
   outline:
     "bg-transparent border border-border-default active:bg-ground-subtle",
   ghost: "bg-transparent active:bg-ground-subtle border border-transparent",
   danger:
-    "bg-urgency-critical active:opacity-90 shadow-sm shadow-urgency-critical/30 border border-transparent",
+    "bg-urgency-critical active:opacity-90 shadow-sm border border-transparent",
   social:
     "bg-ground-surface border border-border-default active:bg-ground-subtle shadow-sm",
 };

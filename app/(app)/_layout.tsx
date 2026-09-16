@@ -1,6 +1,12 @@
-import { Stack } from "expo-router";
+import { Redirect, Stack } from "expo-router";
+import { useAuth } from "@/src/context/AuthContext";
 
 export default function AppGroupLayout() {
+  const { session, ready, recovery, household } = useAuth();
+  if (!ready) return null;
+  if (recovery) return <Redirect href={'/reset-password' as any} />;
+  if (!session || !household) return <Redirect href="/" />;
+
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
