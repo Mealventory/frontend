@@ -12,3 +12,8 @@ export function defaultScanZone(category: string): StorageZone {
     default: return 'pantry';
   }
 }
+
+export function resolveScanZone(zone: unknown, category: string): StorageZone {
+  return zone === 'pantry' || zone === 'fridge' || zone === 'freezer' || zone === 'spicerack'
+    ? zone : defaultScanZone(category);
+}

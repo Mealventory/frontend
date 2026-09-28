@@ -6,7 +6,13 @@ const Module = require('node:module');
 
 process.env.EXPO_PUBLIC_BACKEND_URL = 'https://backend.example';
 
+const zones = new Module('storageZones');
+zones._compile(ts.transpileModule(fs.readFileSync('src/lib/storageZones.ts', 'utf8'), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS },
+}).outputText, 'storageZones.cjs');
 const mod = new Module('scanApi');
+const originalRequire = mod.require.bind(mod);
+mod.require = name => name === './storageZones' ? zones.exports : originalRequire(name);
 mod._compile(
   ts.transpileModule(fs.readFileSync('src/lib/scanApi.ts', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -140,4 +146,18 @@ test('uploadScanImage rejects missing token or household', async () => {
     }),
     /household/i
   );
+});
+
+test('both scan response shapes use category defaults and preserve overrides', () => {
+  const items = [
+    { name: 'Milk', category: 'Dairy' },
+    { name: 'Peas', category: 'Frozen' },
+    { name: 'Milk', category: 'Dairy', storage_zone: 'freezer' },
+    { name: 'Spice', category: 'Spices', storage_zone: 'invalid' },
+  ];
+  for (const response of [items, { items }]) {
+    const rows = normalizeScanResponse(response);
+    assert.deepEqual(rows.map(row => row.storageZone), ['fridge', 'freezer', 'freezer', 'spicerack']);
+    assert.ok(rows.every(row => row.expiry_date === null));
+  }
 });
