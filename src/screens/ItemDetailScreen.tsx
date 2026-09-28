@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon } from "@/src/components/atoms/Icon";
@@ -11,7 +11,10 @@ export interface ItemDetailScreenProps {
 }
 
 export function ItemDetailScreen({ onNavigate }: ItemDetailScreenProps) {
-  const { selectedItem, removeItem } = useInventory();
+  const { selectedItem, removeItem, transitionItem } = useInventory();
+
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
 
   if (!selectedItem) {
     return (
@@ -29,9 +32,15 @@ export function ItemDetailScreen({ onNavigate }: ItemDetailScreenProps) {
     );
   }
 
-  const handleDelete = () => {
-    removeItem(selectedItem.id);
-    onNavigate("home");
+  const handleAction = async (action: 'delete' | 'consume' | 'discard') => {
+    if (deleting) return;
+    setDeleting(true); setError('');
+    try {
+      if (action === 'delete') await removeItem(selectedItem.id);
+      else await transitionItem(selectedItem.id, action);
+      onNavigate("home");
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not update item.'); }
+    finally { setDeleting(false); }
   };
 
   const infoRows = [
@@ -58,13 +67,15 @@ export function ItemDetailScreen({ onNavigate }: ItemDetailScreenProps) {
 
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={handleDelete}
+          onPress={() => handleAction("delete")}
+          disabled={deleting}
           className="w-[38px] h-[38px] rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
         >
           <Icon name="Trash2" size={16} color="#F43F5E" />
         </TouchableOpacity>
       </View>
 
+      {!!error && <Text accessibilityRole="alert" style={{ color: "#B42318", padding: 20 }}>{error}</Text>}
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
@@ -93,6 +104,18 @@ export function ItemDetailScreen({ onNavigate }: ItemDetailScreenProps) {
               </Text>
             </View>
           ))}
+        </View>
+
+        <View className="gap-3 mb-4">
+          <TouchableOpacity disabled={deleting} onPress={() => handleAction('consume')}
+            className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button">
+            <Text className="text-white font-bold">{deleting ? 'Saving…' : 'Mark as consumed'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity disabled={deleting} onPress={() => handleAction('discard')}
+            className="p-4 rounded-xl bg-ground-subtle items-center" accessibilityRole="button">
+            <Text className="text-text-primary font-bold">Mark as discarded</Text>
+          </TouchableOpacity>
+          <Text className="text-text-muted">These actions apply to the entire item quantity and keep its history.</Text>
         </View>
 
         {/* Recipe Suggestion Nudge Card */}

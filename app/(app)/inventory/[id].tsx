@@ -10,7 +10,7 @@ import { useInventory } from "@/src/context/InventoryContext";
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { inventory, removeItem } = useInventory();
+  const { inventory, removeItem, transitionItem } = useInventory();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,11 +32,14 @@ export default function ItemDetailScreen() {
     );
   }
 
-  const handleDelete = async () => {
+  const handleAction = async (action: 'delete' | 'consume' | 'discard') => {
     if (deleting) return;
     setDeleting(true); setError('');
-    try { await removeItem(item.id); router.back(); }
-    catch (e) { setError(e instanceof Error ? e.message : 'Could not delete item.'); }
+    try {
+      if (action === 'delete') await removeItem(item.id);
+      else await transitionItem(item.id, action);
+      router.back();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not update item.'); }
     finally { setDeleting(false); }
   };
 
@@ -64,7 +67,7 @@ export default function ItemDetailScreen() {
 
         <TouchableOpacity
           activeOpacity={0.7}
-          onPress={handleDelete}
+          onPress={() => handleAction("delete")}
           disabled={deleting}
           accessibilityLabel={deleting ? 'Deleting item' : 'Delete item'}
           className="w-[38px] h-[38px] rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
@@ -102,6 +105,18 @@ export default function ItemDetailScreen() {
               </Text>
             </View>
           ))}
+        </View>
+
+        <View className="gap-3 mb-4">
+          <TouchableOpacity disabled={deleting} onPress={() => handleAction('consume')}
+            className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button">
+            <Text className="text-white font-bold">{deleting ? 'Saving…' : 'Mark as consumed'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity disabled={deleting} onPress={() => handleAction('discard')}
+            className="p-4 rounded-xl bg-ground-subtle items-center" accessibilityRole="button">
+            <Text className="text-text-primary font-bold">Mark as discarded</Text>
+          </TouchableOpacity>
+          <Text className="text-text-muted">These actions apply to the entire item quantity and keep its history.</Text>
         </View>
 
         {/* Recipe Suggestion Nudge Card */}

@@ -3,13 +3,37 @@ import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Typography, Button, Icon, Badge, Avatar } from "@/src/components/atoms";
-import { FormField } from "@/src/components/molecules";
+import { useInventory } from "@/src/context/InventoryContext";
+import { defaultScanZone } from "@/src/lib/storageZones";
+import type { StorageZone } from "@/src/types";
+import { FormField, TagChipGroup } from "@/src/components/molecules";
 
 export default function AIReviewModal() {
   const router = useRouter();
+  const { addItem } = useInventory();
   const [name, setName] = useState("Organic Blueberries");
   const [expDate, setExpDate] = useState("2026-09-21");
   const [qty, setQty] = useState("6 oz container");
+
+  const [storageZone, setStorageZone] = useState<StorageZone>(defaultScanZone("Produce"));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const save = async () => {
+    if (saving) return;
+    const date = expDate.trim();
+    if (!name.trim()) { setError("Enter an item name."); return; }
+    if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date)) {
+      setError("Enter a valid expiration date as YYYY-MM-DD."); return;
+    }
+    setSaving(true); setError("");
+    try {
+      await addItem({ id: Date.now().toString(), name: name.trim(), category: "Produce",
+        expDate: date || "Not set", expiryDate: date || null, daysLeft: 0,
+        quantity: qty, emoji: "🫐", storageZone });
+      router.replace("/(app)/(tabs)" as any);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not save item."); }
+    finally { setSaving(false); }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
@@ -22,7 +46,7 @@ export default function AIReviewModal() {
             size="sm"
             onPress={() => router.back()}
           />
-          <Badge label="AI Vision Detected" variant="brand" showDot />
+          <Badge label="Sample scan" variant="brand" showDot />
           <View className="w-12" />
         </View>
 
@@ -30,7 +54,7 @@ export default function AIReviewModal() {
           Review Item
         </Typography>
         <Typography variant="caption" color="muted" className="mb-6">
-          Verify Gemini-extracted item attributes before committing to pantry
+          Review this sample item before adding it to your kitchen. Live camera recognition is not connected yet.
         </Typography>
 
         {/* Hero Card */}
@@ -41,10 +65,10 @@ export default function AIReviewModal() {
               {name}
             </Typography>
             <Typography variant="caption" color="muted">
-              Produce · Refrigerator
+              Produce · {storageZone}
             </Typography>
           </View>
-          <Badge label="98% confidence" variant="fresh" size="sm" />
+
         </View>
 
         {/* Form Fields */}
@@ -69,12 +93,18 @@ export default function AIReviewModal() {
           />
         </View>
 
+        <Typography variant="caption">Storage zone</Typography>
+        <TagChipGroup tags={["pantry", "fridge", "freezer", "spicerack"]}
+          selectedTag={storageZone} onSelectTag={(zone) => setStorageZone(zone as StorageZone)} />
+        {error ? <Typography>{error}</Typography> : null}
+
         {/* Action button */}
         <Button
-          label="Add to Household Pantry"
+          label={saving ? "Saving…" : "Add to Kitchen"}
+          disabled={saving}
           variant="primary"
           leadingIcon={<Icon name="PlusCircle" size={18} color="#FFFFFF" />}
-          onPress={() => router.replace("/(app)/(tabs)" as any)}
+          onPress={save}
         />
       </ScrollView>
     </SafeAreaView>

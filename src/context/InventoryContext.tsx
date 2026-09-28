@@ -127,6 +127,7 @@ interface InventoryContextType {
   navigate: (screen: FigmaScreen) => void;
   addItem: (item: FoodItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
+  transitionItem: (id: string, action: 'consume' | 'discard') => Promise<void>;
   refreshInventory: () => Promise<void>;
   inventoryLoading: boolean;
   inventoryError: string;
@@ -222,7 +223,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     mutations.current++; revision.current++;
     try {
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, {
-        name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null,
+        storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null,
       });
       if (activeScope.current === scope) { setInventory(prev => [toFoodItem(row), ...prev.filter(i => i.id !== row.id)]); setInventoryError(''); }
     } finally { mutations.current--; revision.current++; }
@@ -234,6 +235,19 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     mutations.current++; revision.current++;
     try {
       await inventoryRequest<void>(await token(), household.id, 'DELETE', id);
+      if (activeScope.current === scope) {
+        setInventory(prev => prev.filter(item => item.id !== id));
+        setSelectedItem(prev => prev?.id === id ? null : prev); setInventoryError('');
+      }
+    } finally { mutations.current--; revision.current++; }
+  };
+
+  const transitionItem = async (id: string, action: 'consume' | 'discard') => {
+    if (demo) { setInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
+    if (!household || !session) throw new Error('Choose a household first.');
+    mutations.current++; revision.current++;
+    try {
+      await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', id, undefined, action);
       if (activeScope.current === scope) {
         setInventory(prev => prev.filter(item => item.id !== id));
         setSelectedItem(prev => prev?.id === id ? null : prev); setInventoryError('');
@@ -286,6 +300,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         navigate: setCurrentScreen,
         addItem,
         removeItem,
+        transitionItem,
         openItem,
         openRecipe,
         login,
