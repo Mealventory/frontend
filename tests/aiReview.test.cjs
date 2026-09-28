@@ -153,3 +153,13 @@ test('all failed saves keep every item retryable', async () => {
   assert.deepEqual(result.savedIds, []);
   assert.equal(result.errors.length, 1);
 });
+
+test('parseRawScanItems handles rawBarcode parameter when items JSON is absent or empty', () => {
+  const itemsFromBarcode = parseRawScanItems(undefined, '012345678905');
+  assert.equal(itemsFromBarcode.length, 1);
+  assert.equal(itemsFromBarcode[0].name, 'Barcode: 012345678905');
+  assert.equal(itemsFromBarcode[0].category, 'Pantry');
+  assert.equal(itemsFromBarcode[0].storageZone, 'pantry');
+  assert.equal(itemsFromBarcode[0].quantity, 1);
+  assert.equal(itemsFromBarcode[0].confirmed, true);
+});

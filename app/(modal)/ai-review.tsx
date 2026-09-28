@@ -62,28 +62,45 @@ export function getItemEmoji(name: string, category: string): string {
   return "🍽️";
 }
 
-export function parseRawScanItems(rawParam?: string): ReviewItemState[] {
-  if (!rawParam) return [];
-  try {
-    const parsed = JSON.parse(rawParam);
-    if (!Array.isArray(parsed)) return [];
+export function parseRawScanItems(rawParam?: string, rawBarcode?: string): ReviewItemState[] {
+  if (rawParam) {
+    try {
+      const parsed = JSON.parse(rawParam);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((item: ScannedItem, index: number) => ({
+          id: item.id || `scanned-${index}-${Date.now()}`,
+          name: item.name || `Detected Item ${index + 1}`,
+          category: item.category || "Pantry",
+          quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
+          unit: item.unit || "units",
+          expiry_date: item.expiry_date || "",
+          storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
+          confidence: typeof item.confidence === "number" ? item.confidence : undefined,
+          confirmed: true,
+          isEditing: false,
+        }));
+      }
+    } catch {
+      // Fall through to rawBarcode check if json parse fails
+    }
+  }
 
-
-    return parsed.map((item: ScannedItem, index: number) => ({
-      id: item.id || `scanned-${index}-${Date.now()}`,
-      name: item.name || `Detected Item ${index + 1}`,
-      category: item.category || "Pantry",
-      quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
-      unit: item.unit || "units",
-      expiry_date: item.expiry_date || "",
-      storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
-      confidence: typeof item.confidence === "number" ? item.confidence : undefined,
+  if (rawBarcode) {
+    return [{
+      id: `scanned-barcode-${Date.now()}`,
+      name: `Barcode: ${rawBarcode}`,
+      category: "Pantry",
+      quantity: 1,
+      unit: "units",
+      expiry_date: "",
+      storageZone: "pantry",
+      confidence: 1.0,
       confirmed: true,
       isEditing: false,
-    }));
-  } catch {
-    return [];
+    }];
   }
+
+  return [];
 }
 
 export async function saveReviewedItems(
@@ -114,10 +131,13 @@ export default function AIReviewModal() {
   const router = useRouter();
   const { session, household } = useAuth();
   const { refreshInventory } = useInventory();
-  const params = useLocalSearchParams<{ items?: string; mode?: string }>();
+  const params = useLocalSearchParams<{ items?: string; mode?: string; barcode?: string; barcodeType?: string }>();
 
   // Parse items from scanner navigation route params
-  const initialItems = useMemo(() => parseRawScanItems(params.items), [params.items]);
+  const initialItems = useMemo(
+    () => parseRawScanItems(params.items, params.barcode),
+    [params.items, params.barcode]
+  );
 
   const [items, setItems] = useState<ReviewItemState[]>(initialItems);
   const savingRef = useRef(false);
@@ -191,6 +211,20 @@ export default function AIReviewModal() {
     }
   };
 
+  const modeBadge = useMemo(() => {
+    switch (params.mode) {
+      case "barcode":
+        return "Barcode scan";
+      case "receipt":
+        return "Receipt OCR";
+      case "tag":
+        return "Tag scan";
+      case "food":
+      default:
+        return "Product AI";
+    }
+  }, [params.mode]);
+
   // Empty items state
   if (items.length === 0) {
     return (
@@ -202,7 +236,7 @@ export default function AIReviewModal() {
             size="sm"
             onPress={() => router.back()}
           />
-          <Badge label="Scan review" variant="brand" showDot />
+          <Badge label={modeBadge} variant="brand" showDot />
           <View className="w-12" />
         </View>
 
@@ -229,7 +263,7 @@ export default function AIReviewModal() {
             size="sm"
             onPress={() => router.back()}
           />
-          <Badge label="Scan review" variant="brand" showDot />
+          <Badge label="Sample scan" variant="brand" showDot />
           <View className="w-12" />
         </View>
 
