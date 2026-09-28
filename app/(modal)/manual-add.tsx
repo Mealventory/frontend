@@ -6,6 +6,8 @@ import { Typography, Button, Icon } from "@/src/components/atoms";
 import { FormField, TagChipGroup } from "@/src/components/molecules";
 import { useInventory } from "@/src/context/InventoryContext";
 
+import type { StorageZone } from "@/src/types";
+
 const categories = ["Produce", "Dairy", "Meat", "Bakery", "Pantry", "Beverage", "Snacks"];
 
 const categoryEmojis: Record<string, string> = {
@@ -25,6 +27,7 @@ export default function ManualAddModal() {
   const [quantity, setQuantity] = useState("");
   const [expDate, setExpDate] = useState("");
   const [selectedCat, setSelectedCat] = useState("Produce");
+  const [storageZone, setStorageZone] = useState<StorageZone>("pantry");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -46,6 +49,7 @@ export default function ManualAddModal() {
       id: Date.now().toString(),
       name: trimmedName,
       category: selectedCat,
+      storageZone,
       expDate: date || 'Not set',
       expiryDate: date || null,
       daysLeft: 0,
@@ -108,6 +112,12 @@ export default function ManualAddModal() {
             />
           </View>
 
+          <View>
+            <Typography variant="caption">Storage zone</Typography>
+            <TagChipGroup tags={["pantry", "fridge", "freezer", "spicerack"]}
+              selectedTag={storageZone} onSelectTag={(zone) => setStorageZone(zone as StorageZone)} />
+          </View>
+
           <FormField
             label="Quantity / Size"
             placeholder="e.g. 1 loaf or 500g"
@@ -127,7 +137,7 @@ export default function ManualAddModal() {
         </View>
 
         <Button
-          label={saving ? 'Saving…' : 'Add to Pantry'}
+          label={saving ? 'Saving…' : 'Add to Kitchen'}
           variant="primary"
           leadingIcon={<Icon name="Plus" size={18} color="#FFFFFF" />}
           onPress={handleSave}
