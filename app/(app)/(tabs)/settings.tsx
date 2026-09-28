@@ -269,13 +269,6 @@ export default function SettingsTabScreen() {
             }}
           />
         </View>
-
-        <Button
-          label="View Design System Showcase"
-          variant="secondary"
-          leadingIcon={<Icon name="Layers" size={16} />}
-          onPress={() => router.push("/prototype" as any)}
-        />
       </ScrollView>
     </SafeAreaView>
   );

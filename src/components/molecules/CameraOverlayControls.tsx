@@ -1,7 +1,6 @@
 import React from "react";
-import { View, TouchableOpacity, Text } from "react-native";
+import { View, TouchableOpacity, Text, ActivityIndicator } from "react-native";
 import { Icon } from "../atoms/Icon";
-import { Button } from "../atoms/Button";
 
 export interface CameraOverlayControlsProps {
   onScan: () => void;
@@ -28,6 +27,7 @@ export function CameraOverlayControls({
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={onToggleFlash}
+          accessibilityLabel={flashOn ? "Turn flash off" : "Turn flash on"}
           className={`w-12 h-12 rounded-2xl items-center justify-center border ${
             flashOn
               ? "bg-brand-500 border-brand-500"
@@ -47,6 +47,7 @@ export function CameraOverlayControls({
           activeOpacity={0.8}
           disabled={scanning}
           onPress={onScan}
+          accessibilityLabel="Auto-scanning barcode"
           className="flex-1 h-12 bg-white/15 border border-white/25 rounded-2xl flex-row items-center justify-center px-4"
         >
           <View className="w-2.5 h-2.5 rounded-full bg-brand-500 mr-2 animate-pulse" />
@@ -56,15 +57,29 @@ export function CameraOverlayControls({
           </Text>
         </TouchableOpacity>
       ) : (
-        <Button
-          label={scanning ? "Analyzing..." : "Capture & Review"}
-          variant="primary"
-          size="lg"
-          loading={scanning}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          disabled={scanning}
           onPress={onScan}
-          className="flex-1"
-          leadingIcon={!scanning ? <Icon name="Camera" size={20} color="#FFFFFF" /> : undefined}
-        />
+          accessibilityLabel={scanning ? "Analyzing image" : "Capture and review"}
+          className="flex-1 h-12 bg-brand-500 active:bg-brand-600 border border-brand-500 rounded-2xl flex-row items-center justify-center px-4 shadow-sm"
+        >
+          {scanning ? (
+            <>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text className="text-white font-bold text-[14px] ml-2">
+                Analyzing...
+              </Text>
+            </>
+          ) : (
+            <>
+              <Icon name="Camera" size={18} color="#FFFFFF" />
+              <Text className="text-white font-bold text-[14px] ml-2">
+                Capture & Review
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       )}
     </View>
   );

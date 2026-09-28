@@ -8,7 +8,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, usePathname } from "expo-router";
-import { CameraView, useCameraPermissions, BarcodeScanningResult } from "expo-camera";
+import { CameraView, useCameraPermissions, BarcodeScanningResult, scanFromURLAsync } from "expo-camera";
+import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { Typography, Icon, Button } from "@/src/components/atoms";
 import { BarcodeScannerFrame, CameraOverlayControls } from "@/src/components/molecules";
@@ -107,8 +108,7 @@ export default function ScanTabScreen() {
     [isFocused, mode, scanning, router]
   );
 
-  const handleScan = async () => {
-    if (scanning) return;
+  const processScannedImage = async (rawUri: string) => {
     setErrorMessage(null);
     setScanning(true);
 
@@ -119,25 +119,70 @@ export default function ScanTabScreen() {
         // Silently continue
       }
 
-      let imageUri: string | null = null;
-
-      if (cameraRef.current) {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 0.85,
-          base64: true,
-        });
-        if (photo?.base64) {
-          imageUri = `data:image/jpeg;base64,${photo.base64}`;
-        } else {
-          imageUri = photo?.uri || null;
+      if (mode === "barcode") {
+        let barcodeData: string | null = null;
+        try {
+          const barcodeResults = await scanFromURLAsync(rawUri, [
+            "qr",
+            "ean13",
+            "ean8",
+            "upc_a",
+            "upc_e",
+            "code128",
+            "code39",
+            "itf14",
+          ]);
+          if (barcodeResults && barcodeResults.length > 0 && barcodeResults[0]?.data) {
+            barcodeData = barcodeResults[0].data.trim();
+          }
+        } catch {
+          // Native barcode scanner fallback
         }
+
+        if (!barcodeData) {
+          throw new Error("Barcode could not be detected. Please adjust camera framing and retry.");
+        }
+
+        try {
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {
+          // Graceful fallback
+        }
+
+        try {
+          const resolvedProduct = await fetchProductByBarcode(barcodeData);
+          router.push({
+            pathname: "/(modal)/ai-review",
+            params: {
+              items: JSON.stringify([resolvedProduct]),
+              mode: "barcode",
+              barcode: barcodeData,
+            },
+          } as any);
+        } catch {
+          router.push({
+            pathname: "/(modal)/ai-review",
+            params: {
+              items: JSON.stringify([
+                {
+                  name: `Item (${barcodeData})`,
+                  category: "Pantry",
+                  quantity: 1,
+                  unit: "units",
+                  expiry_date: null,
+                  storageZone: "pantry",
+                  confidence: 1.0,
+                },
+              ]),
+              mode: "barcode",
+              barcode: barcodeData,
+            },
+          } as any);
+        }
+        return;
       }
 
-      if (!imageUri) {
-        throw new Error("Unable to capture camera frame. Please try again.");
-      }
-
-      const compressedUri = await compressImageForUpload(imageUri, {
+      const compressedUri = await compressImageForUpload(rawUri, {
         maxWidth: 1600,
         quality: 0.8,
       });
@@ -194,6 +239,67 @@ export default function ScanTabScreen() {
     }
   };
 
+  const handlePickImage = async () => {
+    if (scanning) return;
+    setErrorMessage(null);
+
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        setErrorMessage("Gallery permission is required to choose photos.");
+        return;
+      }
+
+      const pickerResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: false,
+        quality: 0.85,
+      });
+
+      if (pickerResult.canceled || !pickerResult.assets || pickerResult.assets.length === 0) {
+        return;
+      }
+
+      const pickedUri = pickerResult.assets[0].uri;
+      if (pickedUri) {
+        await processScannedImage(pickedUri);
+      }
+    } catch (err: any) {
+      const elementName = mode === "receipt" ? "Receipt" : mode === "barcode" ? "Barcode" : mode === "tag" ? "Tag" : "Product";
+      setErrorMessage(`${elementName} could not be detected. Please adjust camera framing and retry.`);
+    }
+  };
+
+  const handleScan = async () => {
+    if (scanning) return;
+    setErrorMessage(null);
+
+    let imageUri: string | null = null;
+
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.85,
+          base64: true,
+        });
+        if (photo?.uri) {
+          imageUri = photo.uri;
+        } else if (photo?.base64) {
+          imageUri = `data:image/jpeg;base64,${photo.base64}`;
+        }
+      } catch {
+        // Handled below
+      }
+    }
+
+    if (!imageUri) {
+      setErrorMessage("Unable to capture camera frame. Please try again.");
+      return;
+    }
+
+    await processScannedImage(imageUri);
+  };
+
   // Permission: loading state
   if (!permission) {
     return (
@@ -238,8 +344,16 @@ export default function ScanTabScreen() {
             leadingIcon={<Icon name="Camera" size={20} color="#FFFFFF" />}
           />
           <Button
-            label="Add Items Manually"
+            label="Choose Photo from Gallery"
             variant="outline"
+            size="lg"
+            className="w-full mb-3"
+            onPress={handlePickImage}
+            leadingIcon={<Icon name="Image" size={20} color="#FFFFFF" />}
+          />
+          <Button
+            label="Add Items Manually"
+            variant="ghost"
             size="lg"
             className="w-full"
             onPress={() => router.push("/(modal)/manual-add" as any)}
@@ -282,7 +396,15 @@ export default function ScanTabScreen() {
       <SafeAreaView edges={["top", "left", "right"]} className="flex-1 justify-between">
         {/* Top Header */}
         <View className="flex-row items-center justify-between px-5 pt-3">
-          <View className="w-10" />
+          <TouchableOpacity
+            activeOpacity={0.7}
+            disabled={scanning}
+            onPress={handlePickImage}
+            accessibilityLabel="Choose photo from gallery"
+            className="w-10 h-10 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
+          >
+            <Icon name="Image" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
 
           <View className="items-center">
             <Typography variant="h3" className="text-white font-bold">

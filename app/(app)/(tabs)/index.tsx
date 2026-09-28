@@ -82,8 +82,8 @@ export default function PantryDashboardScreen() {
           {!inventoryError && !inventoryLoading && inventory.length === 0 && <EmptyState
             icon="Refrigerator" title="A fresh start for your kitchen"
             description="A few ingredients, a little inspiration. Add your first item and let’s see what’s cooking."
-            actionLabel="Add your first ingredient" onAction={() => router.push("/(modal)/manual-add" as any)}
-            secondaryLabel="Scan a receipt instead" onSecondary={() => router.push("/(app)/(tabs)/scan" as any)} />}
+            actionLabel="Scan your first product" onAction={() => router.push("/(app)/(tabs)/scan" as any)}
+            secondaryLabel="Manually enter the product" onSecondary={() => router.push("/(modal)/manual-add" as any)} />}
           {!inventoryError && !inventoryLoading && inventory.length > 0 && filtered.length === 0 && <EmptyState
             icon="Search" title="Nothing on this shelf"
             description="Try another ingredient or clear your filters to see the whole kitchen."
