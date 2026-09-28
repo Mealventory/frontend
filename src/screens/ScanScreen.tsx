@@ -11,11 +11,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon } from "@/src/components/atoms/Icon";
 import { BarcodeScannerFrame } from "@/src/components/molecules/BarcodeScannerFrame";
 import { useInventory, FigmaScreen } from "@/src/context/InventoryContext";
-import { FoodItem } from "@/src/types";
+import { defaultScanZone } from "@/src/lib/storageZones";
+import { TagChipGroup } from "@/src/components/molecules";
+import { FoodItem, StorageZone } from "@/src/types";
 
 const sampleScanSuggestions = [
   { name: "Organic Blueberries", category: "Produce", expDate: "Sep 19", daysLeft: 5, quantity: "6 oz", emoji: "🫐" },
-  { name: "Reduced Fat Milk", category: "Dairy", expDate: "Sep 21", daysLeft: 7, quantity: "1/2 gallon", emoji: "🥛" },
+  { name: "Reduced Fat Milk", category: "Dairy", expDate: "Sep 21", daysLeft: 7, quantity: "0.5 gallon", emoji: "🥛" },
   { name: "Sliced Turkey Breast", category: "Meat", expDate: "Sep 16", daysLeft: 2, quantity: "8 oz", emoji: "🥩" },
   { name: "Romaine Lettuce", category: "Produce", expDate: "Sep 17", daysLeft: 3, quantity: "1 head", emoji: "🥬" },
 ];
@@ -30,6 +32,8 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
   const [scanning, setScanning] = useState(false);
   const [detected, setDetected] = useState<FoodItem | null>(null);
   const [expDate, setExpDate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [flashOn, setFlashOn] = useState(false);
 
   const handleScan = () => {
@@ -38,6 +42,7 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
       const pick = sampleScanSuggestions[Math.floor(Math.random() * sampleScanSuggestions.length)];
       const newItem: FoodItem = {
         ...pick,
+        storageZone: defaultScanZone(pick.category),
         id: Date.now().toString(),
       };
       setDetected(newItem);
@@ -47,11 +52,15 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
     }, 1500);
   };
 
-  const handleAddToKitchen = () => {
-    if (detected) {
-      addItem({ ...detected, expDate });
+  const handleAddToKitchen = async () => {
+    if (!detected || saving) return;
+    setSaving(true); setError("");
+    try {
+      await addItem({ ...detected, expDate });
       onNavigate("home");
-    }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save item.");
+    } finally { setSaving(false); }
   };
 
   return (
@@ -157,6 +166,12 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
                 </View>
               </View>
 
+              <Text>Storage zone</Text>
+              <TagChipGroup tags={["pantry", "fridge", "freezer", "spicerack"]}
+                selectedTag={detected.storageZone || "pantry"}
+                onSelectTag={(zone) => setDetected({ ...detected, storageZone: zone as StorageZone })} />
+              {error ? <Text accessibilityRole="alert">{error}</Text> : null}
+
               {/* Expiration Date Input */}
               <View>
                 <Text className="text-[12px] font-bold text-text-subtle uppercase tracking-wider mb-2">
@@ -191,6 +206,7 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
 
                 <TouchableOpacity
                   activeOpacity={0.8}
+                  disabled={saving}
                   onPress={handleAddToKitchen}
                   className="flex-[2] h-[50px] rounded-[16px] bg-brand-500 items-center justify-center shadow-md shadow-brand-500/30"
                 >

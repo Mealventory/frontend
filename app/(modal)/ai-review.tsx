@@ -175,6 +175,7 @@ export default function AIReviewModal() {
             quantity: Number(item.quantity) || 1,
             unit: item.unit.trim() || "units",
             expiry_date: item.expiry_date ? item.expiry_date.trim() : null,
+            storage_zone: item.storageZone,
           };
 
           await inventoryRequest(token, household.id, "POST", undefined, payload);
@@ -213,7 +214,7 @@ export default function AIReviewModal() {
             size="sm"
             onPress={() => router.back()}
           />
-          <Badge label="AI Vision Review" variant="brand" showDot />
+          <Badge label="Sample scan" variant="brand" showDot />
           <View className="w-12" />
         </View>
 
@@ -260,7 +261,7 @@ export default function AIReviewModal() {
             size="sm"
             onPress={() => router.back()}
           />
-          <Badge label="AI Vision Detected" variant="brand" showDot />
+          <Badge label="Sample scan" variant="brand" showDot />
           <View className="w-12" />
         </View>
 

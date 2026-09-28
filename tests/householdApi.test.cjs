@@ -48,3 +48,20 @@ test('offline failure explains the connection problem', async () => {
   global.fetch = async () => { throw new TypeError('Failed to fetch'); };
   await assert.rejects(householdRequest('/me', 'token'), /Could not reach the backend/);
 });
+
+test('Expo cancellation after our timeout produces an actionable message', async () => {
+  const savedTimeout = global.setTimeout;
+  const savedClearTimeout = global.clearTimeout;
+  try {
+    global.setTimeout = callback => { callback(); return 0; };
+    global.clearTimeout = () => {};
+    global.fetch = async (_, init) => {
+      assert.equal(init.signal.aborted, true);
+      throw new Error('fetch failed: FetchRequestCanceledException');
+    };
+    await assert.rejects(householdRequest('/me', 'token'), /backend request timed out/);
+  } finally {
+    global.setTimeout = savedTimeout;
+    global.clearTimeout = savedClearTimeout;
+  }
+});

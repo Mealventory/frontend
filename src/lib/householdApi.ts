@@ -28,7 +28,7 @@ export async function householdRequest<T>(path: string, token: string, body?: ob
     }
     return data as T;
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') throw new Error('The connection timed out. Check that your phone and computer are on the same Wi-Fi.');
+    if (controller.signal.aborted || (error instanceof Error && error.name === 'AbortError')) throw new Error('The backend request timed out. Check that the backend and its tunnel are running, then tap Retry.');
     if (error instanceof TypeError) throw new Error('Could not reach the backend. Check your connection and that the backend is running.');
     throw error;
   } finally { clearTimeout(timeout); }
