@@ -12,7 +12,7 @@ export default function WelcomeScreen() {
       title="Welcome & Cold Launch"
       category="Auth"
       routePath="/(auth)/welcome"
-      description="Cold start landing screen showcasing Mealventory's core value proposition: 'Track your food, waste less'."
+      description="A little less waste. A lot more together. Make room for a fresher kitchen."
       iconName="Sparkles"
     >
       <View className="gap-3">

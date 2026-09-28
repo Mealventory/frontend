@@ -41,6 +41,7 @@ const { parseRawScanItems, getItemEmoji, saveReviewedItems } = load('app/(modal)
     Avatar: mockComponent,
     Checkbox: mockComponent,
   },
+  '@/src/components/molecules/EmptyState': { EmptyState: mockComponent },
   '@/src/components/molecules': { FormField: mockComponent },
   '@/src/context/AuthContext': { useAuth: () => ({ session: null, household: null }) },
   '@/src/context/InventoryContext': { useInventory: () => ({ refreshInventory: async () => {} }) },

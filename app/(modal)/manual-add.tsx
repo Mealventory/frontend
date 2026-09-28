@@ -68,19 +68,20 @@ export default function ManualAddModal() {
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 40, width: "100%", maxWidth: 560, alignSelf: "center" }}>
         {/* Top Header */}
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center justify-between mb-5">
           <Button
+            className="w-20 px-0"
             label="Cancel"
             variant="ghost"
             size="sm"
             onPress={() => router.back()}
           />
-          <Typography variant="h3" className="font-bold">
+          <Typography variant="h3" className="font-bold text-center flex-1">
             Manual Entry
           </Typography>
-          <View className="w-12" />
+          <View className="w-20" />
         </View>
 
         <Typography variant="caption" color="muted" className="mb-6">

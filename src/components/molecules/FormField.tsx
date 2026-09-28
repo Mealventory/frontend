@@ -27,9 +27,9 @@ export function FormField({
           <Text className="text-urgency-critical ml-1 text-xs font-bold">*</Text>
         )}
       </View>
-      <Input error={error} {...props} />
+      <Input accessibilityLabel={label} error={error} {...props} />
       {helperText && !error && (
-        <Typography variant="tiny" color="muted" className="mt-1 ml-1">
+        <Typography variant="caption" color="muted" className="mt-2 ml-1">
           {helperText}
         </Typography>
       )}

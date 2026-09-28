@@ -47,7 +47,7 @@ export function FoodItemCard({ item, onPress, className = "" }: FoodItemCardProp
       className={`flex-row items-center p-3.5 bg-ground-surface dark:bg-ground-card rounded-[20px] border border-border-default shadow-sm ${className}`}
     >
       {/* 46x46 Emoji Box */}
-      <View className="w-[46px] h-[46px] rounded-[16px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center mr-3.5">
+      <View className="shrink-0 w-[46px] h-[46px] rounded-[16px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center mr-3.5">
         <Text className="text-2xl">{item.emoji}</Text>
       </View>
 
@@ -59,13 +59,13 @@ export function FoodItemCard({ item, onPress, className = "" }: FoodItemCardProp
         >
           {item.name}
         </Text>
-        <Text className="text-[12px] font-regular text-text-muted mt-0.5">
+        <Text className="text-[12px] leading-[18px] font-regular text-text-muted mt-1">
           {`${item.quantity} · ${item.category}`}
         </Text>
       </View>
 
       {/* Expiry Pill & Date */}
-      <View className="items-end">
+      <View className="items-end shrink-0 max-w-[100px]">
         <View
           className={`px-2.5 py-0.5 rounded-full border ${expiryStyle.bg} ${expiryStyle.border}`}
         >

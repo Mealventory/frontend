@@ -197,7 +197,7 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
             <View style={styles.hero}><Text style={styles.eyebrow}>A LITTLE LESS WASTE. A LOT MORE TOGETHER.</Text>
               <Text style={styles.title}>A shared kitchen,{ '\n' }a fresher start.</Text>
               <Text style={styles.subtitle}>Bring your household together. Start with a place everyone can call their kitchen.</Text>
-              <View style={styles.heroIllustration}><Home size={52} color={green} strokeWidth={1.5} /><View><Text style={styles.cardTitle}>Your people. Your pantry.</Text><Text style={styles.muted}>One household, all together.</Text></View></View>
+              <View style={styles.heroIllustration}><Home size={52} color={green} strokeWidth={1.5} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>Your people. Your pantry.</Text><Text style={styles.muted}>One household, all together.</Text></View></View>
             </View>
             <View style={styles.card}>
               {forgot ? <>
@@ -209,7 +209,7 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
                 <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setForgot(false); setError(''); setNotice(''); }}><Text style={styles.link}>Back to sign in</Text></Pressable>
               </> : <>
                 <Text style={styles.heading}>{signUp ? 'Create your account' : 'Welcome back'}</Text>
-                <Text style={styles.muted}>{signUp ? 'Your shared kitchen starts here.' : 'Sign in to find your household.'}</Text>
+                <Text style={[styles.muted, { textAlign: "center" }]}>{signUp ? 'Your shared kitchen starts here.' : 'Sign in to find your household.'}</Text>
                 {signUp && <>
                   <Text style={styles.label}>Username (optional)</Text>
                   <TextInput accessibilityLabel="Username" style={styles.input} value={username} onChangeText={setUsername} placeholder={`e.g. ${email.includes('@') ? email.split('@')[0] : 'chef_pablo'} (optional)`} placeholderTextColor="#84938C" autoCapitalize="none" autoCorrect={false} />
@@ -297,18 +297,18 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  scroll: { flexGrow: 1, paddingHorizontal: 24, paddingVertical: 18 },
+  scroll: { flexGrow: 1, width: "100%", maxWidth: 560, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 24 },
   container: { width: '100%', maxWidth: 520, alignSelf: 'center' },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 10 }, logo: { backgroundColor: green, borderRadius: 13, padding: 9 }, brandText: { fontSize: 22, color: '#183B2D', fontFamily: 'Inter_700Bold', letterSpacing: -.8 },
+  brand: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }, logo: { backgroundColor: green, borderRadius: 13, padding: 9 }, brandText: { fontSize: 22, color: '#183B2D', fontFamily: 'Inter_700Bold', letterSpacing: -.8 },
   iconButton: { padding: 12 }, hero: { marginBottom: 24 }, eyebrow: { fontSize: 10, letterSpacing: 1.8, fontFamily: 'Inter_700Bold', color: green, marginBottom: 13 },
   title: { fontSize: 36, lineHeight: 43, letterSpacing: -1.3, fontFamily: 'Inter_700Bold', color: '#163C2C', marginBottom: 14 },
   subtitle: { fontSize: 15, lineHeight: 23, color: '#617168', marginBottom: 24, fontFamily: 'Inter_400Regular' }, heroIllustration: { backgroundColor: '#E8EFE3', borderRadius: 20, padding: 24, flexDirection: 'row', gap: 20, alignItems: 'center' },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 24, borderWidth: 1, borderColor: '#E4EAE2', marginBottom: 20, gap: 8 }, heading: { fontFamily: 'Inter_700Bold', fontSize: 21, color: '#183B2D', marginBottom: 4 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 24, borderWidth: 1, borderColor: '#E4EAE2', marginBottom: 20, gap: 8 }, heading: { textAlign: "center", fontFamily: 'Inter_700Bold', fontSize: 21, color: '#183B2D', marginBottom: 4 },
   muted: { color: '#6B7C72', fontSize: 12, lineHeight: 19 }, label: { color: '#334C3E', fontFamily: 'Inter_600SemiBold', fontSize: 12, marginTop: 14, marginBottom: 2 },
   input: { minHeight: 52, borderWidth: 1, borderColor: '#DDE5DC', borderRadius: 12, paddingHorizontal: 15, color: '#183B2D', backgroundColor: '#FBFCFA', fontSize: 15 },
-  button: { minHeight: 52, backgroundColor: green, paddingHorizontal: 20, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 14 }, buttonText: { color: 'white', fontFamily: 'Inter_600SemiBold', fontSize: 15 }, secondary: { backgroundColor: '#E7EFE4' },
+  button: { minHeight: 52, backgroundColor: green, paddingHorizontal: 20, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 14 }, buttonText: { textAlign: 'center', flexShrink: 1, color: 'white', fontFamily: 'Inter_600SemiBold', fontSize: 15 }, secondary: { backgroundColor: '#E7EFE4' },
   link: { color: green, fontSize: 13, textAlign: 'center', paddingVertical: 15, fontFamily: 'Inter_600SemiBold' }, error: { backgroundColor: '#FDECE7', color: '#9B3429', borderRadius: 12, padding: 15, lineHeight: 21, marginTop: 12 }, info: { backgroundColor: '#E6F1E5', color: '#2D6347', borderRadius: 12, padding: 15, lineHeight: 21, marginTop: 12 }, footer: { textAlign: 'center', color: '#819086', fontSize: 11, marginVertical: 20 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 20 }, codeInput: { fontSize: 25, letterSpacing: 7, fontFamily: 'Inter_600SemiBold', textAlign: 'center' }, empty: { alignItems: 'center', gap: 16, paddingVertical: 28 }, center: { textAlign: 'center', fontSize: 15, color: '#6B7C72', lineHeight: 24, maxWidth: 300 }, row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 20 }, codeInput: { fontSize: 25, letterSpacing: 7, fontFamily: 'Inter_600SemiBold', textAlign: 'center' }, empty: { alignItems: 'center', gap: 16, padding: 24, marginBottom: 20, backgroundColor: '#FFFFFF', borderRadius: 24, borderWidth: 1, borderColor: '#E4EAE2' }, center: { textAlign: 'center', fontSize: 15, color: '#6B7C72', lineHeight: 24, maxWidth: 300 }, row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   householdCard: { borderRadius: 22, backgroundColor: '#E8EFE3', padding: 25, marginBottom: 20 }, householdName: { fontSize: 27, fontFamily: 'Inter_700Bold', color: '#183B2D', marginTop: 20, marginBottom: 27 }, badge: { color: green, backgroundColor: '#D5E6CD', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, textTransform: 'capitalize', fontSize: 12 }, invite: { fontFamily: 'Inter_700Bold', fontSize: 32, letterSpacing: 7, color: '#183B2D', marginTop: 10, marginBottom: 12 },
   member: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 }, avatar: { borderRadius: 14, backgroundColor: '#EEF3E9', padding: 13 }, cardTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: '#234333', marginBottom: 4 }, chip: { borderWidth: 1, borderColor: '#DDE5DC', borderRadius: 12, padding: 12, marginRight: 8 }, selectedChip: { backgroundColor: '#E0ECD9', borderColor: '#7EA38A' },
   signOutHeaderButton: {

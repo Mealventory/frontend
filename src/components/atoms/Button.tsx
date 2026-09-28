@@ -52,9 +52,9 @@ const variantTextStyles: Record<ButtonVariant, string> = {
 };
 
 const sizeButtonStyles: Record<ButtonSize, string> = {
-  sm: "h-9 px-3.5 rounded-lg",
-  md: "h-12 px-5 rounded-xl",
-  lg: "h-14 px-6 rounded-2xl",
+  sm: "min-h-[44px] py-2 px-3.5 rounded-lg",
+  md: "min-h-[48px] py-3 px-5 rounded-xl",
+  lg: "min-h-[56px] py-3.5 px-6 rounded-2xl",
 };
 
 const sizeTextStyles: Record<ButtonSize, string> = {
@@ -79,6 +79,8 @@ export function Button({
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityState={{ disabled: Boolean(isDisabled), busy: loading }}
       activeOpacity={0.8}
       disabled={isDisabled}
       className={`flex-row items-center justify-center ${sizeButtonStyles[size]} ${variantButtonStyles[variant]} ${
@@ -95,7 +97,7 @@ export function Button({
         <>
           {leadingIcon && <View className="mr-2.5">{leadingIcon}</View>}
           <Text
-            className={`${sizeTextStyles[size]} ${variantTextStyles[variant]} ${labelClassName}`}
+            className={`text-center flex-shrink ${sizeTextStyles[size]} ${variantTextStyles[variant]} ${labelClassName}`}
           >
             {label}
           </Text>

@@ -21,13 +21,26 @@ export default function ShoppingTabScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-ground-canvas">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 28 }}>
         <View className="mb-6">
           <Typography variant="h1">Shopping List</Typography>
           <Typography variant="caption" color="muted">
             Auto-populated from low pantry stock & missing recipe ingredients
           </Typography>
+        </View>
+
+        <View className="rounded-[24px] bg-brand-50 dark:bg-brand-500/10 p-5 mb-5 border border-brand-500/20">
+          <View className="flex-row items-center gap-3 mb-3">
+            <Icon name="ShoppingBasket" size={24} color="#10B981" />
+            <View className="flex-1">
+              <Typography variant="h3">A little list, a fuller kitchen</Typography>
+              <Typography color="muted" variant="caption">{items.filter(item => item.checked).length} of {items.length} picked up</Typography>
+            </View>
+          </View>
+          <View className="h-1.5 rounded-full bg-ground-surface overflow-hidden">
+            <View className="h-full bg-brand-500 rounded-full" style={{ width: `${items.length ? items.filter(item => item.checked).length / items.length * 100 : 0}%` }} />
+          </View>
         </View>
 
         <View className="p-4 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6 gap-3">

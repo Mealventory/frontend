@@ -93,7 +93,7 @@ export default function ScanTabScreen() {
 
   if (!permission) {
     return (
-      <SafeAreaView className="flex-1 bg-black items-center justify-center">
+      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-black items-center justify-center">
         <ActivityIndicator size="large" color="#10B981" />
         <Typography variant="body" className="text-white/70 mt-4">
           Initializing camera...
@@ -104,7 +104,7 @@ export default function ScanTabScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-black justify-between p-6">
+      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-black justify-between p-6">
         <View className="items-center mt-6">
           <Typography variant="h2" className="text-white mb-1">
             Scan Item
@@ -159,7 +159,7 @@ export default function ScanTabScreen() {
         onMountError={(e) => setErrorMessage(e?.message || "Failed to initialize camera")}
       />
 
-      <SafeAreaView className="flex-1 justify-between">
+      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 justify-between">
         {/* Top Header */}
         <View className="flex-row items-center justify-between px-5 pt-3">
           <TouchableOpacity

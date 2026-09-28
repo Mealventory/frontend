@@ -76,8 +76,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    height: 52,
-    borderRadius: 12,
+    minHeight: 52,
+    paddingVertical: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   leadingIcon: {

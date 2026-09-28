@@ -83,8 +83,8 @@ export default function SettingsTabScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-ground-canvas">
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 28 }}>
         <View className="mb-6">
           <Typography variant="h1">Settings</Typography>
           <Typography variant="caption" color="muted">
@@ -109,13 +109,13 @@ export default function SettingsTabScreen() {
             onPress={toggleTheme}
             className="flex-row items-center justify-between p-3.5 bg-ground-subtle rounded-xl border border-border-default"
           >
-            <View className="flex-row items-center gap-3">
+            <View className="flex-row items-center flex-1 min-w-0 gap-3 mr-3">
               <View className="w-9 h-9 rounded-lg bg-brand-50 dark:bg-brand-500/20 items-center justify-center">
                 <Icon name={isDark ? "Moon" : "Sun"} size={18} color="#10B981" />
               </View>
-              <View>
+              <View className="flex-1">
                 <Typography variant="body" className="font-semibold">
-                  {isDark ? "Dark Mode (Slate 950)" : "Light Mode (Alabaster)"}
+                  {isDark ? "Dark mode" : "Light mode"}
                 </Typography>
                 <Typography variant="caption" color="muted">
                   Tap to toggle theme
