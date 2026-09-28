@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { View, Text, TextInput, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon } from "@/src/components/atoms/Icon";
@@ -106,15 +107,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         </View>
 
         {filtered.length === 0 && (
-          <View className="py-12 items-center justify-center">
-            <Text className="text-4xl mb-2">🔍</Text>
-            <Text className="text-[15px] font-bold text-text-primary">
-              No items found
-            </Text>
-            <Text className="text-[13px] text-text-muted mt-1">
-              Try adjusting your category filter or search query.
-            </Text>
-          </View>
+          <EmptyState icon="Search" title="Nothing on this shelf" description="Try another ingredient or category to find your next meal." />
         )}
       </ScrollView>
 

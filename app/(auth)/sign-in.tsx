@@ -36,7 +36,7 @@ export default function SignInScreen() {
       title="Sign In"
       category="Auth"
       routePath="/(auth)/sign-in"
-      description="Authenticate via Supabase Auth (Email & Password)."
+      description="Welcome back. Your shared kitchen is waiting."
       iconName="LogIn"
     >
       <View className="gap-4">

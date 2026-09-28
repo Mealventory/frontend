@@ -3,6 +3,7 @@ import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Typography } from "@/src/components/atoms";
+import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { RecipeCard } from "@/src/components/domain/RecipeCard";
 import { TagChipGroup } from "@/src/components/molecules/TagChipGroup";
 import { useInventory } from "@/src/context/InventoryContext";
@@ -24,7 +25,7 @@ export default function RecipesTabScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-ground-canvas">
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-ground-canvas">
       <View className="px-5 pt-3 bg-ground-canvas">
         <Typography variant="h1">Recipes</Typography>
         <Typography variant="caption" color="muted" className="mt-0.5 mb-3.5">
@@ -40,11 +41,14 @@ export default function RecipesTabScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
         showsVerticalScrollIndicator={false}
         className="flex-1"
       >
         <View className="gap-2.5">
+          {filtered.length === 0 && <EmptyState icon="UtensilsCrossed" title="Something good is coming"
+            description="No recipes in this selection yet. Explore another category for a little kitchen inspiration."
+            actionLabel={selectedTag !== "All" ? "Explore all recipes" : undefined} onAction={() => setSelectedTag("All")} />}
           {filtered.map((recipe) => (
             <RecipeCard
               key={recipe.id}

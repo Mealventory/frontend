@@ -28,7 +28,7 @@ export function RoutePlaceholder({
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 40, width: "100%", maxWidth: 560, alignSelf: "center" }}>
         {/* Header navigation */}
         <View className="flex-row items-center justify-between mb-6">
           <Button
@@ -48,17 +48,14 @@ export function RoutePlaceholder({
         </View>
 
         {/* Hero Info */}
-        <View className="p-6 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6">
+        <View className="items-center p-7 bg-ground-card rounded-[28px] border border-border-default shadow-sm mb-6">
           <View className="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-500/20 items-center justify-center mb-4">
             <Icon name={iconName} size={24} color="#10B981" />
           </View>
-          <Typography variant="h2" className="mb-1 font-bold">
+          <Typography variant="h2" className="mb-2 font-bold text-center">
             {title}
           </Typography>
-          <Typography variant="caption" color="muted" className="mb-3 font-mono">
-            {routePath}
-          </Typography>
-          <Typography variant="body" color="secondary">
+          <Typography variant="body" color="secondary" className="text-center">
             {description}
           </Typography>
         </View>
@@ -69,7 +66,7 @@ export function RoutePlaceholder({
         {/* Quick Nav to Showcase */}
         <View className="mt-8 pt-6 border-t border-border-default">
           <Button
-            label="Return to Design System Showcase"
+            label="Back to your kitchen"
             variant="ghost"
             size="sm"
             leadingIcon={<Icon name="Home" size={16} />}

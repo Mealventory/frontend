@@ -14,7 +14,7 @@ export default function CreateHouseholdScreen() {
       title="Create Household"
       category="Onboarding"
       routePath="/(onboarding)/create-household"
-      description="Initialize a collaborative tenant unit for your family or roommates with shared pantry tracking."
+      description="Give your shared kitchen a name. Invite your people and start keeping track together."
       iconName="Home"
     >
       <View className="gap-4">
