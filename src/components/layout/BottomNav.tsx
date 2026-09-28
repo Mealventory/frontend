@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Icon } from "../atoms/Icon";
 import { FigmaScreen } from "@/src/context/InventoryContext";
 
@@ -18,6 +18,8 @@ export function BottomNav({ activeScreen, onNavigate }: BottomNavProps) {
         {/* Kitchen / Home Tab */}
         <TouchableOpacity
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Kitchen"
           onPress={() => onNavigate("home")}
           className="items-center px-4 py-1"
         >
@@ -27,18 +29,13 @@ export function BottomNav({ activeScreen, onNavigate }: BottomNavProps) {
             color={isHome ? "#10B981" : "#94A3B8"}
             strokeWidth={isHome ? 2.5 : 2}
           />
-          <Text
-            className={`text-[11px] font-bold mt-1 ${
-              isHome ? "text-brand-500" : "text-text-muted"
-            }`}
-          >
-            Kitchen
-          </Text>
         </TouchableOpacity>
 
         {/* Elevated Scan Button */}
         <TouchableOpacity
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Scan"
           onPress={() => onNavigate("scan")}
           style={styles.scanButton}
           className="items-center justify-center bg-brand-500 rounded-[20px] shadow-md shadow-brand-500/50"
@@ -49,6 +46,8 @@ export function BottomNav({ activeScreen, onNavigate }: BottomNavProps) {
         {/* Recipes Tab */}
         <TouchableOpacity
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Recipes"
           onPress={() => onNavigate("recipes")}
           className="items-center px-4 py-1"
         >
@@ -58,13 +57,6 @@ export function BottomNav({ activeScreen, onNavigate }: BottomNavProps) {
             color={isRecipes ? "#10B981" : "#94A3B8"}
             strokeWidth={isRecipes ? 2.5 : 2}
           />
-          <Text
-            className={`text-[11px] font-bold mt-1 ${
-              isRecipes ? "text-brand-500" : "text-text-muted"
-            }`}
-          >
-            Recipes
-          </Text>
         </TouchableOpacity>
       </View>
     </View>
