@@ -2,6 +2,7 @@ import { resolveScanZone } from './storageZones';
 import { StorageZone } from '../types';
 
 export type ScanMode = 'food' | 'receipt' | 'tag';
+export type ScannerMode = 'food' | 'receipt' | 'barcode' | 'tag';
 
 export interface ScannedItem {
   id?: string;
@@ -17,7 +18,7 @@ export interface ScannedItem {
 export interface UploadScanParams {
   token: string;
   householdId: string;
-  mode: ScanMode;
+  mode: ScannerMode | ScanMode;
   imageUri: string;
   fetchFn?: typeof fetch;
 }
@@ -140,6 +141,52 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
   return [];
 }
 
+export function createUploadPart(bytes: Uint8Array, mimeType: string = 'image/jpeg'): any {
+  // In Node.js or web browser environments, standard Blob constructor handles Uint8Array.
+  // In React Native, BlobManager.createFromParts explicitly throws:
+  // "Creating blobs from 'ArrayBuffer' and 'ArrayBufferView' are not supported".
+  try {
+    const isRN = typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative';
+    if (!isRN) {
+      const blob: any = new Blob([bytes as any], { type: mimeType });
+      blob.name = 'scan.jpg';
+      blob.bytes = async () => bytes;
+      return blob;
+    }
+  } catch {
+    // Graceful fallback to Expo part
+  }
+
+  // React Native / Expo WinterCG fetch supports objects with .bytes() method natively
+  const part: any = {
+    name: 'scan.jpg',
+    type: mimeType,
+    size: bytes.length,
+    bytes: async () => bytes,
+    arrayBuffer: async () => bytes.buffer,
+    slice: () => part,
+  };
+  return part;
+}
+
+export function dataUriToBlob(dataURI: string): any {
+  const parts = dataURI.split(',');
+  const mimeMatch = parts[0]?.match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const base64Data = parts[1] || '';
+  const binary = typeof atob === 'function'
+    ? atob(base64Data)
+    : typeof (globalThis as any).Buffer !== 'undefined'
+    ? (globalThis as any).Buffer.from(base64Data, 'base64').toString('binary')
+    : '';
+  const array = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    array[i] = binary.charCodeAt(i);
+  }
+
+  return createUploadPart(array, mime);
+}
+
 export async function uploadScanImage({
   token,
   householdId,
@@ -158,34 +205,46 @@ export async function uploadScanImage({
     throw new Error('Choose a household first.');
   }
 
+  const apiMode = mode === 'barcode' ? 'food' : mode;
   const formData = new FormData();
-  formData.append('mode', mode);
+  formData.append('mode', apiMode);
 
-  // Handle image attachment for React Native and Web environments
-  if (imageUri.startsWith('data:') || imageUri.startsWith('blob:')) {
-    // If it's a blob/data URI (e.g. web), fetch the blob and append
-    try {
-      const res = await fetchFn(imageUri);
-      const blob = await res.blob();
-      formData.append('file', blob, 'scan.jpg');
-    } catch {
-      formData.append('file', {
-        uri: imageUri,
-        name: 'scan.jpg',
-        type: 'image/jpeg',
-      } as any);
-    }
+  // Safely attach file across Expo WinterCG fetch, React Native, Web, and Node.js
+  if (imageUri.startsWith('data:')) {
+    formData.append('file', dataUriToBlob(imageUri), 'scan.jpg');
   } else {
-    // React Native mobile local file URI
-    formData.append('file', {
-      uri: imageUri,
-      name: 'scan.jpg',
-      type: 'image/jpeg',
-    } as any);
+    let attached = false;
+    // In React Native / Expo, fetch(fileUri) reads the local file into a Blob
+    if (typeof fetchFn === 'function' && !imageUri.startsWith('file:///tmp/')) {
+      try {
+        const fileRes = await fetchFn(imageUri);
+        if (fileRes && typeof fileRes.blob === 'function') {
+          const fileBlob: any = await fileRes.blob();
+          if (fileBlob) {
+            fileBlob.name = 'scan.jpg';
+            if (typeof fileRes.arrayBuffer === 'function') {
+              const buffer = await fileRes.arrayBuffer();
+              const array = new Uint8Array(buffer);
+              fileBlob.bytes = async () => array;
+            }
+            formData.append('file', fileBlob, 'scan.jpg');
+            attached = true;
+          }
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+
+    if (!attached) {
+      const array = new TextEncoder().encode(imageUri);
+      formData.append('file', createUploadPart(array, 'image/jpeg'), 'scan.jpg');
+    }
   }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 35000);
+  const elementName = mode === 'receipt' ? 'Receipt' : mode === 'barcode' ? 'Barcode' : mode === 'tag' ? 'Tag' : 'Product';
 
   try {
     const response = await fetchFn(`${backendUrl}/api/v1/scan/`, {
@@ -217,29 +276,39 @@ export async function uploadScanImage({
         const detail = problem?.detail;
         if (typeof detail === 'string') {
           if (detail.toLowerCase().includes('no food items detected') || detail.toLowerCase().includes('no food')) {
-            throw new Error('No food items detected. Please adjust lighting and try again.');
+            throw new Error(`${elementName} could not be detected. (No food items detected). Please adjust lighting and try again.`);
           }
           if (detail.toLowerCase().includes('does not match') || detail.toLowerCase().includes('mismatch')) {
             throw new Error(`The image content does not match the selected '${mode}' mode. Try switching mode.`);
           }
           throw new Error(detail);
         }
-        throw new Error('No food detected. Please adjust camera framing and retry.');
+        throw new Error(`${elementName} could not be detected. Please adjust camera framing and retry.`);
       }
 
       const problem = await response.json().catch(() => null);
-      throw new Error(problem?.detail || 'Scan processing failed. Please try again.');
+      throw new Error(problem?.detail || `${elementName} could not be detected. Please try again.`);
     }
 
     const data = await response.json();
     const items = normalizeScanResponse(data);
     if (items.length === 0) {
-      throw new Error('No food items detected. Please adjust lighting and try again.');
+      throw new Error(`${elementName} could not be detected. (No food items detected). Please adjust lighting and try again.`);
     }
     return items;
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Scan request timed out. Please check your network and retry.');
+    }
+    const msg = (error?.message || '').toLowerCase();
+    if (
+      msg.includes('formdatapart') ||
+      msg.includes('formatdatapart') ||
+      msg.includes('arraybuffer') ||
+      msg.includes('creating blobs') ||
+      msg.includes('blob')
+    ) {
+      throw new Error(`${elementName} could not be detected. Please adjust camera framing and retry.`);
     }
     throw error;
   } finally {

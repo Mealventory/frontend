@@ -20,7 +20,7 @@ mod._compile(
   'scanApi.cjs'
 );
 
-const { uploadScanImage, normalizeScanResponse, KNOWN_FOODS } = mod.exports;
+const { uploadScanImage, normalizeScanResponse, KNOWN_FOODS, createUploadPart } = mod.exports;
 const originalFetch = global.fetch;
 
 afterEach(() => {
@@ -161,3 +161,72 @@ test('both scan response shapes use category defaults and preserve overrides', (
     assert.ok(rows.every(row => row.expiry_date === null));
   }
 });
+
+test('uploadScanImage reports "{element} could not be detected" across all modes (product, receipt, barcode)', async () => {
+  const modes = [
+    { mode: 'food', expected: 'Product could not be detected' },
+    { mode: 'receipt', expected: 'Receipt could not be detected' },
+    { mode: 'barcode', expected: 'Barcode could not be detected' },
+  ];
+
+  for (const { mode, expected } of modes) {
+    global.fetch = async () =>
+      new Response(JSON.stringify({ items: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+    await assert.rejects(
+      uploadScanImage({
+        token: 'test-token',
+        householdId: 'house-123',
+        mode,
+        imageUri: 'file:///tmp/empty.jpg',
+      }),
+      new RegExp(expected, 'i')
+    );
+  }
+});
+
+test('uploadScanImage converts internal FormDataPart exception into clean user-friendly message', async () => {
+  global.fetch = async () => {
+    throw new Error('Unsupported FormDataPart implementation');
+  };
+
+  await assert.rejects(
+    uploadScanImage({
+      token: 'test-token',
+      householdId: 'house-123',
+      mode: 'food',
+      imageUri: 'data:image/jpeg;base64,1234',
+    }),
+    /Product could not be detected/i
+  );
+});
+
+test('uploadScanImage converts ArrayBufferView or blob creation error into clean user-friendly message', async () => {
+  global.fetch = async () => {
+    throw new Error("Creating blobs from 'ArrayBuffer' and 'ArrayBufferView' are not supported");
+  };
+
+  await assert.rejects(
+    uploadScanImage({
+      token: 'test-token',
+      householdId: 'house-123',
+      mode: 'food',
+      imageUri: 'data:image/jpeg;base64,1234',
+    }),
+    /Product could not be detected/i
+  );
+});
+
+test('createUploadPart produces valid binary part with bytes() method', async () => {
+  const bytes = new Uint8Array([255, 216, 255, 224]);
+  const part = createUploadPart(bytes, 'image/jpeg');
+  assert.ok(part);
+  assert.equal(typeof part.bytes, 'function');
+  const extractedBytes = await part.bytes();
+  assert.deepEqual(extractedBytes, bytes);
+});
+
+
