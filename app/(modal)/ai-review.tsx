@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import {
   View,
   ScrollView,
@@ -17,6 +17,7 @@ import { useInventory } from "@/src/context/InventoryContext";
 import { supabase } from "@/src/lib/supabase";
 import { inventoryRequest, NewItem } from "@/src/lib/inventoryApi";
 import { ScannedItem } from "@/src/lib/scanApi";
+import { resolveScanZone } from "@/src/lib/storageZones";
 import { StorageZone } from "@/src/types";
 
 export interface ReviewItemState {
@@ -66,7 +67,6 @@ export function parseRawScanItems(rawParam?: string): ReviewItemState[] {
     const parsed = JSON.parse(rawParam);
     if (!Array.isArray(parsed)) return [];
 
-    const todayIso = new Date().toISOString().split("T")[0];
 
     return parsed.map((item: ScannedItem, index: number) => ({
       id: item.id || `scanned-${index}-${Date.now()}`,
@@ -74,8 +74,8 @@ export function parseRawScanItems(rawParam?: string): ReviewItemState[] {
       category: item.category || "Pantry",
       quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
       unit: item.unit || "units",
-      expiry_date: item.expiry_date || todayIso,
-      storageZone: item.storageZone || "pantry",
+      expiry_date: item.expiry_date || "",
+      storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
       confidence: typeof item.confidence === "number" ? item.confidence : undefined,
       confirmed: true,
       isEditing: false,
@@ -85,6 +85,30 @@ export function parseRawScanItems(rawParam?: string): ReviewItemState[] {
   }
 }
 
+export async function saveReviewedItems(
+  items: ReviewItemState[],
+  save: (payload: NewItem) => Promise<unknown>,
+) {
+  const savedIds: string[] = [];
+  const errors: string[] = [];
+  for (const item of items.filter(item => item.confirmed)) {
+    try {
+      await save({
+        name: item.name.trim(),
+        category: item.category.trim() || "Pantry",
+        quantity: item.quantity,
+        unit: item.unit.trim() || "units",
+        expiry_date: item.expiry_date.trim() || null,
+        storage_zone: item.storageZone,
+      });
+      savedIds.push(item.id);
+    } catch (error) {
+      errors.push(item.name + ": " + (error instanceof Error ? error.message : "Failed to add"));
+    }
+  }
+  return { savedIds, errors };
+}
+
 export default function AIReviewModal() {
   const router = useRouter();
   const { session, household } = useAuth();
@@ -92,27 +116,10 @@ export default function AIReviewModal() {
   const params = useLocalSearchParams<{ items?: string; mode?: string }>();
 
   // Parse items from scanner navigation route params
-  const initialItems = useMemo(() => {
-    const parsed = parseRawScanItems(params.items);
-    if (parsed.length > 0) return parsed;
-    // Default fallback item if accessed without scan params
-    return [
-      {
-        id: "default-1",
-        name: "Organic Blueberries",
-        category: "Produce",
-        quantity: 1,
-        unit: "6 oz container",
-        expiry_date: "2026-09-21",
-        storageZone: "fridge" as StorageZone,
-        confidence: 0.98,
-        confirmed: true,
-        isEditing: false,
-      },
-    ];
-  }, [params.items]);
+  const initialItems = useMemo(() => parseRawScanItems(params.items), [params.items]);
 
   const [items, setItems] = useState<ReviewItemState[]>(initialItems);
+  const savingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successCount, setSuccessCount] = useState<number | null>(null);
@@ -149,6 +156,7 @@ export default function AIReviewModal() {
   };
 
   const handleAddToPantry = async () => {
+    if (savingRef.current) return;
     if (confirmedItems.length === 0) {
       Alert.alert("No Items Selected", "Please select at least one item to add to your pantry.");
       return;
@@ -159,46 +167,25 @@ export default function AIReviewModal() {
       return;
     }
 
+    savingRef.current = true;
     setSubmitting(true);
     setErrorMessage(null);
 
     try {
       const token = await getAccessToken();
-      let addedCount = 0;
-      const errors: string[] = [];
-
-      for (const item of confirmedItems) {
-        try {
-          const payload: NewItem = {
-            name: item.name.trim(),
-            category: item.category.trim() || "Pantry",
-            quantity: Number(item.quantity) || 1,
-            unit: item.unit.trim() || "units",
-            expiry_date: item.expiry_date ? item.expiry_date.trim() : null,
-            storage_zone: item.storageZone,
-          };
-
-          await inventoryRequest(token, household.id, "POST", undefined, payload);
-          addedCount++;
-        } catch (itemErr: any) {
-          errors.push(`${item.name}: ${itemErr.message || "Failed to add"}`);
-        }
-      }
-
+      const { savedIds, errors } = await saveReviewedItems(confirmedItems,
+        payload => inventoryRequest(token, household.id, "POST", undefined, payload));
+      // Remove acknowledged saves before any refresh, so retry sends only failures.
+      setItems(previous => previous.filter(item => !savedIds.includes(item.id)));
+      setSuccessCount(previous => (previous || 0) + savedIds.length);
+      if (errors.length) setErrorMessage(errors.join("\n"));
       await refreshInventory();
-      setSuccessCount(addedCount);
+      if (!errors.length) router.replace("/(app)/(tabs)" as any);
 
-      if (errors.length > 0 && addedCount === 0) {
-        throw new Error(errors.join("\n"));
-      }
-
-      // Success feedback and navigate to pantry dashboard
-      setTimeout(() => {
-        router.replace("/(app)/(tabs)" as any);
-      }, 1000);
     } catch (err: any) {
       setErrorMessage(err.message || "Could not save items to inventory.");
     } finally {
+      savingRef.current = false;
       setSubmitting(false);
     }
   };

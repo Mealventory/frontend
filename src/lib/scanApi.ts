@@ -1,3 +1,4 @@
+import { resolveScanZone } from './storageZones';
 import { StorageZone } from '../types';
 
 export type ScanMode = 'food' | 'receipt' | 'tag';
@@ -70,7 +71,7 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
       const rawName = item?.name || item?.food_name || known?.name || `Item ${index + 1}`;
       const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
       const category = item?.category || known?.category || 'Pantry';
-      const storageZone = (item?.storage_zone || known?.storageZone || 'pantry') as StorageZone;
+      const storageZone = resolveScanZone(item?.storage_zone || item?.storageZone || known?.storageZone, category);
       const expiry_date = formatExpiryDate(item?.expiry_date);
       const quantity = typeof item?.quantity === 'number' ? item.quantity : 1;
       const unit = item?.unit || 'units';
@@ -119,7 +120,7 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
       const rawName = item?.name || known?.name || `Item ${index + 1}`;
       const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
       const category = item?.category || known?.category || 'Pantry';
-      const storageZone = (item?.storage_zone || known?.storageZone || 'pantry') as StorageZone;
+      const storageZone = resolveScanZone(item?.storage_zone || item?.storageZone || known?.storageZone, category);
       const expiry_date = formatExpiryDate(item?.expiry_date);
       const confidence = typeof item?.confidence === 'number' ? item.confidence : defaultConfidence;
 

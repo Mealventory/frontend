@@ -20,7 +20,8 @@ function load(file, mocks = {}) {
 
 const mockComponent = () => null;
 
-const { parseRawScanItems, getItemEmoji } = load('app/(modal)/ai-review.tsx', {
+const { parseRawScanItems, getItemEmoji, saveReviewedItems } = load('app/(modal)/ai-review.tsx', {
+  '@/src/lib/storageZones': load('src/lib/storageZones.ts'),
   'react-native': {
     View: mockComponent,
     ScrollView: mockComponent,
@@ -104,46 +105,50 @@ test('getItemEmoji returns appropriate emoji based on item name and category', (
   assert.equal(getItemEmoji('Unknown Mystery Item', 'Pantry'), '🍽️');
 });
 
-test('confirmed items can be mapped to ItemCreate payloads for household inventory API', () => {
-  const reviewItems = [
-    {
-      id: '1',
-      name: 'Greek Yogurt',
-      category: 'Dairy',
-      quantity: 1,
-      unit: '32 oz',
-      expiry_date: '2026-09-30',
-      storageZone: 'fridge',
-      confirmed: true,
-    },
-    {
-      id: '2',
-      name: 'Unwanted Item',
-      category: 'Pantry',
-      quantity: 1,
-      unit: 'units',
-      expiry_date: '2026-10-10',
-      storageZone: 'pantry',
-      confirmed: false, // rejected by user
-    },
-  ];
+test('empty or missing scans never create review items', () => {
+  for (const value of [undefined, '', '[]', '{}', 'invalid']) {
+    assert.deepEqual(parseRawScanItems(value), []);
+  }
+});
 
-  const confirmedOnly = reviewItems.filter((i) => i.confirmed);
-  assert.equal(confirmedOnly.length, 1);
+test('unknown dates remain blank and category defaults preserve explicit zones', () => {
+  const items = parseRawScanItems(JSON.stringify([
+    { name: 'Milk', category: 'Dairy', expiry_date: null },
+    { name: 'Peas', category: 'Frozen' },
+    { name: 'Milk', category: 'Dairy', storageZone: 'freezer' },
+    { name: 'Spice', category: 'Spices', storageZone: 'invalid' },
+  ]));
+  assert.deepEqual(items.map(item => item.expiry_date), ['', '', '', '']);
+  assert.deepEqual(items.map(item => item.storageZone), ['fridge', 'freezer', 'freezer', 'spicerack']);
+});
 
-  const payload = {
-    name: confirmedOnly[0].name.trim(),
-    category: confirmedOnly[0].category.trim() || 'Pantry',
-    quantity: Number(confirmedOnly[0].quantity) || 1,
-    unit: confirmedOnly[0].unit.trim() || 'units',
-    expiry_date: confirmedOnly[0].expiry_date,
-  };
-
-  assert.deepEqual(payload, {
-    name: 'Greek Yogurt',
-    category: 'Dairy',
-    quantity: 1,
-    unit: '32 oz',
-    expiry_date: '2026-09-30',
+test('partial saves retain failures for retry without resending acknowledged items', async () => {
+  const items = parseRawScanItems(JSON.stringify([
+    { id: '1', name: 'Milk', category: 'Dairy' },
+    { id: '2', name: 'Peas', category: 'Frozen' },
+    { id: '3', name: 'Skip', category: 'Pantry' },
+  ]));
+  items[2].confirmed = false;
+  const payloads = [];
+  const result = await saveReviewedItems(items, async payload => {
+    payloads.push(payload);
+    if (payload.name === 'Peas') throw new Error('Offline');
   });
+  assert.deepEqual(result.savedIds, ['1']);
+  assert.deepEqual(result.errors, ['Peas: Offline']);
+  assert.equal(payloads[0].expiry_date, null);
+  assert.equal(payloads[0].storage_zone, 'fridge');
+  const remaining = items.filter(item => !result.savedIds.includes(item.id));
+  const retried = [];
+  const retry = await saveReviewedItems(remaining, async payload => { retried.push(payload.name); });
+  assert.deepEqual(retried, ['Peas']);
+  assert.deepEqual(retry.savedIds, ['2']);
+  assert.deepEqual(retry.errors, []);
+});
+
+test('all failed saves keep every item retryable', async () => {
+  const items = parseRawScanItems(JSON.stringify([{ id: '1', name: 'Rice' }]));
+  const result = await saveReviewedItems(items, async () => { throw new Error('Unavailable'); });
+  assert.deepEqual(result.savedIds, []);
+  assert.equal(result.errors.length, 1);
 });
