@@ -197,7 +197,7 @@ export default function ScanTabScreen() {
   // Permission: loading state
   if (!permission) {
     return (
-      <SafeAreaView className="flex-1 bg-black items-center justify-center">
+      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-black items-center justify-center">
         <ActivityIndicator size="large" color="#10B981" />
         <Typography variant="body" className="text-white/70 mt-4">
           Initializing camera engine...
@@ -209,8 +209,11 @@ export default function ScanTabScreen() {
   // Permission: denied / not granted state
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-black justify-between p-6">
+      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-black justify-between p-6">
         <View className="flex-row items-center justify-between pt-2">
+          <Typography variant="h2" className="text-white mb-1">
+            Scan Item
+          </Typography>
           <Typography variant="h3" className="text-white font-bold">
             Camera Permission
           </Typography>
@@ -276,7 +279,7 @@ export default function ScanTabScreen() {
         />
       )}
 
-      <SafeAreaView className="flex-1 justify-between">
+      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 justify-between">
         {/* Top Header */}
         <View className="flex-row items-center justify-between px-5 pt-3">
           <View className="w-10" />

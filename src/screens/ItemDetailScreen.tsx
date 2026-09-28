@@ -99,7 +99,7 @@ export function ItemDetailScreen({ onNavigate }: ItemDetailScreenProps) {
               <Text className="text-[14px] font-regular text-text-muted">
                 {row.label}
               </Text>
-              <Text className="text-[14px] font-bold text-text-primary">
+              <Text className="text-[14px] font-bold text-text-primary text-right flex-1 ml-4">
                 {row.value}
               </Text>
             </View>

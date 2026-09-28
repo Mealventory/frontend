@@ -1,10 +1,12 @@
 import React from "react";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
 import { Icon } from "@/src/components/atoms/Icon";
 import { useAppTheme } from "@/src/context/ThemeContext";
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   const { isDark } = useAppTheme();
 
   return (
@@ -17,8 +19,8 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
           borderTopColor: isDark ? "#1E293B" : "#E2E8F0",
-          height: 64,
-          paddingBottom: 10,
+          height: 64 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 8,
         },
         tabBarLabelStyle: {
@@ -53,7 +55,7 @@ export default function TabsLayout() {
           title: "Scan",
           tabBarAccessibilityLabel: "Scan",
           tabBarIcon: ({ color, size }) => (
-            <View className="w-10 h-10 rounded-2xl bg-brand-500 items-center justify-center -mt-2 shadow-sm shadow-brand-500/40">
+            <View className="w-10 h-10 rounded-2xl bg-brand-500 items-center justify-center shadow-sm shadow-brand-500/40">
               <Icon name="Camera" size={20} color="#FFFFFF" />
             </View>
           ),

@@ -17,6 +17,7 @@ import { useInventory } from "@/src/context/InventoryContext";
 import { supabase } from "@/src/lib/supabase";
 import { inventoryRequest, NewItem } from "@/src/lib/inventoryApi";
 import { ScannedItem } from "@/src/lib/scanApi";
+import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { resolveScanZone } from "@/src/lib/storageZones";
 import { StorageZone } from "@/src/types";
 
@@ -227,7 +228,7 @@ export default function AIReviewModal() {
   // Empty items state
   if (items.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-ground-canvas justify-between p-6">
+      <SafeAreaView className="flex-1 bg-ground-canvas p-6">
         <View className="flex-row items-center justify-between mb-4">
           <Button
             label="Back"
@@ -239,32 +240,12 @@ export default function AIReviewModal() {
           <View className="w-12" />
         </View>
 
-        <View className="items-center px-4">
-          <View className="w-20 h-20 rounded-full bg-ground-card border border-border-default items-center justify-center mb-6">
-            <Icon name="Inbox" size={36} color="#94A3B8" />
-          </View>
-          <Typography variant="h2" className="font-bold text-center mb-2">
-            No Items to Review
-          </Typography>
-          <Typography variant="body" color="muted" className="text-center mb-6">
-            All detected items were removed, or no food was identified in the scan.
-          </Typography>
-          <Button
-            label="Scan Again"
-            variant="primary"
-            size="lg"
-            className="w-full mb-3"
-            leadingIcon={<Icon name="Camera" size={18} color="#FFFFFF" />}
-            onPress={() => router.replace("/(modal)/scanner" as any)}
-          />
-          <Button
-            label="Add Manually Instead"
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onPress={() => router.replace("/(modal)/manual-add" as any)}
-          />
-        </View>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center", paddingBottom: 24 }}>
+          <EmptyState icon="ScanLine" title="Ready for another look?"
+            description="There are no ingredients to review yet. Try a clearer photo, or add an item yourself."
+            actionLabel="Scan again" onAction={() => router.replace("/(modal)/scanner" as any)}
+            secondaryLabel="Add manually" onSecondary={() => router.replace("/(modal)/manual-add" as any)} />
+        </ScrollView>
 
         <View />
       </SafeAreaView>
@@ -282,7 +263,7 @@ export default function AIReviewModal() {
             size="sm"
             onPress={() => router.back()}
           />
-          <Badge label={modeBadge} variant="brand" showDot />
+          <Badge label="Sample scan" variant="brand" showDot />
           <View className="w-12" />
         </View>
 

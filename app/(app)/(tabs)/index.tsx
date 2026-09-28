@@ -6,6 +6,7 @@ import { Typography, Badge } from "@/src/components/atoms";
 import { Icon } from "@/src/components/atoms/Icon";
 import { FoodItemCard } from "@/src/components/domain/FoodItemCard";
 import { TagChipGroup } from "@/src/components/molecules/TagChipGroup";
+import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { useInventory } from "@/src/context/InventoryContext";
 
 const categories = ["All", "Produce", "Dairy", "Meat", "Bakery", "Pantry"];
@@ -23,24 +24,17 @@ export default function PantryDashboardScreen() {
   });
 
   return (
-    <SafeAreaView className="flex-1 bg-ground-canvas">
+    <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-ground-canvas">
       <View className="px-5 pt-3 bg-ground-canvas">
         {/* Top Header */}
-        <View className="flex-row items-start justify-between mb-4">
-          <View>
+        <View className="flex-row items-center justify-between gap-3 mb-5">
+          <View className="flex-1 min-w-0">
             <Typography variant="h1">My Kitchen</Typography>
             <Typography variant="caption" color="muted" className="mt-0.5">
               {`${inventory.length} items in pantry`}
             </Typography>
           </View>
           <View className="flex-row items-center gap-2">
-            {expiringSoonCount > 0 && (
-              <Badge
-                label={`${expiringSoonCount} expiring soon`}
-                variant="soon"
-                showDot
-              />
-            )}
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.push("/(modal)/manual-add" as any)}
@@ -52,6 +46,8 @@ export default function PantryDashboardScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {expiringSoonCount > 0 && <View className="self-start mb-3"><Badge label={`${expiringSoonCount} expiring soon`} variant="soon" showDot /></View>}
 
         {/* Search */}
         <View className="flex-row items-center h-[44px] px-3.5 bg-ground-surface dark:bg-ground-card rounded-[16px] border border-border-default shadow-sm mb-3.5">
@@ -77,13 +73,21 @@ export default function PantryDashboardScreen() {
       {/* Items List */}
       <ScrollView
         refreshControl={<RefreshControl refreshing={inventoryLoading} onRefresh={() => void refreshInventory()} />}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
         showsVerticalScrollIndicator={false}
         className="flex-1"
       >
         <View className="gap-2.5">
-          {!!inventoryError && <Typography color="critical">{inventoryError}</Typography>}
-          {!inventoryError && !inventoryLoading && inventory.length === 0 && <Typography>Your household pantry is empty. Add your first item.</Typography>}
+          {!!inventoryError && <EmptyState icon="WifiOff" title="A little connection hiccup" description={inventoryError} actionLabel="Try again" onAction={() => void refreshInventory()} />}
+          {!inventoryError && !inventoryLoading && inventory.length === 0 && <EmptyState
+            icon="Refrigerator" title="A fresh start for your kitchen"
+            description="A few ingredients, a little inspiration. Add your first item and let’s see what’s cooking."
+            actionLabel="Add your first ingredient" onAction={() => router.push("/(modal)/manual-add" as any)}
+            secondaryLabel="Scan a receipt instead" onSecondary={() => router.push("/(app)/(tabs)/scan" as any)} />}
+          {!inventoryError && !inventoryLoading && inventory.length > 0 && filtered.length === 0 && <EmptyState
+            icon="Search" title="Nothing on this shelf"
+            description="Try another ingredient or clear your filters to see the whole kitchen."
+            actionLabel="Clear filters" onAction={() => { setSearch(""); setSelectedCat("All"); }} />}
           {filtered.map((item) => (
             <FoodItemCard
               key={item.id}

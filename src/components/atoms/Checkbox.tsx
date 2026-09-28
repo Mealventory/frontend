@@ -19,13 +19,16 @@ export function Checkbox({
 }: CheckboxProps) {
   return (
     <TouchableOpacity
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked, disabled }}
+      accessibilityLabel={label}
       activeOpacity={0.7}
       disabled={disabled}
       onPress={() => onToggle(!checked)}
-      className={`flex-row items-center ${disabled ? "opacity-50" : ""} ${className}`}
+      className={`flex-row items-center min-h-[44px] ${disabled ? "opacity-50" : ""} ${className}`}
     >
       <View
-        className={`w-5 h-5 rounded-md items-center justify-center border ${
+        className={`w-5 h-5 shrink-0 rounded-md items-center justify-center border ${
           checked
             ? "bg-brand-500 border-brand-500"
             : "bg-ground-surface border-border-default"
@@ -35,7 +38,7 @@ export function Checkbox({
       </View>
       {label && (
         <Text
-          className={`ml-2.5 text-[14px] font-medium ${
+          className={`flex-1 ml-3 text-[14px] leading-5 font-medium ${
             checked
               ? "text-text-muted line-through"
               : "text-text-primary"
