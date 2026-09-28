@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { View, Animated, StyleSheet } from "react-native";
+import { View, Animated, StyleSheet, Platform } from "react-native";
 import { Typography } from "../atoms/Typography";
 import { Icon } from "../atoms/Icon";
 
@@ -23,12 +23,12 @@ export function BarcodeScannerFrame({
           Animated.timing(laserAnim, {
             toValue: 210,
             duration: 1200,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
           Animated.timing(laserAnim, {
             toValue: 0,
             duration: 1200,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }),
         ])
       );

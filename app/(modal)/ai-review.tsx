@@ -1,45 +1,260 @@
-import React, { useState } from "react";
-import { View, ScrollView } from "react-native";
+import React, { useState, useMemo } from "react";
+import {
+  View,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  Text,
+  Alert,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { Typography, Button, Icon, Badge, Avatar } from "@/src/components/atoms";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Typography, Button, Icon, Badge, Avatar, Checkbox } from "@/src/components/atoms";
+import { FormField } from "@/src/components/molecules";
+import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
-import { defaultScanZone } from "@/src/lib/storageZones";
-import type { StorageZone } from "@/src/types";
-import { FormField, TagChipGroup } from "@/src/components/molecules";
+import { supabase } from "@/src/lib/supabase";
+import { inventoryRequest, NewItem } from "@/src/lib/inventoryApi";
+import { ScannedItem } from "@/src/lib/scanApi";
+import { StorageZone } from "@/src/types";
+
+export interface ReviewItemState {
+  id: string;
+  name: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  expiry_date: string;
+  storageZone: StorageZone;
+  confidence?: number;
+  confirmed: boolean;
+  isEditing?: boolean;
+}
+
+export function getItemEmoji(name: string, category: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("blueberry") || lower.includes("berries")) return "🫐";
+  if (lower.includes("apple")) return "🍎";
+  if (lower.includes("banana")) return "🍌";
+  if (lower.includes("orange") || lower.includes("lemon") || lower.includes("citrus")) return "🍊";
+  if (lower.includes("chicken") || lower.includes("beef") || lower.includes("meat") || lower.includes("pork")) return "🍗";
+  if (lower.includes("fish") || lower.includes("salmon") || lower.includes("shrimp") || lower.includes("seafood")) return "🐟";
+  if (lower.includes("milk") || lower.includes("dairy")) return "🥛";
+  if (lower.includes("yogurt")) return "🫙";
+  if (lower.includes("cheese") || lower.includes("cheddar")) return "🧀";
+  if (lower.includes("egg")) return "🥚";
+  if (lower.includes("bread") || lower.includes("toast") || lower.includes("bakery")) return "🍞";
+  if (lower.includes("tomato")) return "🍅";
+  if (lower.includes("spinach") || lower.includes("lettuce") || lower.includes("salad") || lower.includes("carrot")) return "🥬";
+  if (lower.includes("avocado")) return "🥑";
+  if (lower.includes("pasta") || lower.includes("penne") || lower.includes("noodle")) return "🍝";
+  if (lower.includes("protein") || lower.includes("shake") || lower.includes("beverage")) return "🥤";
+
+  const catLower = category.toLowerCase();
+  if (catLower.includes("produce")) return "🥦";
+  if (catLower.includes("dairy")) return "🥛";
+  if (catLower.includes("meat")) return "🥩";
+  if (catLower.includes("bakery")) return "🥖";
+  if (catLower.includes("beverage")) return "🧃";
+  return "🍽️";
+}
+
+export function parseRawScanItems(rawParam?: string): ReviewItemState[] {
+  if (!rawParam) return [];
+  try {
+    const parsed = JSON.parse(rawParam);
+    if (!Array.isArray(parsed)) return [];
+
+    const todayIso = new Date().toISOString().split("T")[0];
+
+    return parsed.map((item: ScannedItem, index: number) => ({
+      id: item.id || `scanned-${index}-${Date.now()}`,
+      name: item.name || `Detected Item ${index + 1}`,
+      category: item.category || "Pantry",
+      quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
+      unit: item.unit || "units",
+      expiry_date: item.expiry_date || todayIso,
+      storageZone: item.storageZone || "pantry",
+      confidence: typeof item.confidence === "number" ? item.confidence : undefined,
+      confirmed: true,
+      isEditing: false,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 export default function AIReviewModal() {
   const router = useRouter();
-  const { addItem } = useInventory();
-  const [name, setName] = useState("Organic Blueberries");
-  const [expDate, setExpDate] = useState("2026-09-21");
-  const [qty, setQty] = useState("6 oz container");
+  const { session, household } = useAuth();
+  const { refreshInventory } = useInventory();
+  const params = useLocalSearchParams<{ items?: string; mode?: string }>();
 
-  const [storageZone, setStorageZone] = useState<StorageZone>(defaultScanZone("Produce"));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const save = async () => {
-    if (saving) return;
-    const date = expDate.trim();
-    if (!name.trim()) { setError("Enter an item name."); return; }
-    if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date)) {
-      setError("Enter a valid expiration date as YYYY-MM-DD."); return;
-    }
-    setSaving(true); setError("");
-    try {
-      await addItem({ id: Date.now().toString(), name: name.trim(), category: "Produce",
-        expDate: date || "Not set", expiryDate: date || null, daysLeft: 0,
-        quantity: qty, emoji: "🫐", storageZone });
-      router.replace("/(app)/(tabs)" as any);
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not save item."); }
-    finally { setSaving(false); }
+  // Parse items from scanner navigation route params
+  const initialItems = useMemo(() => {
+    const parsed = parseRawScanItems(params.items);
+    if (parsed.length > 0) return parsed;
+    // Default fallback item if accessed without scan params
+    return [
+      {
+        id: "default-1",
+        name: "Organic Blueberries",
+        category: "Produce",
+        quantity: 1,
+        unit: "6 oz container",
+        expiry_date: "2026-09-21",
+        storageZone: "fridge" as StorageZone,
+        confidence: 0.98,
+        confirmed: true,
+        isEditing: false,
+      },
+    ];
+  }, [params.items]);
+
+  const [items, setItems] = useState<ReviewItemState[]>(initialItems);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successCount, setSuccessCount] = useState<number | null>(null);
+
+  const confirmedItems = items.filter((i) => i.confirmed);
+
+  const handleToggleConfirm = (id: string) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, confirmed: !item.confirmed } : item))
+    );
   };
+
+  const handleToggleEdit = (id: string) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, isEditing: !item.isEditing } : item))
+    );
+  };
+
+  const handleRemoveItem = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUpdateItem = (id: string, updates: Partial<ReviewItemState>) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
+  };
+
+  const getAccessToken = async (): Promise<string> => {
+    if (session?.access_token) return session.access_token;
+    const result = await supabase?.auth.getSession();
+    if (result?.data?.session?.access_token) return result.data.session.access_token;
+    throw new Error("Please sign in again.");
+  };
+
+  const handleAddToPantry = async () => {
+    if (confirmedItems.length === 0) {
+      Alert.alert("No Items Selected", "Please select at least one item to add to your pantry.");
+      return;
+    }
+
+    if (!household?.id) {
+      setErrorMessage("Please choose a household first.");
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const token = await getAccessToken();
+      let addedCount = 0;
+      const errors: string[] = [];
+
+      for (const item of confirmedItems) {
+        try {
+          const payload: NewItem = {
+            name: item.name.trim(),
+            category: item.category.trim() || "Pantry",
+            quantity: Number(item.quantity) || 1,
+            unit: item.unit.trim() || "units",
+            expiry_date: item.expiry_date ? item.expiry_date.trim() : null,
+            storage_zone: item.storageZone,
+          };
+
+          await inventoryRequest(token, household.id, "POST", undefined, payload);
+          addedCount++;
+        } catch (itemErr: any) {
+          errors.push(`${item.name}: ${itemErr.message || "Failed to add"}`);
+        }
+      }
+
+      await refreshInventory();
+      setSuccessCount(addedCount);
+
+      if (errors.length > 0 && addedCount === 0) {
+        throw new Error(errors.join("\n"));
+      }
+
+      // Success feedback and navigate to pantry dashboard
+      setTimeout(() => {
+        router.replace("/(app)/(tabs)" as any);
+      }, 1000);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Could not save items to inventory.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Empty items state
+  if (items.length === 0) {
+    return (
+      <SafeAreaView className="flex-1 bg-ground-canvas justify-between p-6">
+        <View className="flex-row items-center justify-between mb-4">
+          <Button
+            label="Back"
+            variant="ghost"
+            size="sm"
+            onPress={() => router.back()}
+          />
+          <Badge label="Sample scan" variant="brand" showDot />
+          <View className="w-12" />
+        </View>
+
+        <View className="items-center px-4">
+          <View className="w-20 h-20 rounded-full bg-ground-card border border-border-default items-center justify-center mb-6">
+            <Icon name="Inbox" size={36} color="#94A3B8" />
+          </View>
+          <Typography variant="h2" className="font-bold text-center mb-2">
+            No Items to Review
+          </Typography>
+          <Typography variant="body" color="muted" className="text-center mb-6">
+            All detected items were removed, or no food was identified in the scan.
+          </Typography>
+          <Button
+            label="Scan Again"
+            variant="primary"
+            size="lg"
+            className="w-full mb-3"
+            leadingIcon={<Icon name="Camera" size={18} color="#FFFFFF" />}
+            onPress={() => router.replace("/(modal)/scanner" as any)}
+          />
+          <Button
+            label="Add Manually Instead"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onPress={() => router.replace("/(modal)/manual-add" as any)}
+          />
+        </View>
+
+        <View />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 80 }}>
         {/* Top Header */}
-        <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center justify-between mb-3">
           <Button
             label="Cancel"
             variant="ghost"
@@ -50,61 +265,216 @@ export default function AIReviewModal() {
           <View className="w-12" />
         </View>
 
-        <Typography variant="h2" className="font-bold mb-1">
-          Review Item
-        </Typography>
-        <Typography variant="caption" color="muted" className="mb-6">
-          Review this sample item before adding it to your kitchen. Live camera recognition is not connected yet.
-        </Typography>
+        <View className="mb-4">
+          <Typography variant="h2" className="font-bold mb-1">
+            Review {items.length > 1 ? `Items (${items.length})` : "Item"}
+          </Typography>
+          <Typography variant="caption" color="muted">
+            Verify AI-extracted item attributes before committing to household pantry
+          </Typography>
+        </View>
 
-        {/* Hero Card */}
-        <View className="flex-row items-center p-4 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6">
-          <Avatar emoji="🫐" size="lg" className="mr-4" />
-          <View className="flex-1">
-            <Typography variant="h3" className="font-bold">
-              {name}
-            </Typography>
-            <Typography variant="caption" color="muted">
-              Produce · {storageZone}
+        {/* Success Banner */}
+        {successCount !== null && (
+          <View className="mb-4 p-4 bg-fresh-500/15 border border-fresh-500/40 rounded-2xl flex-row items-center">
+            <Icon name="CheckCircle2" size={20} color="#10B981" />
+            <Typography variant="body" className="ml-2.5 font-bold text-fresh-700">
+              {successCount} {successCount === 1 ? "item" : "items"} added to household pantry!
             </Typography>
           </View>
+        )}
 
-        </View>
+        {/* Error Banner */}
+        {errorMessage && (
+          <View className="mb-4 p-4 bg-danger-500/10 border border-danger-500/30 rounded-2xl flex-row items-center justify-between">
+            <View className="flex-row items-center flex-1 mr-2">
+              <Icon name="AlertCircle" size={20} color="#EF4444" />
+              <Typography variant="caption" className="ml-2 text-danger-700 flex-1 font-medium">
+                {errorMessage}
+              </Typography>
+            </View>
+            <TouchableOpacity onPress={() => setErrorMessage(null)}>
+              <Icon name="X" size={16} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
+        )}
 
-        {/* Form Fields */}
+        {/* List of Detected Items */}
         <View className="gap-4 mb-6">
-          <FormField
-            label="Product Name"
-            value={name}
-            onChangeText={setName}
-            leadingIcon={<Icon name="Tag" size={16} color="#94A3B8" />}
-          />
-          <FormField
-            label="Expiration Date"
-            value={expDate}
-            onChangeText={setExpDate}
-            leadingIcon={<Icon name="Calendar" size={16} color="#94A3B8" />}
-          />
-          <FormField
-            label="Quantity / Size"
-            value={qty}
-            onChangeText={setQty}
-            leadingIcon={<Icon name="Package" size={16} color="#94A3B8" />}
-          />
+          {items.map((item) => {
+            const emoji = getItemEmoji(item.name, item.category);
+            const confidencePercent = item.confidence
+              ? `${Math.round(item.confidence <= 1 ? item.confidence * 100 : item.confidence)}% confidence`
+              : null;
+
+            return (
+              <View
+                key={item.id}
+                className={`p-4 bg-ground-card rounded-2xl border shadow-sm ${
+                  item.confirmed ? "border-border-default" : "border-border-default/50 opacity-60"
+                }`}
+              >
+                {/* Card Header: Checkbox + Avatar + Name + Confidence + Remove */}
+                <View className="flex-row items-center">
+                  <Checkbox
+                    checked={item.confirmed}
+                    onToggle={() => handleToggleConfirm(item.id)}
+                    className="mr-3"
+                  />
+
+                  <Avatar emoji={emoji} size="md" className="mr-3" />
+
+                  <View className="flex-1">
+                    <Typography variant="h3" className="font-bold">
+                      {item.name}
+                    </Typography>
+                    <Typography variant="caption" color="muted">
+                      {item.category} · {item.quantity} {item.unit}
+                    </Typography>
+                  </View>
+
+                  <View className="items-end gap-1.5 ml-2">
+                    {confidencePercent && (
+                      <Badge label={confidencePercent} variant="fresh" size="sm" />
+                    )}
+
+                    <View className="flex-row items-center gap-2 mt-1">
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleToggleEdit(item.id)}
+                        className="p-1.5 rounded-lg bg-ground-surface border border-border-default"
+                      >
+                        <Icon
+                          name={item.isEditing ? "ChevronUp" : "Edit3"}
+                          size={14}
+                          color="#64748B"
+                        />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleRemoveItem(item.id)}
+                        className="p-1.5 rounded-lg bg-danger-500/10 border border-danger-500/20"
+                      >
+                        <Icon name="Trash2" size={14} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Expiration date chip */}
+                <View className="flex-row items-center mt-3 pt-3 border-t border-border-default/40 justify-between">
+                  <View className="flex-row items-center">
+                    <Icon name="Calendar" size={14} color="#94A3B8" />
+                    <Typography variant="caption" color="muted" className="ml-1.5">
+                      Expires: {item.expiry_date || "Not set"}
+                    </Typography>
+                  </View>
+                  <Typography variant="caption" className="font-medium text-brand-500">
+                    Zone: {item.storageZone}
+                  </Typography>
+                </View>
+
+                {/* Expandable Editable Form Fields */}
+                {item.isEditing && (
+                  <View className="gap-3 mt-4 pt-4 border-t border-border-default">
+                    <FormField
+                      label="Product Name"
+                      value={item.name}
+                      onChangeText={(val) => handleUpdateItem(item.id, { name: val })}
+                      leadingIcon={<Icon name="Tag" size={16} color="#94A3B8" />}
+                    />
+
+                    <View className="flex-row gap-2">
+                      <View className="flex-1">
+                        <FormField
+                          label="Quantity"
+                          value={String(item.quantity)}
+                          keyboardType="numeric"
+                          onChangeText={(val) => {
+                            const num = parseFloat(val);
+                            handleUpdateItem(item.id, { quantity: isNaN(num) ? 1 : num });
+                          }}
+                          leadingIcon={<Icon name="Hash" size={16} color="#94A3B8" />}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <FormField
+                          label="Unit"
+                          value={item.unit}
+                          onChangeText={(val) => handleUpdateItem(item.id, { unit: val })}
+                          leadingIcon={<Icon name="Package" size={16} color="#94A3B8" />}
+                        />
+                      </View>
+                    </View>
+
+                    <FormField
+                      label="Category"
+                      value={item.category}
+                      onChangeText={(val) => handleUpdateItem(item.id, { category: val })}
+                      leadingIcon={<Icon name="Folder" size={16} color="#94A3B8" />}
+                    />
+
+                    <FormField
+                      label="Expiration Date (YYYY-MM-DD)"
+                      value={item.expiry_date}
+                      onChangeText={(val) => handleUpdateItem(item.id, { expiry_date: val })}
+                      leadingIcon={<Icon name="Calendar" size={16} color="#94A3B8" />}
+                    />
+
+                    {/* Storage Zone Selector */}
+                    <View>
+                      <Typography variant="caption" className="text-text-secondary font-medium mb-1.5">
+                        Storage Zone
+                      </Typography>
+                      <View className="flex-row gap-2">
+                        {(["pantry", "fridge", "freezer", "spicerack"] as StorageZone[]).map((zone) => {
+                          const isSel = item.storageZone === zone;
+                          return (
+                            <TouchableOpacity
+                              key={zone}
+                              activeOpacity={0.7}
+                              onPress={() => handleUpdateItem(item.id, { storageZone: zone })}
+                              className={`px-3 py-1.5 rounded-xl border ${
+                                isSel
+                                  ? "bg-brand-500 border-brand-500"
+                                  : "bg-ground-surface border-border-default"
+                              }`}
+                            >
+                              <Text
+                                className={`text-[12px] font-semibold capitalize ${
+                                  isSel ? "text-white" : "text-text-secondary"
+                                }`}
+                              >
+                                {zone}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
 
-        <Typography variant="caption">Storage zone</Typography>
-        <TagChipGroup tags={["pantry", "fridge", "freezer", "spicerack"]}
-          selectedTag={storageZone} onSelectTag={(zone) => setStorageZone(zone as StorageZone)} />
-        {error ? <Typography>{error}</Typography> : null}
-
-        {/* Action button */}
+        {/* Action Button */}
         <Button
-          label={saving ? "Saving…" : "Add to Kitchen"}
-          disabled={saving}
+          label={
+            submitting
+              ? "Saving to Pantry..."
+              : confirmedItems.length > 0
+              ? `Add ${confirmedItems.length} ${confirmedItems.length === 1 ? "Item" : "Items"} to Household Pantry`
+              : "Select Items to Add"
+          }
           variant="primary"
-          leadingIcon={<Icon name="PlusCircle" size={18} color="#FFFFFF" />}
-          onPress={save}
+          size="lg"
+          disabled={confirmedItems.length === 0 || submitting}
+          loading={submitting}
+          leadingIcon={!submitting ? <Icon name="PlusCircle" size={18} color="#FFFFFF" /> : undefined}
+          onPress={handleAddToPantry}
         />
       </ScrollView>
     </SafeAreaView>

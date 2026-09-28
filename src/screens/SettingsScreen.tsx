@@ -6,6 +6,7 @@ import {
   ScrollView,
   Switch,
   Alert,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Icon } from "@/src/components/atoms/Icon";
@@ -23,6 +24,16 @@ export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
   const [soundEffects, setSoundEffects] = useState(true);
 
   const handleLogout = () => {
+    if (Platform.OS === "web") {
+      const confirmed = typeof window !== "undefined" && window.confirm
+        ? window.confirm("Are you sure you want to log out of your household kitchen?")
+        : true;
+      if (confirmed) {
+        logout();
+      }
+      return;
+    }
+
     Alert.alert(
       "Log Out",
       "Are you sure you want to log out of your household kitchen?",

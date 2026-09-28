@@ -26,7 +26,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Mealventory to access your camera to scan food items and receipts."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
