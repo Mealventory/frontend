@@ -14,7 +14,7 @@ export function RecipeDetailView({
   inventoryItemNames,
   onBack,
 }: RecipeDetailViewProps) {
-  const haveAll = recipe.uses.every((u) =>
+  const haveAll = !recipe.missingIngredients?.length && recipe.uses.every((u) =>
     inventoryItemNames.has(u.toLowerCase())
   );
 
@@ -74,6 +74,8 @@ export function RecipeDetailView({
         ))}
       </View>
 
+      {recipe.priorityIngredients?.length ? <Text className="text-brand-500 mb-3">Use soon: {recipe.priorityIngredients.join(', ')}</Text> : null}
+      {recipe.missingIngredients?.length ? <Text className="text-text-muted mb-3">Extras to check: {recipe.missingIngredients.join(', ')}</Text> : null}
       {/* Ingredients List */}
       <View className="mb-6">
         <Text className="text-[12px] font-bold text-text-subtle uppercase tracking-widest mb-3">
@@ -81,7 +83,7 @@ export function RecipeDetailView({
         </Text>
         <View className="gap-2">
           {recipe.uses.map((ing) => {
-            const have = inventoryItemNames.has(ing.toLowerCase());
+            const have = !recipe.missingIngredients?.includes(ing) && inventoryItemNames.has(ing.toLowerCase());
             return (
               <View
                 key={ing}

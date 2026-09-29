@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, ScrollView, TextInput, TouchableOpacity, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Typography, Badge } from "@/src/components/atoms";
+import { Typography, Badge, Button } from "@/src/components/atoms";
 import { Icon } from "@/src/components/atoms/Icon";
 import { FoodItemCard } from "@/src/components/domain/FoodItemCard";
 import { TagChipGroup } from "@/src/components/molecules/TagChipGroup";
@@ -71,6 +71,8 @@ export default function PantryDashboardScreen() {
       </View>
 
       {/* Items List */}
+      <View className="px-5 pb-3"><Button label="Use expiring food" variant="secondary" onPress={() => router.push("/(app)/(tabs)/recipes" as any)} /></View>
+
       <ScrollView
         refreshControl={<RefreshControl refreshing={inventoryLoading} onRefresh={() => void refreshInventory()} />}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
