@@ -1,3 +1,5 @@
+import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
+import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import React, { useRef, useState } from 'react';
 import { ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,12 +35,10 @@ function EditForm({ item }: { item: FoodItem }) {
   const save = async () => {
     if (lock.current) return;
     const amount = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
-    const expiry = date.trim();
+    let expiry: string | null;
+    try { expiry = normalizeExpiryDate(date); } catch (e) { setError((e as Error).message); return; }
     if (!name.trim() || !category.trim()) { setError('Enter an item name and category.'); return; }
     if (!amount || !Number.isFinite(Number(amount[1])) || Number(amount[1]) <= 0) { setError('Enter a positive quantity, such as 2 tubs or 500 g.'); return; }
-    if (expiry && (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || !Number.isFinite(Date.parse(expiry)) || new Date(expiry).toISOString().slice(0, 10) !== expiry)) {
-      setError('Enter a valid expiry date as YYYY-MM-DD.'); return;
-    }
     lock.current = true; setSaving(true); setError('');
     try {
       await updateItem(item.id, { name: name.trim(), category: category.trim(), quantity: Number(amount[1]), unit: amount[2] || 'units', expiry_date: expiry || null, storage_zone: zone });
@@ -57,7 +57,7 @@ function EditForm({ item }: { item: FoodItem }) {
         <FormField label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
         <FormField label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
         <FormField label="Category" value={category} onChangeText={setCategory} editable={!saving} maxLength={80} />
-        <FormField label="Expiry date (YYYY-MM-DD)" value={date} onChangeText={setDate} editable={!saving} placeholder="YYYY-MM-DD" helperText="Use the date on the packaging. Leave blank if unknown." autoCapitalize="none" />
+        <ExpiryDateField value={date} onChangeText={setDate} editable={!saving} />
         <View pointerEvents={saving ? 'none' : 'auto'}>
           <Typography variant="caption" className="mb-2">Storage location</Typography>
           <TagChipGroup tags={['pantry', 'fridge', 'freezer', 'spicerack']} selectedTag={zone} onSelectTag={v => setZone(v as StorageZone)} />

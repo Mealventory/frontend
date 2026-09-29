@@ -21,6 +21,8 @@ function load(file, mocks = {}) {
 const mockComponent = () => null;
 
 const { parseRawScanItems, getItemEmoji, saveReviewedItems } = load('app/(modal)/ai-review.tsx', {
+  '@/src/components/molecules/ExpiryDateField': { ExpiryDateField: mockComponent },
+  '@/src/lib/expiryDate': load('src/lib/expiryDate.ts'),
   '@/src/lib/storageZones': load('src/lib/storageZones.ts'),
   'react-native': {
     View: mockComponent,
