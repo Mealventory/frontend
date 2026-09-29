@@ -27,9 +27,12 @@ export function TagChipGroup({
           return (
             <TouchableOpacity
               key={tag}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isSelected }}
+              accessibilityLabel={tag}
               activeOpacity={0.7}
               onPress={() => onSelectTag(tag)}
-              className={`mr-2 px-4 py-2 rounded-full border ${
+              className={`mr-2 min-h-[44px] items-center justify-center px-4 py-2 rounded-full border ${
                 isSelected
                   ? "bg-brand-500 border-brand-500"
                   : "bg-ground-surface border-border-default"
