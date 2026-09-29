@@ -56,6 +56,7 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
       setHouseholds([]); setSelected(null); setMembers([]); setPage('home');
       setHouseholdsLoaded(false);
       setError(''); setNotice(''); setBusy(false); setLoading(false);
+      setSignUp(false); setForgot(false);
     }
   }, [session]);
   useEffect(() => () => { generation.current++; memberRequest.current++; }, []);

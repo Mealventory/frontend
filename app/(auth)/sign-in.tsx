@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { RoutePlaceholder } from "@/src/components/layout/RoutePlaceholder";
 import { FormField } from "@/src/components/molecules";
-import { Button, Icon } from "@/src/components/atoms";
+import { Button, Icon, Typography } from "@/src/components/atoms";
 import { supabase } from "@/src/lib/supabase";
 
 export default function SignInScreen() {
@@ -41,8 +41,10 @@ export default function SignInScreen() {
     >
       <View className="gap-4">
         {error ? (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
+          <View className="p-4 rounded-xl bg-urgency-critical-bg border border-urgency-critical/30">
+            <Typography variant="caption" color="critical" className="font-semibold">
+              {error}
+            </Typography>
           </View>
         ) : null}
 
@@ -76,20 +78,14 @@ export default function SignInScreen() {
           size="sm"
           onPress={() => router.push("/(auth)/forgot-password" as any)}
         />
+
+        <Button
+          label="New here? Create an account"
+          variant="outline"
+          size="sm"
+          onPress={() => router.push("/(auth)/sign-up" as any)}
+        />
       </View>
     </RoutePlaceholder>
   );
 }
-
-const styles = StyleSheet.create({
-  errorBox: {
-    backgroundColor: "#FEE2E2",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 4,
-  },
-  errorText: {
-    color: "#DC2626",
-    fontSize: 13,
-  },
-});
