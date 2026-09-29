@@ -8,7 +8,7 @@ const mod = new Module('inventoryApi');
 mod._compile(ts.transpileModule(fs.readFileSync('src/lib/inventoryApi.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText, 'inventoryApi.cjs');
-const { inventoryRequest, toFoodItem } = mod.exports;
+const { inventoryRequest, toFoodItem, batchCreateInventoryItems } = mod.exports;
 const originalFetch = global.fetch;
 afterEach(() => { global.fetch = originalFetch; });
 test('delete sends bearer and household identity, handles empty 204 response', async () => {
@@ -75,4 +75,53 @@ test('failed status actions reject and inactive items explain recovery', async (
     global.fetch = async () => new Response('{}', { status });
     await assert.rejects(inventoryRequest('token', 'home', 'POST', 'item', undefined, 'discard'));
   }
+});
+
+test('batchCreateInventoryItems posts items array to /api/v1/inventory/batch with bearer and household headers', async () => {
+  const items = [
+    { name: 'Organic Milk', category: 'Dairy', quantity: 1, unit: 'gal', expiry_date: '2026-10-01', storage_zone: 'fridge' },
+    { name: 'Sourdough', category: 'Bakery', quantity: 1, unit: 'loaf', expiry_date: null, storage_zone: 'pantry' },
+  ];
+  let requestedUrl = '';
+  let requestedHeaders = {};
+  let requestedBody = null;
+  global.fetch = async (url, options) => {
+    requestedUrl = url;
+    requestedHeaders = options.headers;
+    requestedBody = JSON.parse(options.body);
+    return new Response(JSON.stringify([{ id: 'uuid-1' }, { id: 'uuid-2' }]), { status: 201 });
+  };
+  const result = await batchCreateInventoryItems('jwt-token-123', 'household-456', items);
+  assert.equal(requestedUrl, 'https://backend.example/api/v1/inventory/batch');
+  assert.equal(requestedHeaders.Authorization, 'Bearer jwt-token-123');
+  assert.equal(requestedHeaders['X-Household-ID'], 'household-456');
+  assert.equal(requestedBody.length, 2);
+  assert.equal(requestedBody[0].name, 'Organic Milk');
+  assert.equal(requestedBody[0].storage_zone, 'fridge');
+  assert.equal(result.length, 2);
+});
+
+test('batchCreateInventoryItems falls back to /api/v1/items/batch when /inventory/batch returns 404', async () => {
+  const items = [{ name: 'Rice', category: 'Pantry', quantity: 1, unit: 'kg', expiry_date: null, storage_zone: 'pantry' }];
+  let urls = [];
+  global.fetch = async (url) => {
+    urls.push(url);
+    if (url.includes('/inventory/batch')) {
+      return new Response(JSON.stringify({ detail: 'Not Found' }), { status: 404 });
+    }
+    return new Response(JSON.stringify([{ id: 'uuid-1', name: 'Rice' }]), { status: 201 });
+  };
+  const result = await batchCreateInventoryItems('jwt-token', 'household-1', items);
+  assert.equal(urls.length, 2);
+  assert.equal(urls[0], 'https://backend.example/api/v1/inventory/batch');
+  assert.equal(urls[1], 'https://backend.example/api/v1/items/batch');
+  assert.equal(result.length, 1);
+});
+
+test('batchCreateInventoryItems returns empty array for empty items list without fetching', async () => {
+  let called = false;
+  global.fetch = async () => { called = true; return new Response('{}'); };
+  const res = await batchCreateInventoryItems('token', 'household', []);
+  assert.equal(called, false);
+  assert.deepEqual(res, []);
 });

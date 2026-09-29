@@ -19,8 +19,9 @@ import { uploadScanImage, ScanMode, ScannerMode } from "@/src/lib/scanApi";
 import { compressImageForUpload } from "@/src/lib/imageOptimizer";
 import { fetchProductByBarcode } from "@/src/lib/barcodeApi";
 
-const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode"; instruction: string }[] = [
+const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode" | "Tag"; instruction: string }[] = [
   { id: "food", label: "Product", icon: "Apple", instruction: "Center product or grocery items in frame" },
+  { id: "tag", label: "Tag", icon: "Tag", instruction: "Center expiration date tag or package label" },
   { id: "receipt", label: "Receipt", icon: "Receipt", instruction: "Align store receipt within boundary guides" },
   { id: "barcode", label: "Barcode", icon: "Barcode", instruction: "Position barcode in frame for instant auto-scan" },
 ];
