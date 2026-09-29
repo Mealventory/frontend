@@ -71,7 +71,7 @@ export function parseRawScanItems(rawParam?: string, rawBarcode?: string): Revie
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed.map((item: ScannedItem, index: number) => ({
           id: item.id || `scanned-${index}-${Date.now()}`,
-          name: item.name || `Detected Item ${index + 1}`,
+          name: item.name ?? `Detected Item ${index + 1}`,
           category: item.category || "Pantry",
           quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
           unit: item.unit || "units",
@@ -79,7 +79,7 @@ export function parseRawScanItems(rawParam?: string, rawBarcode?: string): Revie
           storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
           confidence: typeof item.confidence === "number" ? item.confidence : undefined,
           confirmed: true,
-          isEditing: false,
+          isEditing: !item.name,
         }));
       }
     } catch {
@@ -113,6 +113,7 @@ export async function saveReviewedItems(
   const errors: string[] = [];
   for (const item of items.filter(item => item.confirmed)) {
     try {
+      if (!item.name.trim()) throw new Error("Enter the food name before saving.");
       await save({
         name: item.name.trim(),
         category: item.category.trim() || "Pantry",

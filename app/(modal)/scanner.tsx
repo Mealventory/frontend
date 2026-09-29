@@ -21,9 +21,10 @@ import { uploadScanImage, ScanMode, ScannerMode } from "@/src/lib/scanApi";
 import { compressImageForUpload } from "@/src/lib/imageOptimizer";
 import { fetchProductByBarcode } from "@/src/lib/barcodeApi";
 
-const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode"; instruction: string }[] = [
+const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode" | "Calendar"; instruction: string }[] = [
   { id: "food", label: "Product", icon: "Apple", instruction: "Center the product in the frame" },
   { id: "receipt", label: "Receipt", icon: "Receipt", instruction: "Align store receipt within boundary guides" },
+  { id: "tag", label: "Expiry tag", icon: "Calendar", instruction: "Fill the frame with the printed best-before date" },
   { id: "barcode", label: "Barcode", icon: "Barcode", instruction: "Position barcode in frame for instant auto-scan" },
 ];
 
@@ -213,7 +214,7 @@ export default function FullscreenScannerModal() {
       }
 
       const compressedUri = await compressImageForUpload(rawUri, {
-        maxWidth: 1600,
+        maxWidth: mode === "food" ? 1600 : 2400,
         quality: 0.8,
       });
 
@@ -255,13 +256,13 @@ export default function FullscreenScannerModal() {
         rawMsg.toLowerCase().includes("mismatch") ||
         !rawMsg
       ) {
-        msg = `${elementName} could not be detected. Please adjust camera framing and retry.`;
+        msg = rawMsg || `${elementName} could not be detected. Please adjust camera framing and retry.`;
       } else if (rawMsg.toLowerCase().includes("abort") || rawMsg.toLowerCase().includes("timeout")) {
         msg = "Scan request timed out. Please check your connection and retry.";
       } else if (rawMsg.toLowerCase().includes("network") || rawMsg.toLowerCase().includes("offline")) {
         msg = "Network connection error. Please verify your connection and retry.";
       } else {
-        msg = `${elementName} could not be detected. Please adjust camera framing and retry.`;
+        msg = rawMsg || `${elementName} could not be detected. Please adjust camera framing and retry.`;
       }
       setErrorMessage(msg);
     } finally {
