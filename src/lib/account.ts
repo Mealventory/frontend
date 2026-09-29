@@ -44,3 +44,68 @@ export async function acceptRecoveryLink(client: SupabaseClient | null, url: str
   }
   return false;
 }
+
+export interface SignUpFormValues {
+  displayName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export interface SignUpValidationErrors {
+  displayName?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+}
+
+export function validateSignUp(values: SignUpFormValues): {
+  isValid: boolean;
+  errors: SignUpValidationErrors;
+} {
+  const errors: SignUpValidationErrors = {};
+  if (!values.displayName || !values.displayName.trim()) {
+    errors.displayName = 'Display name is required.';
+  }
+  const trimmedEmail = values.email ? values.email.trim() : '';
+  if (!trimmedEmail) {
+    errors.email = 'Email address is required.';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    errors.email = 'Please enter a valid email address.';
+  }
+  if (!values.password) {
+    errors.password = 'Password is required.';
+  } else if (values.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters long.';
+  }
+  if (!values.confirmPassword) {
+    errors.confirmPassword = 'Password confirmation is required.';
+  } else if (values.password !== values.confirmPassword) {
+    errors.confirmPassword = 'Passwords do not match.';
+  }
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+}
+
+export async function signUpAccount(
+  client: SupabaseClient | null,
+  data: { email: string; password: string; displayName: string }
+) {
+  const account = accountClient(client);
+  const trimmedEmail = data.email.trim();
+  const trimmedName = data.displayName.trim();
+  const username = usernameFor(trimmedEmail, trimmedName);
+  return await account.auth.signUp({
+    email: trimmedEmail,
+    password: data.password,
+    options: {
+      data: {
+        display_name: trimmedName,
+        username,
+      },
+    },
+  });
+}
+

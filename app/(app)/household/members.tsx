@@ -16,6 +16,7 @@ export default function HouseholdMembersScreen() {
       routePath="/(app)/household/members"
       description="Manage shared household collaborators and sync permissions."
       iconName="Users"
+      showBackToHome={false}
     >
       <View className="gap-3">
         {members.map((member) => (

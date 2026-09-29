@@ -32,6 +32,59 @@ export async function inventoryRequest<T>(token: string, household: string, meth
   } finally { clearTimeout(timeout); }
 }
 
+export async function batchCreateInventoryItems<T = InventoryRow[]>(
+  token: string,
+  household: string,
+  items: NewItem[],
+  fetchFn: typeof fetch = fetch,
+): Promise<T> {
+  if (!backendUrl) throw new Error('The backend connection is not configured.');
+  if (!household) throw new Error('Choose a household first.');
+  if (!items || items.length === 0) return [] as unknown as T;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    let response = await fetchFn(`${backendUrl}/api/v1/inventory/batch`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Household-ID': household,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(items),
+      signal: controller.signal,
+    });
+
+    if (response.status === 404) {
+      response = await fetchFn(`${backendUrl}/api/v1/items/batch`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Household-ID': household,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(items),
+        signal: controller.signal,
+      });
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('Please sign in again.');
+      if (response.status === 403) throw new Error('You no longer have access to this household.');
+      const problem = await response.json().catch(() => null);
+      throw new Error(problem?.detail || 'Could not batch save items to inventory. Please try again.');
+    }
+
+    return await response.json();
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw new Error('Inventory batch request timed out. Please retry.');
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function toFoodItem(row: InventoryRow): FoodItem {
   const expiry = row.expiry_date ? new Date(`${row.expiry_date}T00:00:00`) : null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
