@@ -237,19 +237,20 @@ export function ReceiptReviewSheet({
             return (
               <View
                 key={item.id}
-                className={`p-4 bg-ground-surface dark:bg-ground-card rounded-2xl border transition-all ${
+                className={`p-4 bg-ground-surface dark:bg-ground-card rounded-2xl border ${
                   item.confirmed
                     ? "border-border-default shadow-sm opacity-100"
-                    : "border-border-default/40 opacity-60"
+                    : "border-border-default"
                 }`}
               >
                 {/* Header Row: Checkbox, Avatar, Name, Confidence, Actions */}
                 <View className="flex-row items-center">
-                  <Checkbox
+                  {items.length > 1 && <Checkbox
                     checked={item.confirmed}
                     onToggle={() => onToggleConfirm(item.id)}
+                    disabled={submitting}
                     className="mr-3"
-                  />
+                  />}
 
                   <Avatar emoji={emoji} size="md" className="mr-3" />
 
@@ -481,6 +482,11 @@ export function ReceiptReviewSheet({
                       onChangeText={(val) => onUpdateItem(item.id, { expiry_date: val })} editable={!submitting} />
                   </View>
                 )}
+                {typeof item.confidence === 'number' && item.confidence < 0.7 && (
+                  <Typography variant="caption" color="muted" className="mt-4">
+                    Possible match. Check the name and details before adding it.
+                  </Typography>
+                )}
               </View>
             );
           })}
@@ -491,15 +497,13 @@ export function ReceiptReviewSheet({
           label={
             submitting
               ? "Saving to Pantry..."
-              : confirmedItems.length > 0
-              ? `Add ${confirmedItems.length} ${
-                  confirmedItems.length === 1 ? "Item" : "Items"
-                } to Pantry`
-              : "Select Items to Add"
+              : items.length === 1
+              ? "Confirm & Add to Pantry"
+              : `Add Selected Items (${confirmedItems.length})`
           }
           variant="primary"
           size="lg"
-          disabled={confirmedItems.length === 0 || submitting}
+          disabled={(items.length !== 1 && confirmedItems.length === 0) || submitting}
           loading={submitting}
           leadingIcon={
             !submitting ? (

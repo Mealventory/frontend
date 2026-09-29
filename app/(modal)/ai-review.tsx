@@ -88,7 +88,7 @@ export async function saveReviewedItems(
 export async function batchSaveReviewedItems(
   items: ReviewItemState[],
   batchSave: (payloads: NewItem[]) => Promise<unknown>,
-) {
+): Promise<{ savedIds: string[]; errors: string[] }> {
   const confirmed = items.filter((item) => item.confirmed);
   if (confirmed.length === 0) return { savedIds: [], errors: [] };
 
@@ -179,7 +179,8 @@ export default function AIReviewModal() {
 
   const handleAddToPantry = async () => {
     if (savingRef.current) return;
-    if (confirmedItems.length === 0) {
+    const selected = items.length === 1 ? [{ ...items[0], confirmed: true }] : confirmedItems;
+    if (selected.length === 0) {
       Alert.alert("No Items Selected", "Please select at least one item to add to your pantry.");
       return;
     }
@@ -195,39 +196,15 @@ export default function AIReviewModal() {
 
     try {
       const token = await getAccessToken();
-      const payloads: NewItem[] = confirmedItems.map((item) => ({
-        name: item.name.trim(),
-        category: item.category.trim() || "Pantry",
-        quantity: item.quantity,
-        unit: item.unit.trim() || "units",
-        expiry_date: item.expiry_date.trim() || null,
-        storage_zone: item.storageZone,
-      }));
-
-      // Batch-commit to backend (POST /api/v1/inventory/batch or /api/v1/items/batch)
-      await batchCreateInventoryItems(token, household.id, payloads);
-
-      const confirmedIds = confirmedItems.map((i) => i.id);
-      setItems((previous) => previous.filter((item) => !confirmedIds.includes(item.id)));
-      setSuccessCount((previous) => (previous || 0) + confirmedItems.length);
+      const { savedIds, errors } = await batchSaveReviewedItems(selected,
+        payloads => batchCreateInventoryItems(token, household.id, payloads));
+      if (errors.length) { setErrorMessage(errors.join("\n")); return; }
+      setItems(previous => previous.filter(item => !savedIds.includes(item.id)));
+      setSuccessCount(previous => (previous || 0) + savedIds.length);
       await refreshInventory();
       router.replace("/(app)/(tabs)" as any);
     } catch (err: any) {
-      // Fallback to sequential save if batch request is not supported
-      try {
-        const token = await getAccessToken();
-        const { savedIds, errors } = await saveReviewedItems(
-          confirmedItems,
-          (payload) => inventoryRequest(token, household.id, "POST", undefined, payload)
-        );
-        setItems((previous) => previous.filter((item) => !savedIds.includes(item.id)));
-        setSuccessCount((previous) => (previous || 0) + savedIds.length);
-        if (errors.length) setErrorMessage(errors.join("\n"));
-        await refreshInventory();
-        if (!errors.length) router.replace("/(app)/(tabs)" as any);
-      } catch (fallbackErr: any) {
-        setErrorMessage(err.message || fallbackErr.message || "Could not save items to inventory.");
-      }
+      setErrorMessage(err.message || "Could not save items to inventory.");
     } finally {
       savingRef.current = false;
       setSubmitting(false);
