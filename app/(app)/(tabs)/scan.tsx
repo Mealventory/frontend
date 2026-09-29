@@ -20,10 +20,10 @@ import { uploadScanImage, ScanMode, ScannerMode } from "@/src/lib/scanApi";
 import { compressImageForUpload } from "@/src/lib/imageOptimizer";
 import { fetchProductByBarcode } from "@/src/lib/barcodeApi";
 
-const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode" | "Calendar"; instruction: string }[] = [
+const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode" | "Tag" | "Calendar"; instruction: string }[] = [
   { id: "food", label: "Product", icon: "Apple", instruction: "Center product or grocery items in frame" },
+  { id: "tag", label: "Tag", icon: "Calendar", instruction: "Fill the frame with the printed best-before date" },
   { id: "receipt", label: "Receipt", icon: "Receipt", instruction: "Align store receipt within boundary guides" },
-  { id: "tag", label: "Expiry tag", icon: "Calendar", instruction: "Fill the frame with the printed best-before date" },
   { id: "barcode", label: "Barcode", icon: "Barcode", instruction: "Position barcode in frame for instant auto-scan" },
 ];
 
@@ -478,7 +478,7 @@ export default function ScanTabScreen() {
               const isSelected = mode === m.id;
               return (
                 <TouchableOpacity
-                  key={m.id}
+                  key={`${m.id}-${m.label}`}
                   activeOpacity={0.75}
                   disabled={scanning}
                   onPress={() => {

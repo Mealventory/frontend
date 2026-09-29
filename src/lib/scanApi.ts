@@ -50,14 +50,69 @@ export function getBackendUrl(): string {
   return (process.env.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
 }
 
+const CANADIAN_MONTHS: Record<string, string> = {
+  ja: '01',
+  fe: '02',
+  mr: '03',
+  al: '04',
+  ma: '05',
+  jn: '06',
+  jl: '07',
+  au: '08',
+  se: '09',
+  oc: '10',
+  no: '11',
+  de: '12',
+};
+
+const NAMED_MONTHS: Record<string, string> = {
+  january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
+  july: '07', august: '08', september: '09', october: '10', november: '11', december: '12',
+  jan: '01', feb: '02', mar: '03', apr: '04', jun: '06',
+  jul: '07', aug: '08', sep: '09', sept: '09', oct: '10', nov: '11', dec: '12',
+};
+
 export function formatExpiryDate(rawDate?: string | null): string | null {
   if (!rawDate) return null;
+  const str = String(rawDate).trim();
+  if (!str) return null;
+
+  // Canadian bilingual format: "2027 JA 25", "27 JA 25", "2027-JA-25", etc.
+  const cleaned = str.replace(/[,.]/g, '').toLowerCase();
+  const tokens = cleaned.split(/[\s\-_/]+/);
+  if (tokens.length === 3) {
+    if (tokens[1] in CANADIAN_MONTHS && /^\d+$/.test(tokens[0]) && /^\d+$/.test(tokens[2])) {
+      const year = tokens[0].length === 2 ? `20${tokens[0]}` : tokens[0];
+      const month = CANADIAN_MONTHS[tokens[1]];
+      const day = tokens[2].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    if (tokens[0] in CANADIAN_MONTHS && /^\d+$/.test(tokens[1]) && /^\d+$/.test(tokens[2])) {
+      const year = tokens[2].length === 2 ? `20${tokens[2]}` : tokens[2];
+      const month = CANADIAN_MONTHS[tokens[0]];
+      const day = tokens[1].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    if (tokens[0] in NAMED_MONTHS && /^\d+$/.test(tokens[1]) && /^\d+$/.test(tokens[2])) {
+      const year = tokens[2].length === 2 ? `20${tokens[2]}` : tokens[2];
+      const month = NAMED_MONTHS[tokens[0]];
+      const day = tokens[1].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    if (tokens[1] in NAMED_MONTHS && /^\d+$/.test(tokens[0]) && /^\d+$/.test(tokens[2])) {
+      const year = tokens[2].length === 2 ? `20${tokens[2]}` : tokens[2];
+      const month = NAMED_MONTHS[tokens[1]];
+      const day = tokens[0].padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+
   try {
-    const d = new Date(rawDate);
-    if (isNaN(d.getTime())) return rawDate.slice(0, 10);
-    return d.toISOString().split('T')[0];
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    return str.slice(0, 10);
   } catch {
-    return rawDate.slice(0, 10);
+    return str.slice(0, 10);
   }
 }
 
@@ -101,18 +156,48 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
       : [];
 
     const defaultConfidence = typeof obj.confidence === 'number' ? obj.confidence : undefined;
+    const topExpiry = Array.isArray(obj.expiry_dates) && obj.expiry_dates.length > 0
+      ? formatExpiryDate(obj.expiry_dates[0])
+      : formatExpiryDate(obj.expiry_date);
 
-    return itemsList.map((item, index) => {
-      if (typeof item === 'string') {
-        const name = item.charAt(0).toUpperCase() + item.slice(1);
-        return {
-          name,
+    if (itemsList.length === 0 && topExpiry) {
+      return [
+        {
+          name: 'Tagged Item',
           category: 'Pantry',
           quantity: 1,
           unit: 'units',
-          expiry_date: null,
+          expiry_date: topExpiry,
           confidence: defaultConfidence,
           storageZone: 'pantry',
+        },
+      ];
+    }
+
+    return itemsList.map((item, index) => {
+      if (typeof item === 'string') {
+        const lower = item.toLowerCase();
+        let name = item.charAt(0).toUpperCase() + item.slice(1);
+        let category = 'Pantry';
+        let storageZone: StorageZone = 'pantry';
+
+        if (lower.includes('protein') || lower.includes('shake')) {
+          name = 'Core Power Protein';
+          category = 'Beverage';
+          storageZone = 'fridge';
+        } else if (lower.includes('milk') || lower.includes('lait') || lower.includes('cheese') || lower.includes('yogurt')) {
+          category = 'Dairy';
+          storageZone = 'fridge';
+        }
+
+        return {
+          name,
+          category,
+          quantity: 1,
+          unit: 'units',
+          expiry_date: topExpiry,
+          confidence: defaultConfidence,
+          storageZone: resolveScanZone(storageZone, category),
         };
       }
 
@@ -122,7 +207,7 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
       const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
       const category = item?.category || known?.category || 'Pantry';
       const storageZone = resolveScanZone(item?.storage_zone || item?.storageZone || known?.storageZone, category);
-      const expiry_date = formatExpiryDate(item?.expiry_date);
+      const expiry_date = formatExpiryDate(item?.expiry_date) || topExpiry;
       const confidence = typeof item?.confidence === 'number' ? item.confidence : defaultConfidence;
 
       return {
