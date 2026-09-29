@@ -67,6 +67,8 @@ const { parseRawScanItems, getItemEmoji, saveReviewedItems, batchSaveReviewedIte
   '@/src/components/molecules/EmptyState': { EmptyState: mockComponent },
   '@/src/components/molecules': { FormField: mockComponent },
   '@/src/components/organisms/ReceiptReviewSheet': reviewSheetMod,
+  '@/src/components/molecules/ExpiryDateField': { ExpiryDateField: mockComponent },
+  '@/src/lib/expiryDate': load('src/lib/expiryDate.ts'),
   '@/src/context/AuthContext': { useAuth: () => ({ session: null, household: null }) },
   '@/src/context/InventoryContext': { useInventory: () => ({ refreshInventory: async () => {} }) },
   '@/src/lib/supabase': { supabase: null },

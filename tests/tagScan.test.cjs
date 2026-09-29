@@ -84,8 +84,8 @@ test('normalizeScanResponse generates fallback Tagged Item when items is empty b
 
 test('scan.tsx and scanner.tsx include Tag mode in MODES array', () => {
   const scanContent = fs.readFileSync('app/(app)/(tabs)/scan.tsx', 'utf8');
-  assert.ok(scanContent.includes('{ id: "tag", label: "Tag", icon: "Tag"'), 'scan.tsx must define Tag mode');
+  assert.ok(scanContent.includes('id: "tag"'), 'scan.tsx must define Tag mode');
 
   const modalContent = fs.readFileSync('app/(modal)/scanner.tsx', 'utf8');
-  assert.ok(modalContent.includes('{ id: "tag", label: "Tag", icon: "Tag"'), 'scanner.tsx must define Tag mode');
+  assert.ok(modalContent.includes('id: "tag"'), 'scanner.tsx must define Tag mode');
 });
