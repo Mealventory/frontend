@@ -165,3 +165,15 @@ test('parseRawScanItems handles rawBarcode parameter when items JSON is absent o
   assert.equal(itemsFromBarcode[0].quantity, 1);
   assert.equal(itemsFromBarcode[0].confirmed, true);
 });
+
+test('weak recognition suggestions require confirmation before saving', async () => {
+  const items = parseRawScanItems(JSON.stringify([{ name: 'ginger', confidence: 0.553 }]));
+  assert.equal(items[0].confirmed, false);
+  assert.equal(items[0].isEditing, true);
+  let calls = 0;
+  await saveReviewedItems(items, async () => { calls++; });
+  assert.equal(calls, 0);
+  items[0].confirmed = true;
+  await saveReviewedItems(items, async () => { calls++; });
+  assert.equal(calls, 1);
+});

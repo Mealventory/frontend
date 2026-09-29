@@ -78,8 +78,8 @@ export function parseRawScanItems(rawParam?: string, rawBarcode?: string): Revie
           expiry_date: item.expiry_date || "",
           storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
           confidence: typeof item.confidence === "number" ? item.confidence : undefined,
-          confirmed: true,
-          isEditing: !item.name,
+          confirmed: !(typeof item.confidence === "number" && item.confidence < 0.7),
+          isEditing: !item.name || (typeof item.confidence === "number" && item.confidence < 0.7),
         }));
       }
     } catch {
@@ -309,7 +309,7 @@ export default function AIReviewModal() {
           {items.map((item) => {
             const emoji = getItemEmoji(item.name, item.category);
             const confidencePercent = item.confidence
-              ? `${Math.round(item.confidence <= 1 ? item.confidence * 100 : item.confidence)}% confidence`
+              ? `${Math.round(item.confidence <= 1 ? item.confidence * 100 : item.confidence)}% model score`
               : null;
 
             return (
@@ -339,6 +339,9 @@ export default function AIReviewModal() {
                   </View>
 
                   <View className="items-end gap-1.5 ml-2">
+                    {typeof item.confidence === 'number' && item.confidence < 0.7 && (
+                      <Typography variant="caption" color="muted">Possible match — check the name, then tick to confirm.</Typography>
+                    )}
                     {confidencePercent && (
                       <Badge label={confidencePercent} variant="fresh" size="sm" />
                     )}
