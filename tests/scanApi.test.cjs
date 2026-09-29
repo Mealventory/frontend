@@ -46,10 +46,10 @@ test('uploadScanImage sends bearer token, household header, and mode in FormData
     token: 'test-jwt-token',
     householdId: 'house-uuid-123',
     mode: 'food',
-    imageUri: 'file:///tmp/camera-preview.jpg',
+    imageUri: 'data:image/jpeg;base64,/9j/4A==',
   });
 
-  assert.equal(capturedUrl, 'https://backend.example/api/v1/scan/');
+  assert.equal(capturedUrl, 'https://backend.example/api/v1/scan/preview');
   assert.equal(capturedOptions.method, 'POST');
   assert.equal(capturedOptions.headers.Authorization, 'Bearer test-jwt-token');
   assert.equal(capturedOptions.headers['X-Household-ID'], 'house-uuid-123');
@@ -77,7 +77,7 @@ test('uploadScanImage normalizes detection object with items list', async () => 
     token: 'test-token',
     householdId: 'house-123',
     mode: 'receipt',
-    imageUri: 'file:///tmp/receipt.jpg',
+    imageUri: 'data:image/jpeg;base64,/9j/4A==',
   });
 
   assert.equal(results.length, 3);
@@ -99,7 +99,7 @@ test('uploadScanImage handles 422 no food detected with informative message', as
       token: 'test-token',
       householdId: 'house-123',
       mode: 'food',
-      imageUri: 'file:///tmp/empty.jpg',
+      imageUri: 'data:image/jpeg;base64,/9j/4A==',
     }),
     /No food items detected/i
   );
@@ -120,7 +120,7 @@ test('uploadScanImage handles 422 mode mismatch with actionable message', async 
       token: 'test-token',
       householdId: 'house-123',
       mode: 'food',
-      imageUri: 'file:///tmp/receipt.jpg',
+      imageUri: 'data:image/jpeg;base64,/9j/4A==',
     }),
     /does not match/i
   );
@@ -132,7 +132,7 @@ test('uploadScanImage rejects missing token or household', async () => {
       token: '',
       householdId: 'house-123',
       mode: 'food',
-      imageUri: 'file:///tmp/photo.jpg',
+      imageUri: 'data:image/jpeg;base64,/9j/4A==',
     }),
     /sign in again/i
   );
@@ -142,7 +142,7 @@ test('uploadScanImage rejects missing token or household', async () => {
       token: 'token',
       householdId: '',
       mode: 'food',
-      imageUri: 'file:///tmp/photo.jpg',
+      imageUri: 'data:image/jpeg;base64,/9j/4A==',
     }),
     /household/i
   );
@@ -181,7 +181,7 @@ test('uploadScanImage reports "{element} could not be detected" across all modes
         token: 'test-token',
         householdId: 'house-123',
         mode,
-        imageUri: 'file:///tmp/empty.jpg',
+        imageUri: 'data:image/jpeg;base64,/9j/4A==',
       }),
       new RegExp(expected, 'i')
     );
@@ -200,7 +200,7 @@ test('uploadScanImage converts internal FormDataPart exception into clean user-f
       mode: 'food',
       imageUri: 'data:image/jpeg;base64,1234',
     }),
-    /Product could not be detected/i
+    /Could not upload the photo/i
   );
 });
 
@@ -216,7 +216,7 @@ test('uploadScanImage converts ArrayBufferView or blob creation error into clean
       mode: 'food',
       imageUri: 'data:image/jpeg;base64,1234',
     }),
-    /Product could not be detected/i
+    /Could not upload the photo/i
   );
 });
 
@@ -230,3 +230,20 @@ test('createUploadPart produces valid binary part with bytes() method', async ()
 });
 
 
+
+test('local photo read failures never upload the filename as image bytes', async () => {
+  let posts = 0;
+  const fetchFn = async (url, options) => { if (options) posts++; throw new Error('unreadable'); };
+  await assert.rejects(uploadScanImage({ token: 'token', householdId: 'home', mode: 'receipt', imageUri: 'file:///photo.jpg', fetchFn }), /Could not read the photo/);
+  assert.equal(posts, 0);
+});
+
+test('expiry-only tag stays unnamed for user review', () => {
+  const items = normalizeScanResponse({ items: [{ name: '', expiry_date: '2027-01-25', quantity: 1 }] });
+  assert.equal(items[0].name, '');
+  assert.equal(items[0].expiry_date, '2027-01-25');
+});
+
+test('service outages remain service errors rather than detection failures', async () => {
+  await assert.rejects(uploadScanImage({ token: 'token', householdId: 'home', mode: 'receipt', imageUri: 'data:image/jpeg;base64,/9j/4A==', fetchFn: async () => new Response(JSON.stringify({ detail: { message: 'Scanning is temporarily unavailable.' } }), { status: 503 }) }), /Scanning is temporarily unavailable/);
+});

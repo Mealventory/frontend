@@ -203,7 +203,7 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
 
       const foodId = typeof item?.food_id === 'number' ? item.food_id : undefined;
       const known = foodId && KNOWN_FOODS[foodId] ? KNOWN_FOODS[foodId] : null;
-      const rawName = item?.name || known?.name || `Item ${index + 1}`;
+      const rawName = typeof item?.name === 'string' ? item.name : known?.name || `Item ${index + 1}`;
       const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
       const category = item?.category || known?.category || 'Pantry';
       const storageZone = resolveScanZone(item?.storage_zone || item?.storageZone || known?.storageZone, category);
@@ -300,15 +300,15 @@ export async function uploadScanImage({
   } else {
     let attached = false;
     // In React Native / Expo, fetch(fileUri) reads the local file into a Blob
-    if (typeof fetchFn === 'function' && !imageUri.startsWith('file:///tmp/')) {
+    if (typeof fetchFn === 'function') {
       try {
         const fileRes = await fetchFn(imageUri);
         if (fileRes && typeof fileRes.blob === 'function') {
           const fileBlob: any = await fileRes.blob();
           if (fileBlob) {
             fileBlob.name = 'scan.jpg';
-            if (typeof fileRes.arrayBuffer === 'function') {
-              const buffer = await fileRes.arrayBuffer();
+            if (typeof fileBlob.arrayBuffer === 'function') {
+              const buffer = await fileBlob.arrayBuffer();
               const array = new Uint8Array(buffer);
               fileBlob.bytes = async () => array;
             }
@@ -322,8 +322,7 @@ export async function uploadScanImage({
     }
 
     if (!attached) {
-      const array = new TextEncoder().encode(imageUri);
-      formData.append('file', createUploadPart(array, 'image/jpeg'), 'scan.jpg');
+      throw new Error('Could not read the photo. Please retake it or choose another image.');
     }
   }
 
@@ -332,7 +331,7 @@ export async function uploadScanImage({
   const elementName = mode === 'receipt' ? 'Receipt' : mode === 'barcode' ? 'Barcode' : mode === 'tag' ? 'Tag' : 'Product';
 
   try {
-    const response = await fetchFn(`${backendUrl}/api/v1/scan/`, {
+    const response = await fetchFn(`${backendUrl}/api/v1/scan/preview`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -372,7 +371,7 @@ export async function uploadScanImage({
       }
 
       const problem = await response.json().catch(() => null);
-      throw new Error(problem?.detail || `${elementName} could not be detected. Please try again.`);
+      throw new Error(typeof problem?.detail === 'string' ? problem.detail : problem?.detail?.message || 'Scanning service is unavailable. Check that AI services are running, then retry.');
     }
 
     const data = await response.json();
@@ -393,7 +392,7 @@ export async function uploadScanImage({
       msg.includes('creating blobs') ||
       msg.includes('blob')
     ) {
-      throw new Error(`${elementName} could not be detected. Please adjust camera framing and retry.`);
+      throw new Error('Could not upload the photo. Please retake it or choose another image.');
     }
     throw error;
   } finally {
