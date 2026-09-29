@@ -297,6 +297,19 @@ export function ReceiptReviewSheet({
                   </View>
                 </View>
 
+                {['citrus fruit', 'orange', 'mandarin', 'clementine', 'tangerine'].includes(item.name.toLowerCase()) && (
+                  <View className="mt-4 gap-2">
+                    <Typography variant="caption" color="muted">Citrus varieties can look alike. Choose the variety if you know it, or keep Citrus fruit.</Typography>
+                    <View className="flex-row flex-wrap gap-2">
+                      {['Citrus fruit', 'Orange', 'Mandarin', 'Clementine', 'Tangerine'].map(name => (
+                        <Button key={name} label={name} size="sm" disabled={submitting}
+                          variant={item.name.toLowerCase() === name.toLowerCase() ? 'primary' : 'secondary'}
+                          onPress={() => onUpdateItem(item.id, { name, category: 'Produce' })} />
+                      ))}
+                    </View>
+                  </View>
+                )}
+
                 {/* Interactive Controls Row: Quantity Stepper & Storage Zone Pills */}
                 <View className="mt-3.5 pt-3 border-t border-border-default/50 gap-3">
                   {/* Quantity Stepper Selector */}

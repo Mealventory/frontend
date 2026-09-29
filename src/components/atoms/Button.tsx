@@ -1,10 +1,10 @@
 import React from "react";
 import {
-  TouchableOpacity,
+  Pressable,
   Text,
   ActivityIndicator,
   View,
-  TouchableOpacityProps,
+  PressableProps,
 } from "react-native";
 
 export type ButtonVariant =
@@ -17,7 +17,7 @@ export type ButtonVariant =
 
 export type ButtonSize = "sm" | "md" | "lg";
 
-export interface ButtonProps extends TouchableOpacityProps {
+export interface ButtonProps extends PressableProps {
   label: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -73,19 +73,18 @@ export function Button({
   className = "",
   labelClassName = "",
   disabled,
+  style,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
 
   return (
-    <TouchableOpacity
+    <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: Boolean(isDisabled), busy: loading }}
-      activeOpacity={0.8}
       disabled={isDisabled}
-      className={`flex-row items-center justify-center ${sizeButtonStyles[size]} ${variantButtonStyles[variant]} ${
-        isDisabled ? "opacity-50" : ""
-      } ${className}`}
+      style={state => [typeof style === "function" ? style(state) : style, { opacity: isDisabled ? 0.5 : state.pressed ? 0.8 : 1 }]}
+      className={`flex-row items-center justify-center ${sizeButtonStyles[size]} ${variantButtonStyles[variant]} ${className}`}
       {...props}
     >
       {loading ? (
@@ -104,6 +103,6 @@ export function Button({
           {trailingIcon && <View className="ml-2.5">{trailingIcon}</View>}
         </>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
