@@ -1,3 +1,4 @@
+import { ExpiryDateField } from '../molecules/ExpiryDateField';
 import React from "react";
 import {
   View,
@@ -230,7 +231,7 @@ export function ReceiptReviewSheet({
           {items.map((item) => {
             const emoji = getItemEmoji(item.name, item.category);
             const confidencePercent = item.confidence
-              ? `${Math.round(item.confidence <= 1 ? item.confidence * 100 : item.confidence)}% confidence`
+              ? `${Math.round(item.confidence <= 1 ? item.confidence * 100 : item.confidence)}% model score`
               : null;
 
             return (
@@ -262,6 +263,9 @@ export function ReceiptReviewSheet({
                   </View>
 
                   <View className="items-end gap-1.5 shrink-0">
+                    {typeof item.confidence === 'number' && item.confidence < 0.7 && (
+                      <Typography variant="caption" color="muted">Possible match — check the name, then tick to confirm.</Typography>
+                    )}
                     {confidencePercent && (
                       <Badge label={confidencePercent} variant="fresh" size="sm" />
                     )}
@@ -473,13 +477,8 @@ export function ReceiptReviewSheet({
                       leadingIcon={<Icon name="Folder" size={16} color="#94A3B8" />}
                     />
 
-                    <FormField
-                      label="Custom Expiration Date (YYYY-MM-DD)"
-                      value={item.expiry_date}
-                      placeholder="YYYY-MM-DD"
-                      onChangeText={(val) => onUpdateItem(item.id, { expiry_date: val })}
-                      leadingIcon={<Icon name="Calendar" size={16} color="#94A3B8" />}
-                    />
+                    <ExpiryDateField value={item.expiry_date}
+                      onChangeText={(val) => onUpdateItem(item.id, { expiry_date: val })} editable={!submitting} />
                   </View>
                 )}
               </View>

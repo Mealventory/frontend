@@ -21,6 +21,7 @@ function load(file, mocks = {}) {
 const mockComponent = () => null;
 
 const reviewSheetMod = load('src/components/organisms/ReceiptReviewSheet.tsx', {
+  '../molecules/ExpiryDateField': { ExpiryDateField: mockComponent },
   'react-native': {
     View: mockComponent,
     ScrollView: mockComponent,
@@ -44,6 +45,7 @@ const reviewSheetMod = load('src/components/organisms/ReceiptReviewSheet.tsx', {
 });
 
 const { parseRawScanItems, getItemEmoji, saveReviewedItems, batchSaveReviewedItems } = load('app/(modal)/ai-review.tsx', {
+  '@/src/lib/expiryDate': load('src/lib/expiryDate.ts'),
   '@/src/lib/storageZones': load('src/lib/storageZones.ts'),
   'react-native': {
     View: mockComponent,
@@ -200,6 +202,8 @@ test('weak recognition suggestions require confirmation before saving', async ()
   items[0].confirmed = true;
   await saveReviewedItems(items, async () => { calls++; });
   assert.equal(calls, 1);
+});
+
 test('acceptance criteria: 5 items scanned, correct expiry of item 1, uncheck item 5, batch commits 4 items', async () => {
   const scanned = [
     { id: '1', name: 'Milk', category: 'Dairy', quantity: 1, unit: 'gal', expiry_date: '2026-09-20', storageZone: 'fridge' },
@@ -250,4 +254,19 @@ test('batchSaveReviewedItems catches errors and returns failure', async () => {
   const result = await batchSaveReviewedItems(items, async () => { throw new Error('Database locked'); });
   assert.deepEqual(result.savedIds, []);
   assert.deepEqual(result.errors, ['Database locked']);
+});
+
+test('batch save normalizes typed dates and blocks invalid fields before any writes', async () => {
+  const items = parseRawScanItems(JSON.stringify([{ name: 'Yogurt', expiry_date: '20270125' }]));
+  let calls = 0;
+  let payload;
+  const save = async value => { calls++; payload = value; };
+  assert.deepEqual((await batchSaveReviewedItems(items, save)).errors, []);
+  assert.equal(payload[0].expiry_date, '2027-01-25');
+  for (const patch of [{ name: '' }, { expiry_date: '20270230' }, { quantity: 0 }]) {
+    const result = await batchSaveReviewedItems([{ ...items[0], ...patch }], save);
+    assert.equal(result.savedIds.length, 0);
+    assert.equal(result.errors.length, 1);
+  }
+  assert.equal(calls, 1);
 });
