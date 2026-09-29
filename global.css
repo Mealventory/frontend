@@ -85,56 +85,58 @@
     --radius-full: 9999px;
   }
 
-  .dark {
-    /* -------------------------------------------------------------------------- */
-    /* 1. Brand & Vitality Colors (Dark Theme)                                    */
-    /* -------------------------------------------------------------------------- */
-    --color-brand-50: #064E3B;
-    --color-brand-100: #065F46;
-    --color-brand-400: #34D399;
-    --color-brand-500: #10B981;
-    --color-brand-600: #059669;
-    --color-brand-surface: rgba(16, 185, 129, 0.12);
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* -------------------------------------------------------------------------- */
+      /* 1. Brand & Vitality Colors (Dark Theme)                                    */
+      /* -------------------------------------------------------------------------- */
+      --color-brand-50: #064E3B;
+      --color-brand-100: #065F46;
+      --color-brand-400: #34D399;
+      --color-brand-500: #10B981;
+      --color-brand-600: #059669;
+      --color-brand-surface: rgba(16, 185, 129, 0.12);
 
-    /* -------------------------------------------------------------------------- */
-    /* 2. Grounds & Backgrounds (Executive Dark Theme)                            */
-    /* -------------------------------------------------------------------------- */
-    --color-ground-canvas: #020617;
-    --color-ground-surface: #0F172A;
-    --color-ground-card: rgba(30, 41, 59, 0.75);
-    --color-ground-elevated: #1E293B;
-    --color-ground-subtle: #1E293B;
-    --color-ground-muted: #334155;
-    --color-ground-dark: #020617;
-    --color-ground-light: #F8FAFC;
+      /* -------------------------------------------------------------------------- */
+      /* 2. Grounds & Backgrounds (Executive Dark Theme)                            */
+      /* -------------------------------------------------------------------------- */
+      --color-ground-canvas: #020617;
+      --color-ground-surface: #0F172A;
+      --color-ground-card: rgba(30, 41, 59, 0.75);
+      --color-ground-elevated: #1E293B;
+      --color-ground-subtle: #1E293B;
+      --color-ground-muted: #334155;
+      --color-ground-dark: #020617;
+      --color-ground-light: #F8FAFC;
 
-    /* -------------------------------------------------------------------------- */
-    /* 3. Text & Typography Colors (Dark Theme)                                   */
-    /* -------------------------------------------------------------------------- */
-    --color-text-primary: #F8FAFC;
-    --color-text-secondary: #94A3B8;
-    --color-text-muted: #64748B;
-    --color-text-subtle: #475569;
-    --color-text-brand: #34D399;
-    --color-text-inverse: #0F172A;
+      /* -------------------------------------------------------------------------- */
+      /* 3. Text & Typography Colors (Dark Theme)                                   */
+      /* -------------------------------------------------------------------------- */
+      --color-text-primary: #F8FAFC;
+      --color-text-secondary: #94A3B8;
+      --color-text-muted: #64748B;
+      --color-text-subtle: #475569;
+      --color-text-brand: #34D399;
+      --color-text-inverse: #0F172A;
 
-    /* -------------------------------------------------------------------------- */
-    /* 4. Borders & Dividers (Dark Theme)                                         */
-    /* -------------------------------------------------------------------------- */
-    --color-border-subtle: #1E293B;
-    --color-border-default: #334155;
-    --color-border-brand: rgba(16, 185, 129, 0.35);
+      /* -------------------------------------------------------------------------- */
+      /* 4. Borders & Dividers (Dark Theme)                                         */
+      /* -------------------------------------------------------------------------- */
+      --color-border-subtle: #1E293B;
+      --color-border-default: #334155;
+      --color-border-brand: rgba(16, 185, 129, 0.35);
 
-    /* -------------------------------------------------------------------------- */
-    /* 5. Urgency Semantic Tokens (Expiration Radar - Dark Theme)                 */
-    /* -------------------------------------------------------------------------- */
-    --color-urgency-critical: #FB7185;
-    --color-urgency-critical-bg: rgba(244, 63, 94, 0.18);
-    --color-urgency-soon: #FBBF24;
-    --color-urgency-soon-bg: rgba(245, 158, 11, 0.18);
-    --color-urgency-fresh: #34D399;
-    --color-urgency-fresh-bg: rgba(16, 185, 129, 0.18);
-    --color-urgency-frozen: #38BDF8;
-    --color-urgency-frozen-bg: rgba(14, 165, 233, 0.18);
+      /* -------------------------------------------------------------------------- */
+      /* 5. Urgency Semantic Tokens (Expiration Radar - Dark Theme)                 */
+      /* -------------------------------------------------------------------------- */
+      --color-urgency-critical: #FB7185;
+      --color-urgency-critical-bg: rgba(244, 63, 94, 0.18);
+      --color-urgency-soon: #FBBF24;
+      --color-urgency-soon-bg: rgba(245, 158, 11, 0.18);
+      --color-urgency-fresh: #34D399;
+      --color-urgency-fresh-bg: rgba(16, 185, 129, 0.18);
+      --color-urgency-frozen: #38BDF8;
+      --color-urgency-frozen-bg: rgba(14, 165, 233, 0.18);
+    }
   }
 }

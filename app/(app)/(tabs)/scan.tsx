@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useLayoutEffect } from "react";
 import {
   View,
   TouchableOpacity,
@@ -7,7 +7,8 @@ import {
   Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, usePathname } from "expo-router";
+import { useRouter } from "expo-router";
+import { useScannerActive } from "@/src/hooks/useScannerActive";
 import { CameraView, useCameraPermissions, BarcodeScanningResult, scanFromURLAsync } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -28,8 +29,10 @@ const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barc
 
 export default function ScanTabScreen() {
   const router = useRouter();
-  const pathname = usePathname();
-  const isFocused = pathname.includes("/scan");
+  const isFocused = useScannerActive();
+  const scanGeneration = useRef(0);
+  const activeRef = useRef(false);
+
   const { session, household } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -40,6 +43,20 @@ export default function ScanTabScreen() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isProcessingBarcode = useRef(false);
+  useLayoutEffect(() => {
+    scanGeneration.current++;
+    activeRef.current = isFocused;
+    isProcessingBarcode.current = false;
+    setScanning(false);
+    setFlashOn(false);
+    setErrorMessage(null);
+    return () => {
+      activeRef.current = false;
+      scanGeneration.current++;
+      isProcessingBarcode.current = false;
+    };
+  }, [isFocused]);
+
 
   const activeModeConfig = MODES.find((m) => m.id === mode) || MODES[0];
 
@@ -59,6 +76,7 @@ export default function ScanTabScreen() {
       const barcodeData = result?.data?.trim();
       if (!barcodeData) return;
 
+      const generation = scanGeneration.current;
       isProcessingBarcode.current = true;
       setScanning(true);
       setErrorMessage(null);
@@ -72,6 +90,7 @@ export default function ScanTabScreen() {
 
         const resolvedProduct = await fetchProductByBarcode(barcodeData);
 
+        if (!activeRef.current || generation !== scanGeneration.current) return;
         router.push({
           pathname: "/(modal)/ai-review",
           params: {
@@ -81,6 +100,7 @@ export default function ScanTabScreen() {
           },
         } as any);
       } catch (err: any) {
+        if (!activeRef.current || generation !== scanGeneration.current) return;
         router.push({
           pathname: "/(modal)/ai-review",
           params: {
@@ -100,10 +120,8 @@ export default function ScanTabScreen() {
           },
         } as any);
       } finally {
-        setTimeout(() => {
-          isProcessingBarcode.current = false;
-          setScanning(false);
-        }, 1500);
+        // Keep auto-scan locked after navigation; focus restoration resets it.
+        if (activeRef.current && generation === scanGeneration.current) setScanning(false);
       }
     },
     [isFocused, mode, scanning, router]

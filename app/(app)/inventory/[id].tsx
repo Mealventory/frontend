@@ -108,6 +108,11 @@ export default function ItemDetailScreen() {
         </View>
 
         <View className="gap-3 mb-4">
+          <TouchableOpacity disabled={deleting} accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/(app)/inventory/edit', params: { id: item.id } })}
+            className="p-4 rounded-xl bg-ground-subtle items-center">
+            <Text className="text-brand-600 dark:text-brand-400 font-bold">Edit item</Text>
+          </TouchableOpacity>
           <TouchableOpacity disabled={deleting} onPress={() => handleAction('consume')}
             className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button">
             <Text className="text-white font-bold">{deleting ? 'Saving…' : 'Mark as consumed'}</Text>

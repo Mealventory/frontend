@@ -1,3 +1,5 @@
+import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
+import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import React, { useState, useMemo, useRef } from "react";
 import { Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -72,7 +74,7 @@ export async function saveReviewedItems(
         category: item.category.trim() || "Pantry",
         quantity: item.quantity,
         unit: item.unit.trim() || "units",
-        expiry_date: item.expiry_date.trim() || null,
+        expiry_date: normalizeExpiryDate(item.expiry_date),
         storage_zone: item.storageZone,
       });
       savedIds.push(item.id);

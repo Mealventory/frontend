@@ -1,3 +1,5 @@
+import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
+import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import React, { useState } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -39,10 +41,8 @@ export default function ManualAddModal() {
       return;
     }
 
-    const date = expDate.trim();
-    if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date)) {
-      setError('Enter a valid expiration date as YYYY-MM-DD.'); return;
-    }
+    let date: string | null;
+    try { date = normalizeExpiryDate(expDate); } catch (e) { setError((e as Error).message); return; }
     setSaving(true); setError('');
     try {
     await addItem({
@@ -127,14 +127,7 @@ export default function ManualAddModal() {
             leadingIcon={<Icon name="Package" size={16} color="#94A3B8" />}
           />
 
-          <FormField
-            label="Expiration Date"
-            placeholder="YYYY-MM-DD (e.g. 2026-09-25)"
-            value={expDate}
-            onChangeText={setExpDate}
-            helperText="Leave blank if the expiration date is unknown"
-            leadingIcon={<Icon name="Calendar" size={16} color="#94A3B8" />}
-          />
+          <ExpiryDateField value={expDate} onChangeText={setExpDate} editable={!saving} />
         </View>
 
         <Button
