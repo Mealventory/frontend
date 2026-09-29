@@ -1,3 +1,4 @@
+import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '../molecules/ExpiryDateField';
 import React from "react";
 import {
@@ -264,7 +265,8 @@ export function ReceiptReviewSheet({
                   </View>
 
                   <View className="items-end gap-1.5 shrink-0">
-                    {typeof item.confidence === 'number' && item.confidence < 0.7 && (
+                    {!item.expiry_date && <ExpiryPrediction name={item.name} zone={item.storageZone} value={item.expiry_date} onApply={date => onUpdateItem(item.id, {expiry_date:date})} disabled={submitting} />}
+                {typeof item.confidence === 'number' && item.confidence < 0.7 && (
                       <Typography variant="caption" color="muted">Possible match — check the name, then tick to confirm.</Typography>
                     )}
                     {confidencePercent && (
@@ -495,6 +497,7 @@ export function ReceiptReviewSheet({
                       onChangeText={(val) => onUpdateItem(item.id, { expiry_date: val })} editable={!submitting} />
                   </View>
                 )}
+                {!item.expiry_date && <ExpiryPrediction name={item.name} zone={item.storageZone} value={item.expiry_date} onApply={date => onUpdateItem(item.id, {expiry_date:date})} disabled={submitting} />}
                 {typeof item.confidence === 'number' && item.confidence < 0.7 && (
                   <Typography variant="caption" color="muted" className="mt-4">
                     Possible match. Check the name and details before adding it.
