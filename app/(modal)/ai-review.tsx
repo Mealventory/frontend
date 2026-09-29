@@ -1,3 +1,5 @@
+import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
+import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import React, { useState, useMemo, useRef } from "react";
 import {
   View,
@@ -116,7 +118,7 @@ export async function saveReviewedItems(
         category: item.category.trim() || "Pantry",
         quantity: item.quantity,
         unit: item.unit.trim() || "units",
-        expiry_date: item.expiry_date.trim() || null,
+        expiry_date: normalizeExpiryDate(item.expiry_date),
         storage_zone: item.storageZone,
       });
       savedIds.push(item.id);
@@ -417,12 +419,8 @@ export default function AIReviewModal() {
                       leadingIcon={<Icon name="Folder" size={16} color="#94A3B8" />}
                     />
 
-                    <FormField
-                      label="Expiration Date (YYYY-MM-DD)"
-                      value={item.expiry_date}
-                      onChangeText={(val) => handleUpdateItem(item.id, { expiry_date: val })}
-                      leadingIcon={<Icon name="Calendar" size={16} color="#94A3B8" />}
-                    />
+                    <ExpiryDateField value={item.expiry_date}
+                      onChangeText={(val) => handleUpdateItem(item.id, { expiry_date: val })} />
 
                     {/* Storage Zone Selector */}
                     <View>
