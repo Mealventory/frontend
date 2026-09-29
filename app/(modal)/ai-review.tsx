@@ -32,8 +32,8 @@ export function parseRawScanItems(rawParam?: string, rawBarcode?: string): Revie
           expiry_date: item.expiry_date || "",
           storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
           confidence: typeof item.confidence === "number" ? item.confidence : undefined,
-          confirmed: true,
-          isEditing: !item.name,
+          confirmed: !(typeof item.confidence === "number" && item.confidence < 0.7),
+          isEditing: !item.name || (typeof item.confidence === "number" && item.confidence < 0.7),
         }));
       }
     } catch {

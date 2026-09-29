@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useLayoutEffect } from "react";
 import {
   View,
+  Image,
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
@@ -39,6 +40,8 @@ export default function ScanTabScreen() {
 
   const [mode, setMode] = useState<ScannerMode>("food");
   const [scanning, setScanning] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
+  const captureLock = useRef(false);
   const [flashOn, setFlashOn] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -49,6 +52,8 @@ export default function ScanTabScreen() {
     isProcessingBarcode.current = false;
     setScanning(false);
     setFlashOn(false);
+    setCapturedPhoto(null);
+    captureLock.current = false;
     setErrorMessage(null);
     return () => {
       activeRef.current = false;
@@ -128,6 +133,8 @@ export default function ScanTabScreen() {
   );
 
   const processScannedImage = async (rawUri: string) => {
+    const generation = scanGeneration.current;
+    if (mode !== "barcode") { setCapturedPhoto(rawUri); setFlashOn(false); }
     setErrorMessage(null);
     setScanning(true);
 
@@ -170,6 +177,7 @@ export default function ScanTabScreen() {
 
         try {
           const resolvedProduct = await fetchProductByBarcode(barcodeData);
+          if (!activeRef.current || generation !== scanGeneration.current) return;
           router.push({
             pathname: "/(modal)/ai-review",
             params: {
@@ -179,6 +187,7 @@ export default function ScanTabScreen() {
             },
           } as any);
         } catch {
+          if (!activeRef.current || generation !== scanGeneration.current) return;
           router.push({
             pathname: "/(modal)/ai-review",
             params: {
@@ -219,6 +228,7 @@ export default function ScanTabScreen() {
         imageUri: compressedUri,
       });
 
+      if (!activeRef.current || generation !== scanGeneration.current) return;
       router.push({
         pathname: "/(modal)/ai-review",
         params: {
@@ -227,6 +237,7 @@ export default function ScanTabScreen() {
         },
       } as any);
     } catch (err: any) {
+      if (!activeRef.current || generation !== scanGeneration.current) return;
       const elementName = mode === "receipt" ? "Receipt" : mode === "barcode" ? "Barcode" : mode === "tag" ? "Tag" : "Product";
       const rawMsg = (err?.message || "").trim();
       let msg: string;
@@ -254,7 +265,7 @@ export default function ScanTabScreen() {
       }
       setErrorMessage(msg);
     } finally {
-      setScanning(false);
+      if (activeRef.current && generation === scanGeneration.current) setScanning(false);
     }
   };
 
@@ -290,7 +301,11 @@ export default function ScanTabScreen() {
   };
 
   const handleScan = async () => {
-    if (scanning) return;
+    if (scanning || captureLock.current) return;
+    if (capturedPhoto) { setCapturedPhoto(null); setErrorMessage(null); return; }
+    captureLock.current = true;
+    const generation = scanGeneration.current;
+    setScanning(true);
     setErrorMessage(null);
 
     let imageUri: string | null = null;
@@ -311,7 +326,10 @@ export default function ScanTabScreen() {
       }
     }
 
+    if (!activeRef.current || generation !== scanGeneration.current) return;
+    captureLock.current = false;
     if (!imageUri) {
+      setScanning(false);
       setErrorMessage("Unable to capture camera frame. Please try again.");
       return;
     }
@@ -387,7 +405,7 @@ export default function ScanTabScreen() {
   return (
     <View className="flex-1 bg-black">
       {/* High-Performance 60fps Native Viewfinder (Persistent across mode switches) */}
-      {isFocused && (
+      {isFocused && !capturedPhoto && (
         <CameraView
           ref={cameraRef}
           facing="back"
@@ -411,6 +429,9 @@ export default function ScanTabScreen() {
           }
         />
       )}
+
+      {capturedPhoto && <Image source={{ uri: capturedPhoto }} resizeMode="cover"
+        accessibilityLabel="Captured photo being analyzed" style={StyleSheet.absoluteFill} />}
 
       <SafeAreaView edges={["top", "left", "right"]} className="flex-1 justify-between">
         {/* Top Header */}
@@ -483,7 +504,7 @@ export default function ScanTabScreen() {
                   disabled={scanning}
                   onPress={() => {
                     setErrorMessage(null);
-                    setMode(m.id);
+                    setMode(m.id); setCapturedPhoto(null);
                   }}
                   className={`flex-1 flex-row items-center justify-center py-2 px-2 rounded-full ${
                     isSelected ? "bg-brand-500" : "bg-transparent"
@@ -508,13 +529,15 @@ export default function ScanTabScreen() {
           </View>
 
           {/* Bottom Overlay Controls */}
-          <CameraOverlayControls
+          {capturedPhoto && !scanning ? <Button label="Retake photo" onPress={() => {
+            setCapturedPhoto(null); setErrorMessage(null);
+          }} /> : <CameraOverlayControls
             mode={mode}
             onScan={handleScan}
             scanning={scanning}
             flashOn={flashOn}
             onToggleFlash={() => setFlashOn((prev) => !prev)}
-          />
+          />}
         </View>
       </SafeAreaView>
 
@@ -522,7 +545,7 @@ export default function ScanTabScreen() {
       {scanning && (
         <View
           style={StyleSheet.absoluteFill}
-          className="bg-black/80 items-center justify-center p-6 z-50"
+          className="bg-black/40 items-center justify-center p-6 z-50"
         >
           <View className="w-16 h-16 rounded-3xl bg-brand-500/20 border border-brand-500/40 items-center justify-center mb-4">
             <ActivityIndicator size="large" color="#10B981" />
@@ -531,10 +554,10 @@ export default function ScanTabScreen() {
             {mode === "barcode"
               ? "Resolving Product Barcode..."
               : mode === "receipt"
-              ? "Reading Store Receipt OCR..."
+              ? "Reading your receipt..."
               : mode === "tag"
-              ? "Reading Tag with Vision AI..."
-              : "Analyzing with Gemini Vision..."}
+              ? "Reading the expiry date..."
+              : "Analyzing your photo..."}
           </Typography>
           <Typography variant="caption" className="text-white/70 text-center">
             {mode === "barcode"
