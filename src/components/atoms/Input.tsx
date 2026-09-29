@@ -24,6 +24,8 @@ export function Input({
   containerClassName = "",
   className = "",
   style,
+  onFocus,
+  onBlur,
   ...props
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -54,8 +56,8 @@ export function Input({
         {leadingIcon && <View style={styles.leadingIcon}>{leadingIcon}</View>}
         <TextInput
           placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={(event) => { setIsFocused(true); onFocus?.(event); }}
+          onBlur={(event) => { setIsFocused(false); onBlur?.(event); }}
           className={`flex-1 text-[15px] font-regular text-text-primary ${className}`}
           style={[{ paddingVertical: 0, color: isDark ? "#F8FAFC" : "#0F172A" }, style]}
           {...props}
