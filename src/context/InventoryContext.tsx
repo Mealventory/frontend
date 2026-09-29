@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { AppState } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { inventoryRequest, toFoodItem, InventoryRow } from '../lib/inventoryApi';
+import { inventoryRequest, toFoodItem, InventoryRow, NewItem } from '../lib/inventoryApi';
 import { useAuth } from './AuthContext';
 import { FoodItem, Recipe } from "../types";
 
@@ -125,6 +125,7 @@ interface InventoryContextType {
   user: UserProfile;
   isAuthenticated: boolean;
   navigate: (screen: FigmaScreen) => void;
+  updateItem: (id: string, patch: NewItem) => Promise<void>;
   addItem: (item: FoodItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   transitionItem: (id: string, action: 'consume' | 'discard') => Promise<void>;
@@ -229,6 +230,20 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     } finally { mutations.current--; revision.current++; }
   };
 
+  const updateItem = async (id: string, patch: NewItem) => {
+    if (!household || !session) throw new Error('Choose a household first.');
+    mutations.current++; revision.current++;
+    try {
+      const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'PATCH', id, patch);
+      if (activeScope.current === scope) {
+        const updated = toFoodItem(row);
+        setInventory(prev => prev.map(item => item.id === id ? updated : item));
+        setSelectedItem(prev => prev?.id === id ? updated : prev);
+        setInventoryError('');
+      }
+    } finally { mutations.current--; revision.current++; }
+  };
+
   const removeItem = async (id: string) => {
     if (demo) { setInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
     if (!household || !session) throw new Error('Choose a household first.');
@@ -299,6 +314,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         isAuthenticated,
         navigate: setCurrentScreen,
         addItem,
+        updateItem,
         removeItem,
         transitionItem,
         openItem,

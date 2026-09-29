@@ -1,46 +1,70 @@
-import React, { useState } from "react";
-import { View } from "react-native";
-import { useRouter } from "expo-router";
-import { RoutePlaceholder } from "@/src/components/layout/RoutePlaceholder";
-import { FormField } from "@/src/components/molecules/FormField";
-import { Button } from "@/src/components/atoms";
+import React, { useRef, useState } from 'react';
+import { ScrollView, View, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FormField, TagChipGroup } from '@/src/components/molecules';
+import { Button, Typography } from '@/src/components/atoms';
+import { useInventory } from '@/src/context/InventoryContext';
+import type { FoodItem, StorageZone } from '@/src/types';
 
 export default function EditInventoryItemScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { inventory, inventoryLoading } = useInventory();
   const router = useRouter();
-  const [name, setName] = useState("Whole Milk");
-  const [quantity, setQuantity] = useState("1 gallon");
-  const [expDate, setExpDate] = useState("2026-09-16");
+  const item = inventory.find(i => i.id === id);
+  if (!item) return <SafeAreaView className="flex-1 bg-ground-canvas justify-center p-6 gap-4">
+    <Typography>{inventoryLoading ? 'Loading item…' : 'This item is no longer in your pantry.'}</Typography>
+    <Button label="Back" onPress={() => router.back()} />
+  </SafeAreaView>;
+  return <EditForm key={item.id} item={item} />;
+}
 
-  return (
-    <RoutePlaceholder
-      title="Edit Inventory Item"
-      category="Inventory"
-      routePath="/(app)/inventory/edit"
-      description="Update item metadata, adjust remaining quantity, or correct expiration date."
-      iconName="Edit3"
-    >
-      <View className="gap-4">
-        <FormField
-          label="Item Name"
-          value={name}
-          onChangeText={setName}
-        />
-        <FormField
-          label="Quantity"
-          value={quantity}
-          onChangeText={setQuantity}
-        />
-        <FormField
-          label="Expiration Date (YYYY-MM-DD)"
-          value={expDate}
-          onChangeText={setExpDate}
-        />
-        <Button
-          label="Save Changes"
-          variant="primary"
-          onPress={() => router.back()}
-        />
+function EditForm({ item }: { item: FoodItem }) {
+  const router = useRouter();
+  const { updateItem } = useInventory();
+  const [name, setName] = useState(item.name);
+  const [quantity, setQuantity] = useState(item.quantity);
+  const [category, setCategory] = useState(item.category);
+  const [date, setDate] = useState(item.expiryDate || '');
+  const [zone, setZone] = useState<StorageZone>(item.storageZone || 'pantry');
+  const [saving, setSaving] = useState(false);
+  const lock = useRef(false);
+  const [error, setError] = useState('');
+  const save = async () => {
+    if (lock.current) return;
+    const amount = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    const expiry = date.trim();
+    if (!name.trim() || !category.trim()) { setError('Enter an item name and category.'); return; }
+    if (!amount || !Number.isFinite(Number(amount[1])) || Number(amount[1]) <= 0) { setError('Enter a positive quantity, such as 2 tubs or 500 g.'); return; }
+    if (expiry && (!/^\d{4}-\d{2}-\d{2}$/.test(expiry) || !Number.isFinite(Date.parse(expiry)) || new Date(expiry).toISOString().slice(0, 10) !== expiry)) {
+      setError('Enter a valid expiry date as YYYY-MM-DD.'); return;
+    }
+    lock.current = true; setSaving(true); setError('');
+    try {
+      await updateItem(item.id, { name: name.trim(), category: category.trim(), quantity: Number(amount[1]), unit: amount[2] || 'units', expiry_date: expiry || null, storage_zone: zone });
+      router.back();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save changes.'); }
+    finally { lock.current = false; setSaving(false); }
+  };
+  return <SafeAreaView className="flex-1 bg-ground-canvas">
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 48, width: '100%', maxWidth: 560, alignSelf: 'center' }}>
+      <View className="flex-row items-center mb-6">
+        <Button label="Cancel" variant="ghost" disabled={saving} onPress={() => router.back()} />
+        <Typography variant="h3" className="flex-1 text-center">Edit item</Typography>
+        <View style={{ width: 80 }} />
       </View>
-    </RoutePlaceholder>
-  );
+      <View className="gap-5">
+        <FormField label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
+        <FormField label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
+        <FormField label="Category" value={category} onChangeText={setCategory} editable={!saving} maxLength={80} />
+        <FormField label="Expiry date (YYYY-MM-DD)" value={date} onChangeText={setDate} editable={!saving} placeholder="YYYY-MM-DD" helperText="Use the date on the packaging. Leave blank if unknown." autoCapitalize="none" />
+        <View pointerEvents={saving ? 'none' : 'auto'}>
+          <Typography variant="caption" className="mb-2">Storage location</Typography>
+          <TagChipGroup tags={['pantry', 'fridge', 'freezer', 'spicerack']} selectedTag={zone} onSelectTag={v => setZone(v as StorageZone)} />
+        </View>
+        {!!error && <Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>}
+        <Button label={saving ? 'Saving…' : 'Save changes'} disabled={saving} onPress={save} />
+      </View>
+    </ScrollView>
+  </SafeAreaView>;
 }
