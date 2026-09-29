@@ -1,3 +1,4 @@
+import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import React, { useRef, useState } from 'react';
@@ -57,6 +58,7 @@ function EditForm({ item }: { item: FoodItem }) {
         <FormField label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
         <FormField label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
         <FormField label="Category" value={category} onChangeText={setCategory} editable={!saving} maxLength={80} />
+        <ExpiryPrediction name={name} zone={zone} value={date} onApply={setDate} itemId={item.id} disabled={saving} />
         <ExpiryDateField value={date} onChangeText={setDate} editable={!saving} />
         <View pointerEvents={saving ? 'none' : 'auto'}>
           <Typography variant="caption" className="mb-2">Storage location</Typography>

@@ -21,6 +21,7 @@ function load(file, mocks = {}) {
 const mockComponent = () => null;
 
 const reviewSheetMod = load('src/components/organisms/ReceiptReviewSheet.tsx', {
+  '@/src/components/molecules/ExpiryPrediction': { ExpiryPrediction: mockComponent },
   '../molecules/ExpiryDateField': { ExpiryDateField: mockComponent },
   'react-native': {
     View: mockComponent,

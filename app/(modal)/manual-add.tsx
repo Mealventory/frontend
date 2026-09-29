@@ -1,3 +1,4 @@
+import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import React, { useState } from "react";
@@ -127,6 +128,7 @@ export default function ManualAddModal() {
             leadingIcon={<Icon name="Package" size={16} color="#94A3B8" />}
           />
 
+          <ExpiryPrediction name={name} zone={storageZone} value={expDate} onApply={setExpDate} disabled={saving} />
           <ExpiryDateField value={expDate} onChangeText={setExpDate} editable={!saving} />
         </View>
 
