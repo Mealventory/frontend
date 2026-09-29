@@ -10,7 +10,7 @@ export default function RecipeDetailRouteScreen() {
   const router = useRouter();
   const { recipes, inventory, selectedRecipe } = useInventory();
 
-  const recipe = recipes.find((r) => r.id === id) || selectedRecipe;
+  const recipe = recipes.find((r) => r.id === id) || (selectedRecipe?.id === id ? selectedRecipe : null);
 
   const inventoryNames = useMemo(
     () => new Set(inventory.map((i) => i.name.toLowerCase())),

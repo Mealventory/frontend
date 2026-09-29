@@ -26,6 +26,8 @@ export interface FoodItem {
 }
 
 export interface Recipe {
+  priorityIngredients?: string[];
+  missingIngredients?: string[];
   id: string;
   name: string;
   time: string;
