@@ -13,6 +13,7 @@ export interface RoutePlaceholderProps {
   routePath: string;
   description: string;
   iconName?: IconName;
+  showBackToHome?: boolean;
   children?: React.ReactNode;
 }
 
@@ -22,6 +23,7 @@ export function RoutePlaceholder({
   routePath,
   description,
   iconName = "Layers",
+  showBackToHome = true,
   children,
 }: RoutePlaceholderProps) {
   const router = useRouter();
@@ -64,15 +66,17 @@ export function RoutePlaceholder({
         {children}
 
         {/* Quick Nav to Showcase */}
-        <View className="mt-8 pt-6 border-t border-border-default">
-          <Button
-            label="Back to your kitchen"
-            variant="ghost"
-            size="sm"
-            leadingIcon={<Icon name="Home" size={16} />}
-            onPress={() => router.replace("/" as any)}
-          />
-        </View>
+        {showBackToHome && (
+          <View className="mt-8 pt-6 border-t border-border-default">
+            <Button
+              label="Back to your kitchen"
+              variant="ghost"
+              size="sm"
+              leadingIcon={<Icon name="Home" size={16} />}
+              onPress={() => router.replace("/" as any)}
+            />
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

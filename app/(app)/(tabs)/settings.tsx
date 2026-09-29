@@ -215,7 +215,7 @@ export default function SettingsTabScreen() {
         {/* Household Section */}
         <View className="p-5 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6 gap-3">
           <Typography variant="h3" className="font-bold mb-1">
-            {household?.name || 'Household'}
+            House settings
           </Typography>
           <Button
             label="Manage Members"
@@ -262,7 +262,11 @@ export default function SettingsTabScreen() {
               setLoggingOut(true); setLogoutError('');
               try {
                 await signOutAccount(supabase);
-                router.replace('/');
+                try {
+                  rootNavigation.navigate("index" as never);
+                } catch {
+                  router.replace("/" as any);
+                }
               } catch (e) {
                 setLogoutError(e instanceof Error ? e.message : 'Could not sign out. Please try again.');
               } finally { setLoggingOut(false); }

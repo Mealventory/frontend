@@ -18,6 +18,7 @@ export default function StorageZonesScreen() {
       routePath="/(app)/household/storage-zones"
       description="Define storage locations within your home to categorize foods by storage temperature and shelf life."
       iconName="Layers"
+      showBackToHome={false}
     >
       <View className="gap-3">
         {zones.map((zone) => (
