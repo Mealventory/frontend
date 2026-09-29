@@ -1,4 +1,3 @@
-import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import React, { useState, useMemo, useRef } from "react";
 import { Alert } from "react-native";
@@ -93,16 +92,16 @@ export async function batchSaveReviewedItems(
   const confirmed = items.filter((item) => item.confirmed);
   if (confirmed.length === 0) return { savedIds: [], errors: [] };
 
-  const payloads: NewItem[] = confirmed.map((item) => ({
-    name: item.name.trim(),
-    category: item.category.trim() || "Pantry",
-    quantity: item.quantity,
-    unit: item.unit.trim() || "units",
-    expiry_date: item.expiry_date.trim() || null,
-    storage_zone: item.storageZone,
-  }));
-
   try {
+    const payloads: NewItem[] = confirmed.map((item) => {
+      if (!item.name.trim()) throw new Error("Enter the food name before saving.");
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) throw new Error("Enter a positive quantity.");
+      return {
+        name: item.name.trim(), category: item.category.trim() || "Pantry",
+        quantity: item.quantity, unit: item.unit.trim() || "units",
+        expiry_date: normalizeExpiryDate(item.expiry_date), storage_zone: item.storageZone,
+      };
+    });
     await batchSave(payloads);
     return {
       savedIds: confirmed.map((i) => i.id),
