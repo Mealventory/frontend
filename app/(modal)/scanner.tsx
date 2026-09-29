@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useLayoutEffect } from "react";
 import {
   View,
   TouchableOpacity,
@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useScannerActive } from "@/src/hooks/useScannerActive";
 import { CameraView, useCameraPermissions, BarcodeScanningResult, scanFromURLAsync } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -28,6 +29,9 @@ const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barc
 
 export default function FullscreenScannerModal() {
   const router = useRouter();
+  const isFocused = useScannerActive();
+  const scanGeneration = useRef(0);
+  const activeRef = useRef(false);
   const { session, household } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -39,6 +43,20 @@ export default function FullscreenScannerModal() {
 
   // Guard to debounce barcode scanning events and avoid multiple rapid triggers
   const isProcessingBarcode = useRef(false);
+  useLayoutEffect(() => {
+    scanGeneration.current++;
+    activeRef.current = isFocused;
+    isProcessingBarcode.current = false;
+    setScanning(false);
+    setFlashOn(false);
+    setErrorMessage(null);
+    return () => {
+      activeRef.current = false;
+      scanGeneration.current++;
+      isProcessingBarcode.current = false;
+    };
+  }, [isFocused]);
+
 
   const activeModeConfig = MODES.find((m) => m.id === mode) || MODES[0];
 
@@ -55,13 +73,14 @@ export default function FullscreenScannerModal() {
    */
   const handleBarcodeScanned = useCallback(
     async (result: BarcodeScanningResult) => {
-      if (mode !== "barcode" || scanning || isProcessingBarcode.current) {
+      if (!isFocused || mode !== "barcode" || scanning || isProcessingBarcode.current) {
         return;
       }
 
       const barcodeData = result?.data?.trim();
       if (!barcodeData) return;
 
+      const generation = scanGeneration.current;
       isProcessingBarcode.current = true;
       setScanning(true);
       setErrorMessage(null);
@@ -77,6 +96,7 @@ export default function FullscreenScannerModal() {
         // Resolve barcode metadata via OpenFoodFacts or fallback item
         const resolvedProduct = await fetchProductByBarcode(barcodeData);
 
+        if (!activeRef.current || generation !== scanGeneration.current) return;
         router.push({
           pathname: "/(modal)/ai-review",
           params: {
@@ -87,6 +107,7 @@ export default function FullscreenScannerModal() {
         } as any);
       } catch (err: any) {
         // Offline or resolution failure fallback
+        if (!activeRef.current || generation !== scanGeneration.current) return;
         router.push({
           pathname: "/(modal)/ai-review",
           params: {
@@ -106,13 +127,11 @@ export default function FullscreenScannerModal() {
           },
         } as any);
       } finally {
-        setTimeout(() => {
-          isProcessingBarcode.current = false;
-          setScanning(false);
-        }, 1500);
+        // Keep auto-scan locked after navigation; focus restoration resets it.
+        if (activeRef.current && generation === scanGeneration.current) setScanning(false);
       }
     },
-    [mode, scanning, router]
+    [isFocused, mode, scanning, router]
   );
 
   /**
@@ -390,7 +409,7 @@ export default function FullscreenScannerModal() {
   return (
     <View className="flex-1 bg-black">
       {/* High-Performance 60fps Native Viewfinder (Persistent across mode switches) */}
-      <CameraView
+      {isFocused && <CameraView
         ref={cameraRef}
         facing="back"
         enableTorch={flashOn}
@@ -411,7 +430,7 @@ export default function FullscreenScannerModal() {
         onMountError={(e) =>
           setErrorMessage(e?.message || "Failed to initialize camera")
         }
-      />
+      />}
 
       <SafeAreaView className="flex-1 justify-between">
         {/* Top Header */}

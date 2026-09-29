@@ -76,3 +76,26 @@ test('failed status actions reject and inactive items explain recovery', async (
     await assert.rejects(inventoryRequest('token', 'home', 'POST', 'item', undefined, 'discard'));
   }
 });
+
+test('editing persists expiry and metadata with household scope, including clearing a date', async () => {
+  for (const expiry_date of ['2027-01-25', null]) {
+    const patch = { name: 'Yogurt', category: 'Dairy', quantity: 2, unit: 'tubs', expiry_date, storage_zone: 'fridge' };
+    global.fetch = async (url, options) => {
+      assert.equal(url, 'https://backend.example/api/v1/items/yogurt');
+      assert.equal(options.method, 'PATCH');
+      assert.equal(options.headers['X-Household-ID'], 'home');
+      assert.equal(options.headers.Authorization, 'Bearer token');
+      assert.deepEqual(JSON.parse(options.body), patch);
+      return new Response(JSON.stringify({ id: 'yogurt', household_id: 'home', status: 'active', ...patch }));
+    };
+    const saved = toFoodItem(await inventoryRequest('token', 'home', 'PATCH', 'yogurt', patch));
+    assert.equal(saved.expiryDate, expiry_date);
+    assert.equal(saved.quantity, '2 tubs');
+    assert.equal(saved.storageZone, 'fridge');
+  }
+});
+
+test('failed item edits reject rather than appearing saved', async () => {
+  global.fetch = async () => new Response('{}', { status: 500 });
+  await assert.rejects(inventoryRequest('token', 'home', 'PATCH', 'yogurt', { expiry_date: '2027-01-25' }));
+});
