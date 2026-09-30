@@ -3,7 +3,6 @@ import { Appearance } from "react-native";
 import { useColorScheme } from "nativewind";
 import {
   themeStorage,
-  ThemePreference,
   getWebInitialPreference,
 } from "@/src/lib/themeStorage";
 
