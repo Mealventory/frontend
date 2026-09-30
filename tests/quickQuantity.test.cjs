@@ -10,7 +10,7 @@ function harness(value='2 units'){
  const mocks={react,'react/jsx-runtime':{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})},'react-native':{View:'View',Text:'Text',TouchableOpacity:'Touch',ActivityIndicator:'Spinner'},'./FoodItemCard':{FoodItemCard:'Card'},'../atoms':{Button:'Button'},'../atoms/Icon':{Icon:'Icon'},'@/src/context/InventoryContext':{useInventory:()=>api},'@/src/lib/quickQuantity':qty};
  const Card=compile('src/components/domain/PantryItemCard.tsx',mocks).PantryItemCard;
  let item={id:'one',name:'Yogurt',quantity:value};
- const walk=n=>Array.isArray(n)?n.flatMap(walk):!n||typeof n!=='object'?[]:[n,...walk(n.props?.children)];
+ const walk=n=>Array.isArray(n)?n.flatMap(walk):!n||typeof n!=='object'?[]:[n,...walk(n.props?.children),...walk(n.props?.quantityControls)];
  function render(change={}){item={...item,...change};cursor=0;const nodes=walk(Card({item,today:'2026-09-30',onPress:()=>opens++}));while(effects.length)effects.shift()();return nodes;}
  return{render,resolve,reject,calls,transitions,get refreshes(){return refreshes;},get opens(){return opens;},dispose:()=>slots.forEach(v=>v?.cleanup?.())};
 }

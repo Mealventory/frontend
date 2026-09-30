@@ -8,6 +8,7 @@ export interface FoodItemCardProps {
   today?: string;
   onPress: (item: FoodItem) => void;
   className?: string;
+  quantityControls?: React.ReactNode;
 }
 
 function getExpiryStyle(days: number) {
@@ -32,28 +33,31 @@ function getExpiryStyle(days: number) {
   };
 }
 
-export function FoodItemCard({ item, onPress, className = "", today = localDay() }: FoodItemCardProps) {
+export function FoodItemCard({ item, onPress, className = "", today = localDay(), quantityControls }: FoodItemCardProps) {
   const days = item.expiryDate === undefined ? (Number.isFinite(item.daysLeft) ? item.daysLeft : null) : expiryDays(item.expiryDate, today);
   const expiryStyle = days === null ? {text:'text-text-muted',bg:'bg-ground-subtle',border:'border-border-default'} : getExpiryStyle(days);
   const daysLabel = expiryLabel(days);
 
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityLabel={`${item.name}, ${item.quantity}, ${daysLabel}`}
-      activeOpacity={0.7}
-      onPress={() => onPress(item)}
+    <View
       className={`flex-row items-center p-3.5 bg-ground-surface dark:bg-ground-card rounded-[20px] border border-border-default shadow-sm ${className}`}
     >
-      {/* 46x46 Emoji Box */}
-      <View className="shrink-0 w-[46px] h-[46px] rounded-[16px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center mr-3.5">
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel={`${item.name}, ${item.quantity}, ${daysLabel}. Open item details`}
+        activeOpacity={0.7}
+        onPress={() => onPress(item)}
+        className="flex-1 min-w-0 flex-row items-center"
+      >
+      {/* Item icon and title */}
+      <View className={`${quantityControls ? "w-8 h-8 mr-2" : "w-[46px] h-[46px] mr-3.5"} shrink-0 rounded-[16px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center`}>
         <Text className="text-2xl">{item.emoji}</Text>
       </View>
 
       {/* Item info */}
       <View className="flex-1 min-w-0 mr-3">
         <Text
-          numberOfLines={1}
+          numberOfLines={quantityControls ? 2 : 1}
           className="text-[15px] font-bold text-text-primary tracking-tight font-bold"
         >
           {item.name}
@@ -63,8 +67,12 @@ export function FoodItemCard({ item, onPress, className = "", today = localDay()
         </Text>
       </View>
 
-      {/* Expiry Pill & Date */}
-      <View className="items-end shrink-0 max-w-[100px]">
+      </TouchableOpacity>
+
+      {quantityControls}
+
+      {/* Expiry remains a separate detail target, outside the quantity buttons. */}
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${item.name}: ${daysLabel}. Open item details`} onPress={() => onPress(item)} className="items-end shrink-0 max-w-[86px] ml-4">
         <View
           className={`px-2.5 py-0.5 rounded-full border ${expiryStyle.bg} ${expiryStyle.border}`}
         >
@@ -75,7 +83,7 @@ export function FoodItemCard({ item, onPress, className = "", today = localDay()
         <Text className="text-[11px] font-medium text-text-subtle mt-1 font-regular">
           {item.expDate}
         </Text>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 }

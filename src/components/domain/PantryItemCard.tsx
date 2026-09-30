@@ -43,21 +43,20 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
   if(amount===0){setError('');setFinish(true);return;}
   void save(amount);
  };
- return <View className="gap-1">
-  <FoodItemCard item={display} today={today} onPress={selected=>{if(!locked.current)onPress(selected);}} />
-  <View className="px-3 pb-2 gap-2">
-   {quantity?<View className="flex-row items-center justify-between gap-2">
-    <View className="flex-1"><Text className="text-text-muted text-xs">Quick quantity · 1 {quantity.unit} per tap</Text>
-     {busy&&<Text accessibilityLiveRegion="polite" className="text-text-muted text-xs">Saving…</Text>}
+ const controls=quantity?<View className="flex-row items-center shrink-0">
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Decrease ${item.name} by 1 ${quantity.unit}`} accessibilityState={{disabled:busy||finish}} disabled={busy||finish} onPress={()=>change(-1)} className="w-11 h-11 items-center justify-center rounded-xl bg-ground-subtle">
+     <Icon name="Minus" size={18} color="#64748B" />
+    </TouchableOpacity>
+    <View className="min-w-[24px] max-w-[56px] items-center px-1">
+     {busy?<ActivityIndicator accessibilityLabel={`Saving ${item.name}`} color="#10B981" />:<Text numberOfLines={1} adjustsFontSizeToFit className="text-text-primary font-bold">{optimistic??quantity.amount}</Text>}
     </View>
-    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Decrease ${item.name} by 1 ${quantity.unit}`} accessibilityState={{disabled:busy||finish}} disabled={busy||finish} onPress={()=>change(-1)} className="w-11 h-11 items-center justify-center rounded-xl bg-ground-subtle border border-border-default">
-     <Icon name="Minus" size={20} color="#64748B" />
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Increase ${item.name} by 1 ${quantity.unit}`} accessibilityState={{disabled:busy||finish||quantity.amount+1>999999999.999}} disabled={busy||finish||quantity.amount+1>999999999.999} onPress={()=>change(1)} className="w-11 h-11 items-center justify-center rounded-xl bg-ground-subtle">
+     <Icon name="Plus" size={18} color="#64748B" />
     </TouchableOpacity>
-    {busy?<ActivityIndicator accessibilityLabel={`Saving ${item.name}`} color="#10B981" />:<Text className="text-text-primary font-bold">{quantity.amount}</Text>}
-    <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Increase ${item.name} by 1 ${quantity.unit}`} accessibilityState={{disabled:busy||finish||quantity.amount+1>999999999.999}} disabled={busy||finish||quantity.amount+1>999999999.999} onPress={()=>change(1)} className="w-11 h-11 items-center justify-center rounded-xl bg-ground-subtle border border-border-default">
-     <Icon name="Plus" size={20} color="#64748B" />
-    </TouchableOpacity>
-   </View>:<Text className="text-text-muted text-xs">Open this item to edit its quantity.</Text>}
+   </View>:null;
+ return <View className="gap-1">
+  <FoodItemCard item={display} today={today} quantityControls={controls} onPress={selected=>{if(!locked.current)onPress(selected);}} />
+  {(finish||!!error)&&<View className="px-3 pb-2 gap-2">
    {finish&&<View className="gap-2 p-3 bg-ground-subtle rounded-xl">
     <Text className="text-text-primary font-bold">Finished with {item.name}?</Text>
     <Text className="text-text-muted">Mark the remaining {item.quantity} as consumed or discarded. Cancel keeps the item unchanged.</Text>
@@ -66,6 +65,6 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
     <Button label="Cancel" variant="ghost" onPress={()=>setFinish(false)} />
    </View>}
    {!!error&&<Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>}
-  </View>
+  </View>}
  </View>;
 }
