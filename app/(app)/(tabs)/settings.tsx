@@ -11,7 +11,7 @@ import { useAuth } from "@/src/context/AuthContext";
 export default function SettingsTabScreen() {
   const router = useRouter();
   const rootNavigation = useNavigation("/");
-  const { colorScheme, isDark, toggleTheme } = useAppTheme();
+  const { colorScheme, isDark, themePreference, setThemePreference, toggleTheme } = useAppTheme();
   const { session, household } = useAuth();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
@@ -94,36 +94,61 @@ export default function SettingsTabScreen() {
 
         {/* Appearance Section */}
         <View className="p-5 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6">
-          <Typography variant="h3" className="font-bold mb-1">
-            Appearance
-          </Typography>
-          <Typography variant="caption" color="muted" className="mb-4">
-            Current active theme:{" "}
-            <Typography variant="caption" className="font-bold uppercase text-brand-500">
-              {colorScheme}
+          <View className="flex-row items-center justify-between mb-1">
+            <Typography variant="h3" className="font-bold">
+              Appearance
             </Typography>
+            <Badge
+              label={
+                themePreference === "system"
+                  ? `System (${colorScheme})`
+                  : colorScheme === "dark"
+                  ? "Dark"
+                  : "Light"
+              }
+              variant="brand"
+            />
+          </View>
+          <Typography variant="caption" color="muted" className="mb-4">
+            {themePreference === "system"
+              ? "Automatically match your device appearance settings"
+              : `Explicitly set to ${themePreference} mode`}
           </Typography>
 
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={toggleTheme}
-            className="flex-row items-center justify-between p-3.5 bg-ground-subtle rounded-xl border border-border-default"
-          >
-            <View className="flex-row items-center flex-1 min-w-0 gap-3 mr-3">
-              <View className="w-9 h-9 rounded-lg bg-brand-50 dark:bg-brand-500/20 items-center justify-center">
-                <Icon name={isDark ? "Moon" : "Sun"} size={18} color="#10B981" />
-              </View>
-              <View className="flex-1">
-                <Typography variant="body" className="font-semibold">
-                  {isDark ? "Dark mode" : "Light mode"}
-                </Typography>
-                <Typography variant="caption" color="muted">
-                  Tap to toggle theme
-                </Typography>
-              </View>
-            </View>
-            <Badge label={isDark ? "Dark" : "Light"} variant="brand" />
-          </TouchableOpacity>
+          {/* 3-way Option Selector */}
+          <View className="flex-row p-1 bg-ground-subtle rounded-xl border border-border-default gap-1">
+            {[
+              { id: "system" as const, label: "System", icon: "Smartphone" as const },
+              { id: "light" as const, label: "Light", icon: "Sun" as const },
+              { id: "dark" as const, label: "Dark", icon: "Moon" as const },
+            ].map((option) => {
+              const isActive = themePreference === option.id;
+              return (
+                <TouchableOpacity
+                  key={option.id}
+                  activeOpacity={0.7}
+                  onPress={() => void setThemePreference(option.id)}
+                  className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg gap-1.5 ${
+                    isActive ? "bg-brand-500 shadow-sm" : "bg-transparent"
+                  }`}
+                >
+                  <Icon
+                    name={option.icon}
+                    size={16}
+                    color={isActive ? "#FFFFFF" : isDark ? "#94A3B8" : "#64748B"}
+                  />
+                  <Typography
+                    variant="caption"
+                    className={`font-semibold ${
+                      isActive ? "text-white" : "text-text-secondary"
+                    }`}
+                  >
+                    {option.label}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Profile & Security Section */}
