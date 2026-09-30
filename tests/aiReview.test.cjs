@@ -271,3 +271,10 @@ test('batch save normalizes typed dates and blocks invalid fields before any wri
   }
   assert.equal(calls, 1);
 });
+
+test('citrus varieties retain a citrus icon instead of the produce fallback', () => {
+  for (const name of ['Mandarin', 'Clementine', 'Tangerine', 'mandarins', 'CLEMENTINES']) {
+    assert.equal(getItemEmoji(name, 'Produce'), '🍊');
+  }
+  assert.equal(getItemEmoji('Broccoli', 'Produce'), '🥦');
+});

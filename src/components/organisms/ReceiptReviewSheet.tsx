@@ -51,7 +51,7 @@ export function getItemEmoji(name: string, category: string): string {
   if (lower.includes("blueberry") || lower.includes("berries")) return "🫐";
   if (lower.includes("apple")) return "🍎";
   if (lower.includes("banana")) return "🍌";
-  if (lower.includes("orange") || lower.includes("lemon") || lower.includes("citrus")) return "🍊";
+  if (lower.includes("orange") || lower.includes("lemon") || lower.includes("citrus") || lower.includes("mandarin") || lower.includes("clementine") || lower.includes("tangerine")) return "🍊";
   if (lower.includes("chicken") || lower.includes("beef") || lower.includes("meat") || lower.includes("pork")) return "🍗";
   if (lower.includes("fish") || lower.includes("salmon") || lower.includes("shrimp") || lower.includes("seafood")) return "🐟";
   if (lower.includes("milk") || lower.includes("dairy")) return "🥛";

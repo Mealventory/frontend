@@ -30,17 +30,24 @@ export interface ButtonProps extends PressableProps {
 
 const variantButtonStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-brand-500 active:bg-brand-600 shadow-sm border border-transparent",
+    "bg-brand-500 active:bg-brand-600 border border-transparent",
   secondary:
     "bg-ground-subtle active:bg-ground-muted border border-border-default",
   outline:
     "bg-transparent border border-border-default active:bg-ground-subtle",
   ghost: "bg-transparent active:bg-ground-subtle border border-transparent",
   danger:
-    "bg-urgency-critical active:opacity-90 shadow-sm border border-transparent",
+    "bg-urgency-critical active:opacity-90 border border-transparent",
   social:
-    "bg-ground-surface border border-border-default active:bg-ground-subtle shadow-sm",
+    "bg-ground-surface border border-border-default active:bg-ground-subtle",
 };
+
+// Native shadow styles avoid introducing CSS variables when selection changes.
+const selectedShadow = {
+  shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+  shadowOpacity: 0.05, shadowRadius: 1, elevation: 1,
+};
+const noShadow = { shadowOpacity: 0, shadowRadius: 0, elevation: 0 };
 
 const variantTextStyles: Record<ButtonVariant, string> = {
   primary: "text-white font-bold",
@@ -83,7 +90,7 @@ export function Button({
       accessibilityRole="button"
       accessibilityState={{ disabled: Boolean(isDisabled), busy: loading }}
       disabled={isDisabled}
-      style={state => [typeof style === "function" ? style(state) : style, { opacity: isDisabled ? 0.5 : state.pressed ? 0.8 : 1 }]}
+      style={state => [typeof style === "function" ? style(state) : style, { opacity: isDisabled ? 0.5 : state.pressed ? 0.8 : 1 }, ["primary", "danger", "social"].includes(variant) ? selectedShadow : noShadow]}
       className={`flex-row items-center justify-center ${sizeButtonStyles[size]} ${variantButtonStyles[variant]} ${className}`}
       {...props}
     >
