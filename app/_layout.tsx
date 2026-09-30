@@ -16,24 +16,26 @@ import { AuthProvider, useAuth } from "@/src/context/AuthContext";
 SplashScreen.preventAutoHideAsync();
 
 export function RootLayoutContent() {
-  const { isDark } = useAppTheme();
-  const { ready, recovery } = useAuth();
+  const { isDark, ready: themeReady } = useAppTheme();
+  const { ready: authReady, recovery } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
+  const isAppReady = authReady && (themeReady ?? true);
+
   useEffect(() => {
-    if (ready) {
+    if (isAppReady) {
       void SplashScreen.hideAsync().catch(() => {});
     }
-  }, [ready]);
+  }, [isAppReady]);
 
   useEffect(() => {
-    if (ready && recovery && pathname !== '/reset-password') {
+    if (isAppReady && recovery && pathname !== '/reset-password') {
       router.replace('/reset-password' as any);
     }
-  }, [ready, recovery, pathname, router]);
+  }, [isAppReady, recovery, pathname, router]);
 
-  if (!ready) {
+  if (!isAppReady) {
     return null;
   }
 

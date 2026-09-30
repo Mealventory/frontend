@@ -19,7 +19,7 @@ export interface SettingsScreenProps {
 
 export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
   const { user, logout, inventory } = useInventory();
-  const { isDark, toggleTheme, colorScheme } = useAppTheme();
+  const { isDark, toggleTheme, colorScheme, themePreference, setThemePreference } = useAppTheme();
   const [expiryAlerts, setExpiryAlerts] = useState(true);
   const [soundEffects, setSoundEffects] = useState(true);
 
@@ -146,37 +146,55 @@ export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
 
         {/* Preferences & Theme Section */}
         <View className="p-5 bg-ground-surface dark:bg-ground-card rounded-[24px] border border-border-default shadow-sm mb-5">
-          <Text className="text-[15px] font-bold text-text-primary mb-4">
-            Preferences & Appearance
+          <View className="flex-row items-center justify-between mb-1">
+            <Text className="text-[15px] font-bold text-text-primary">
+              Preferences & Appearance
+            </Text>
+            <View className="px-2.5 py-0.5 rounded-full bg-brand-500/15 border border-brand-500/30">
+              <Text className="text-[11px] font-bold text-brand-500 uppercase tracking-wider">
+                {themePreference === "system" ? `System (${colorScheme})` : colorScheme}
+              </Text>
+            </View>
+          </View>
+          <Text className="text-[12px] text-text-muted mb-3">
+            {themePreference === "system"
+              ? "Automatically match device appearance"
+              : `Explicitly set to ${themePreference} mode`}
           </Text>
 
-          {/* Theme Switcher */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={toggleTheme}
-            className="flex-row items-center justify-between py-3 border-b border-border-default"
-          >
-            <View className="flex-row items-center gap-3">
-              <View className="w-8 h-8 rounded-xl bg-ground-subtle dark:bg-ground-elevated items-center justify-center">
-                <Icon name={isDark ? "Moon" : "Sun"} size={16} color="#10B981" />
-              </View>
-              <View>
-                <Text className="text-[14px] font-bold text-text-primary">
-                  Appearance
-                </Text>
-                <Text className="text-[12px] text-text-muted">
-                  Current: {isDark ? "Dark Slate" : "Executive Light"}
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row items-center gap-1.5 px-3 py-1.5 bg-ground-subtle dark:bg-ground-elevated rounded-full border border-border-default">
-              <Text className="text-[12px] font-bold text-brand-500 uppercase">
-                {colorScheme}
-              </Text>
-              <Icon name="ChevronRight" size={14} color="#94A3B8" />
-            </View>
-          </TouchableOpacity>
+          {/* Theme Option Selector */}
+          <View className="flex-row p-1 bg-ground-subtle dark:bg-ground-elevated rounded-xl border border-border-default gap-1 mb-4">
+            {[
+              { id: "system" as const, label: "System", icon: "Smartphone" as const },
+              { id: "light" as const, label: "Light", icon: "Sun" as const },
+              { id: "dark" as const, label: "Dark", icon: "Moon" as const },
+            ].map((option) => {
+              const isActive = themePreference === option.id;
+              return (
+                <TouchableOpacity
+                  key={option.id}
+                  activeOpacity={0.7}
+                  onPress={() => void setThemePreference(option.id)}
+                  className={`flex-1 flex-row items-center justify-center py-2 px-3 rounded-lg gap-1.5 ${
+                    isActive ? "bg-brand-500 shadow-sm" : "bg-transparent"
+                  }`}
+                >
+                  <Icon
+                    name={option.icon}
+                    size={16}
+                    color={isActive ? "#FFFFFF" : isDark ? "#94A3B8" : "#64748B"}
+                  />
+                  <Text
+                    className={`text-[12px] font-semibold ${
+                      isActive ? "text-white" : "text-text-secondary"
+                    }`}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           {/* Expiry Alerts Switch */}
           <View className="flex-row items-center justify-between py-3 border-b border-border-default">
