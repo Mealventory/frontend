@@ -125,7 +125,7 @@ interface InventoryContextType {
   user: UserProfile;
   isAuthenticated: boolean;
   navigate: (screen: FigmaScreen) => void;
-  updateItem: (id: string, patch: NewItem) => Promise<void>;
+  updateItem: (id: string, patch: Partial<NewItem>) => Promise<void>;
   addItem: (item: FoodItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   transitionItem: (id: string, action: 'consume' | 'discard') => Promise<void>;
@@ -230,7 +230,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     } finally { mutations.current--; revision.current++; }
   };
 
-  const updateItem = async (id: string, patch: NewItem) => {
+  const updateItem = async (id: string, patch: Partial<NewItem>) => {
     if (!household || !session) throw new Error('Choose a household first.');
     mutations.current++; revision.current++;
     try {

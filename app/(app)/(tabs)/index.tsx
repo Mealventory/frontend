@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Typography, Button } from '@/src/components/atoms';
 import { Icon } from '@/src/components/atoms/Icon';
-import { FoodItemCard } from '@/src/components/domain/FoodItemCard';
+import { PantryItemCard } from '@/src/components/domain/PantryItemCard';
 import { TagChipGroup } from '@/src/components/molecules/TagChipGroup';
 import { EmptyState } from '@/src/components/molecules/EmptyState';
 import { useInventory } from '@/src/context/InventoryContext';
@@ -70,7 +70,7 @@ export default function PantryDashboardScreen() {
   </View>;
   return <SafeAreaView edges={['top','left','right']} className="flex-1 bg-ground-canvas">
     <FlatList data={inventoryError?[]:view.items} keyExtractor={item=>item.id} ListHeaderComponent={header}
-      renderItem={({item})=><FoodItemCard item={item} today={today} onPress={selected=>{openItem(selected);router.push(`/(app)/inventory/${selected.id}` as any);}} />}
+      renderItem={({item})=><PantryItemCard key={`${session?.user.id}:${household?.id}:${item.id}`} item={item} today={today} onPress={selected=>{openItem(selected);router.push(`/(app)/inventory/${selected.id}` as any);}} />}
       ItemSeparatorComponent={()=><View className="h-2.5" />}
       refreshControl={<RefreshControl refreshing={inventoryLoading} onRefresh={()=>void refreshInventory()} />}
       keyboardShouldPersistTaps="handled" contentContainerStyle={{paddingHorizontal:20,paddingBottom:28}} showsVerticalScrollIndicator={false}

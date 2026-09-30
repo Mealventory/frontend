@@ -3,7 +3,7 @@ const backendUrl = (process.env.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBL
 export type InventoryRow = { id: string; household_id: string; name: string; category: string | null; quantity: number | string; unit: string; expiry_date: string | null; status: string; storage_zone?: StorageZone | null };
 export type NewItem = { name: string; category: string; quantity: number; unit: string; expiry_date: string | null; storage_zone?: StorageZone };
 
-export async function inventoryRequest<T>(token: string, household: string, method = 'GET', id?: string, body?: NewItem, action?: 'consume' | 'discard'): Promise<T> {
+export async function inventoryRequest<T>(token: string, household: string, method = 'GET', id?: string, body?: Partial<NewItem>, action?: 'consume' | 'discard'): Promise<T> {
   if (!backendUrl) throw new Error('The backend connection is not configured.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
