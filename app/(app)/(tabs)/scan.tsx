@@ -133,6 +133,8 @@ export default function ScanTabScreen() {
   );
 
   const processScannedImage = async (rawUri: string) => {
+    if (captureLock.current || !activeRef.current) return;
+    captureLock.current = true;
     const generation = scanGeneration.current;
     if (mode !== "barcode") { setCapturedPhoto(rawUri); setFlashOn(false); }
     setErrorMessage(null);
@@ -265,12 +267,13 @@ export default function ScanTabScreen() {
       }
       setErrorMessage(msg);
     } finally {
-      if (activeRef.current && generation === scanGeneration.current) setScanning(false);
+      if (activeRef.current && generation === scanGeneration.current) { captureLock.current = false; setScanning(false); }
     }
   };
 
   const handlePickImage = async () => {
-    if (scanning) return;
+    if (scanning || captureLock.current) return;
+    const generation = scanGeneration.current;
     setErrorMessage(null);
 
     try {
@@ -290,9 +293,11 @@ export default function ScanTabScreen() {
         return;
       }
 
+      if (!activeRef.current || generation !== scanGeneration.current) return;
       const pickedUri = pickerResult.assets[0].uri;
       if (pickedUri) {
-        await processScannedImage(pickedUri);
+        if (mode === "barcode") await processScannedImage(pickedUri);
+        else { setCapturedPhoto(pickedUri); setFlashOn(false); }
       }
     } catch (err: any) {
       const elementName = mode === "receipt" ? "Receipt" : mode === "barcode" ? "Barcode" : mode === "tag" ? "Tag" : "Product";
@@ -334,7 +339,8 @@ export default function ScanTabScreen() {
       return;
     }
 
-    await processScannedImage(imageUri);
+    if (mode === "barcode") await processScannedImage(imageUri);
+    else { setCapturedPhoto(imageUri); setFlashOn(false); setScanning(false); }
   };
 
   // Permission: loading state
@@ -504,6 +510,8 @@ export default function ScanTabScreen() {
                   disabled={scanning}
                   onPress={() => {
                     setErrorMessage(null);
+                    if (captureLock.current) return;
+                    scanGeneration.current++;
                     setMode(m.id); setCapturedPhoto(null);
                   }}
                   className={`flex-1 flex-row items-center justify-center py-2 px-2 rounded-full ${
@@ -529,9 +537,16 @@ export default function ScanTabScreen() {
           </View>
 
           {/* Bottom Overlay Controls */}
-          {capturedPhoto && !scanning ? <Button label="Retake photo" onPress={() => {
-            setCapturedPhoto(null); setErrorMessage(null);
-          }} /> : <CameraOverlayControls
+          {capturedPhoto && !scanning ? <View className="gap-3">
+            <Typography className="text-white text-center">Check your photo before scanning.</Typography>
+            <View className="flex-row gap-3">
+              <View className="flex-1"><Button label="Retake photo" variant="secondary" onPress={() => {
+                if (captureLock.current) return;
+                setCapturedPhoto(null); setErrorMessage(null);
+              }} /></View>
+              <View className="flex-1"><Button label="Use Photo" onPress={() => void processScannedImage(capturedPhoto)} /></View>
+            </View>
+          </View> : <CameraOverlayControls
             mode={mode}
             onScan={handleScan}
             scanning={scanning}

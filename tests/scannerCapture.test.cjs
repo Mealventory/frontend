@@ -52,15 +52,25 @@ for (const file of ['app/(app)/(tabs)/scan.tsx', 'app/(modal)/scanner.tsx']) {
     const frozen = h.render();
     assert.equal(frozen.some(n => n.type === 'Camera'), false);
     assert.equal(frozen.find(n => n.type === 'Image').props.source.uri, 'file:///captured.jpg');
+    assert.deepEqual(h.counts(), { captures: 1, uploads: 0 });
+    const usePhoto = frozen.find(n => n.props?.label === "Use Photo").props.onPress;
+    usePhoto(); usePhoto(); await tick();
     assert.deepEqual(h.counts(), { captures: 1, uploads: 1 });
-    h.rejectUpload(new Error('No food detected')); await running;
+    h.rejectUpload(new Error('No food detected')); await running; await tick();
     h.render().find(n => n.props?.label === 'Retake photo').props.onPress();
     assert.equal(h.render().some(n => n.type === 'Camera'), true);
   });
+  test(`${file}: retake discards an unsubmitted photo`, async () => {
+    const h = harness(file);
+    await h.render().find(n => n.type === 'Controls').props.onScan();
+    h.render().find(n => n.props?.label === 'Retake photo').props.onPress();
+    assert.equal(h.render().some(n => n.type === 'Camera'), true);
+    assert.equal(h.counts().uploads, 0);
+  });
   test(`${file}: leaving during analysis prevents stale results from opening review`, async () => {
     const h = harness(file); const running = h.render().find(n => n.type === 'Controls').props.onScan();
-    await tick(); h.focus(false); h.render(); h.focus(true); h.render();
-    h.resolveUpload([{ name: 'apple' }]); await running;
+    await tick(); h.render().find(n => n.props?.label === "Use Photo").props.onPress(); await tick(); h.focus(false); h.render(); h.focus(true); h.render();
+    h.resolveUpload([{ name: 'apple' }]); await running; await tick();
     assert.equal(h.pushes.length, 0);
     assert.equal(h.render().some(n => n.type === 'Image'), false);
   });
