@@ -32,7 +32,8 @@
         {
           "cameraPermission": "Allow Mealventory to access your camera to scan food items and receipts."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

@@ -15,14 +15,27 @@ import { AuthProvider, useAuth } from "@/src/context/AuthContext";
 
 SplashScreen.preventAutoHideAsync();
 
-function RootLayoutContent() {
+export function RootLayoutContent() {
   const { isDark } = useAppTheme();
-  const { recovery } = useAuth();
+  const { ready, recovery } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+
   useEffect(() => {
-    if (recovery && pathname !== '/reset-password') router.replace('/reset-password' as any);
-  }, [recovery, pathname, router]);
+    if (ready) {
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [ready]);
+
+  useEffect(() => {
+    if (ready && recovery && pathname !== '/reset-password') {
+      router.replace('/reset-password' as any);
+    }
+  }, [ready, recovery, pathname, router]);
+
+  if (!ready) {
+    return null;
+  }
 
   return (
     <>
@@ -54,10 +67,12 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+    // Failsafe: hide splash screen if auth hydration takes longer than 5 seconds
+    const timer = setTimeout(() => {
+      void SplashScreen.hideAsync().catch(() => {});
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!fontsLoaded && !fontError) {
     return null;

@@ -14,11 +14,14 @@ const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.EXPO
 export const initialRecovery = Platform.OS === 'web' && typeof window !== 'undefined'
   && new URLSearchParams(window.location.hash.slice(1)).get('type') === 'recovery';
 
-// First live slice: sessions stay in memory. Reloading requires sign-in again.
+import { authStorageAdapter } from './authStorage';
+
+// Session persistence uses SecureStore on native platforms and localStorage on web.
 // Never put a service-role key, JWT signing secret, or database password here.
 export const supabase = url && key ? createClient(url, key, {
   auth: {
-    persistSession: false,
+    storage: authStorageAdapter,
+    persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: Platform.OS === 'web',
   },

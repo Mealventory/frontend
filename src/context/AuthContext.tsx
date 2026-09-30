@@ -30,7 +30,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userId = next?.user.id;
       setSession(next); setReady(true);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
-      if (event === 'SIGNED_OUT') setRecovery(false);
+      if (event === 'SIGNED_OUT') {
+        selectHousehold(null);
+        setRecovery(false);
+      }
+    });
+    void client.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (!active) return;
+      if (initialSession) {
+        if (userId !== initialSession.user.id) selectHousehold(null);
+        userId = initialSession.user.id;
+        setSession(initialSession);
+      }
+      setReady(true);
+    }).catch(() => {
+      if (active) setReady(true);
     });
     async function handleURL(url: string | null) {
       if (!url || !active || handledLinks.has(url)) return;
