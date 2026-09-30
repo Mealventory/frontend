@@ -62,6 +62,7 @@ export default function PantryDashboardScreen() {
           <Typography variant="caption" color="muted">{bucket.hint}</Typography>
         </TouchableOpacity>)}
       </ScrollView>
+      <Button label="Open expiry calendar" variant="outline" onPress={()=>router.push('/(app)/expiry-calendar' as any)} />
       {group!=='all'&&<Button label="Show all expiry dates" variant="ghost" onPress={()=>setGroup('all')} />}
       {view.counts.today+view.counts.soon>0&&<Button label="Find recipes for expiring food" variant="secondary" onPress={()=>router.push('/(app)/(tabs)/recipes' as any)} />}
       <Typography variant="caption" color="muted">{view.items.length} items · Nearest expiry first · Undated items last</Typography>
