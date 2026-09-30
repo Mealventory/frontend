@@ -537,14 +537,14 @@ export default function ScanTabScreen() {
           </View>
 
           {/* Bottom Overlay Controls */}
-          {capturedPhoto && !scanning ? <View className="gap-3">
-            <Typography className="text-white text-center">Check your photo before scanning.</Typography>
+          {capturedPhoto && !scanning ? <View className="gap-3 p-3 rounded-3xl bg-black/70 border border-white/20">
+            <Typography className="text-white text-center text-sm font-medium px-2">Ready to scan? Check that your photo is clear.</Typography>
             <View className="flex-row gap-3">
-              <View className="flex-1"><Button label="Retake photo" variant="secondary" onPress={() => {
+              <View className="flex-1"><Button label="Retake photo" variant="secondary" className="min-h-[52px] rounded-2xl px-3" onPress={() => {
                 if (captureLock.current) return;
                 setCapturedPhoto(null); setErrorMessage(null);
               }} /></View>
-              <View className="flex-1"><Button label="Use Photo" onPress={() => void processScannedImage(capturedPhoto)} /></View>
+              <View className="flex-1"><Button label="Use Photo" className="min-h-[52px] rounded-2xl px-3" onPress={() => void processScannedImage(capturedPhoto)} /></View>
             </View>
           </View> : <CameraOverlayControls
             mode={mode}
