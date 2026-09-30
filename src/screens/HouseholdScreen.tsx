@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { signOutAccount, usernameFor } from '../lib/account';
 import { backendConfigured, Household, householdRequest, Member } from '../lib/householdApi';
+import { resolveMemberProfile, formatRole } from '../lib/memberProfiles';
 
 const green = '#087F5B';
 type Page = 'home' | 'create' | 'join';
@@ -261,7 +262,24 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
                 </Pressable>
               </View>
               <View style={styles.card}><View style={styles.row}><Text style={styles.heading}>At the table</Text><Pressable accessibilityRole="button" accessibilityLabel="Refresh members" onPress={refreshMembers}><RefreshCw size={18} color={green} /></Pressable></View>
-                {memberLoading ? <ActivityIndicator color={green} /> : members.map(member => <View key={member.user_id} style={styles.member}><View style={styles.avatar}><Users size={18} color={green} /></View><View style={{ flex: 1 }}><Text style={styles.cardTitle}>{member.user_id === session.user.id ? 'You' : `Member ${member.user_id.slice(0,8)}`}</Text><Text style={styles.muted}>{member.role}</Text></View></View>)}
+                {memberLoading ? <ActivityIndicator color={green} /> : members.map(member => {
+                  const profile = resolveMemberProfile(member, session);
+                  return (
+                    <View key={member.user_id} style={styles.member}>
+                      <View style={styles.avatar}>
+                        {profile.initials ? (
+                          <Text style={{ fontSize: 13, fontFamily: 'Inter_700Bold', color: green }}>{profile.initials}</Text>
+                        ) : (
+                          <Users size={18} color={green} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cardTitle}>{profile.isCurrentUser ? `${profile.displayName} (You)` : profile.displayName}</Text>
+                        <Text style={styles.muted}>{formatRole(member.role)}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
                 {!!memberError && <Text accessibilityRole="alert" style={styles.error}>{memberError}</Text>}
               </View>
             </>}
