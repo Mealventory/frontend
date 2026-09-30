@@ -1,9 +1,11 @@
 import React from "react";
 import { TouchableOpacity, View, Text } from "react-native";
+import { expiryDays, expiryLabel, localDay } from '@/src/lib/pantryExpiry';
 import { FoodItem } from "@/src/types";
 
 export interface FoodItemCardProps {
   item: FoodItem;
+  today?: string;
   onPress: (item: FoodItem) => void;
   className?: string;
 }
@@ -30,18 +32,15 @@ function getExpiryStyle(days: number) {
   };
 }
 
-function getDaysLabel(days: number): string {
-  if (days <= 0) return "Today";
-  if (days === 1) return "1 day";
-  return `${days}d`;
-}
-
-export function FoodItemCard({ item, onPress, className = "" }: FoodItemCardProps) {
-  const expiryStyle = getExpiryStyle(item.daysLeft);
-  const daysLabel = item.expiryDate === null ? 'No date' : getDaysLabel(item.daysLeft);
+export function FoodItemCard({ item, onPress, className = "", today = localDay() }: FoodItemCardProps) {
+  const days = item.expiryDate === undefined ? (Number.isFinite(item.daysLeft) ? item.daysLeft : null) : expiryDays(item.expiryDate, today);
+  const expiryStyle = days === null ? {text:'text-text-muted',bg:'bg-ground-subtle',border:'border-border-default'} : getExpiryStyle(days);
+  const daysLabel = expiryLabel(days);
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}, ${item.quantity}, ${daysLabel}`}
       activeOpacity={0.7}
       onPress={() => onPress(item)}
       className={`flex-row items-center p-3.5 bg-ground-surface dark:bg-ground-card rounded-[20px] border border-border-default shadow-sm ${className}`}
