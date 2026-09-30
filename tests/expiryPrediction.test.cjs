@@ -36,3 +36,23 @@ test('unavailable predictions keep manual date and never offer apply',async()=>{
  assert.equal(h.render().some(n=>n.props?.label==='Replace date with estimate'),false);
  assert.deepEqual(h.applied,[]);
 });
+
+test('catalogue condition choice requires opening date and preserves explicit apply',async()=>{
+ const h=harness();h.render();
+ const request=h.render().find(n=>n.props?.label==='Predict expiry').props.onPress();
+ h.resolve({source:'unavailable',predicted_expiry_date:null,explanation:'Choose condition',food_state_options:['opened','unopened']});await request;
+ h.render().find(n=>n.props?.label==='Opened').props.onPress();
+ const fields=h.render();
+ assert.equal(fields.find(n=>n.props?.label==='Date opened').props.value,'');
+ assert.equal(fields.some(n=>n.props?.label==='Replace date with estimate'),false);
+ assert.deepEqual(h.applied,[]);
+});
+test('catalogue date is explicitly applied, never saved by prediction',async()=>{
+ const h=harness();h.render();
+ const request=h.render().find(n=>n.props?.label==='Predict expiry').props.onPress();
+ h.resolve({source:'catalogue',predicted_expiry_date:'2026-10-03',explanation:'Storage guide',source_name:'Health Canada',source_url:'https://www.canada.ca/'});await request;
+ assert.deepEqual(h.applied,[]);
+ assert.ok(h.render().find(n=>n.props?.label==='Source: Health Canada'));
+ h.render().find(n=>n.props?.label==='Replace date with estimate').props.onPress();
+ assert.deepEqual(h.applied,['2026-10-03']);
+});

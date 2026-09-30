@@ -24,3 +24,12 @@ test('button renders without navigation and preserves press and loading behavior
     assert.equal(busy.props.style({ pressed: false })[1].opacity, .5);
   }
 });
+
+test('selection changes use native shadows without dynamically adding shadow classes', () => {
+  for (const variant of ['secondary', 'primary', 'secondary', 'ghost', 'danger', 'social']) {
+    const button = mod.exports.Button({ label: 'Mandarin', variant });
+    assert.equal(/shadow-/.test(button.props.className), false);
+    const style = button.props.style({ pressed: false });
+    assert.equal(style[2].elevation, ['primary', 'danger', 'social'].includes(variant) ? 1 : 0);
+  }
+});

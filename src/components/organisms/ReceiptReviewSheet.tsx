@@ -51,7 +51,7 @@ export function getItemEmoji(name: string, category: string): string {
   if (lower.includes("blueberry") || lower.includes("berries")) return "🫐";
   if (lower.includes("apple")) return "🍎";
   if (lower.includes("banana")) return "🍌";
-  if (lower.includes("orange") || lower.includes("lemon") || lower.includes("citrus")) return "🍊";
+  if (lower.includes("orange") || lower.includes("lemon") || lower.includes("citrus") || lower.includes("mandarin") || lower.includes("clementine") || lower.includes("tangerine")) return "🍊";
   if (lower.includes("chicken") || lower.includes("beef") || lower.includes("meat") || lower.includes("pork")) return "🍗";
   if (lower.includes("fish") || lower.includes("salmon") || lower.includes("shrimp") || lower.includes("seafood")) return "🐟";
   if (lower.includes("milk") || lower.includes("dairy")) return "🥛";
@@ -265,14 +265,13 @@ export function ReceiptReviewSheet({
                   </View>
 
                   <View className="items-end gap-1.5 shrink-0">
-                    {!item.expiry_date && <ExpiryPrediction name={item.name} zone={item.storageZone} value={item.expiry_date} onApply={date => onUpdateItem(item.id, {expiry_date:date})} disabled={submitting} />}
-                {typeof item.confidence === 'number' && item.confidence < 0.7 && (
-                      <Typography variant="caption" color="muted">Possible match — check the name, then tick to confirm.</Typography>
-                    )}
                     {confidencePercent && (
-                      <Badge label={confidencePercent} variant="fresh" size="sm" />
+                      <Badge
+                        label={confidencePercent}
+                        variant="fresh"
+                        size="sm"
+                      />
                     )}
-
                     <View className="flex-row items-center gap-1.5 mt-0.5">
                       <TouchableOpacity
                         activeOpacity={0.7}
@@ -497,7 +496,19 @@ export function ReceiptReviewSheet({
                       onChangeText={(val) => onUpdateItem(item.id, { expiry_date: val })} editable={!submitting} />
                   </View>
                 )}
-                {!item.expiry_date && <ExpiryPrediction name={item.name} zone={item.storageZone} value={item.expiry_date} onApply={date => onUpdateItem(item.id, {expiry_date:date})} disabled={submitting} />}
+                {!item.expiry_date && (
+                  <View className="mt-4">
+                    <ExpiryPrediction
+                      name={item.name}
+                      zone={item.storageZone}
+                      value={item.expiry_date}
+                      onApply={(date) =>
+                        onUpdateItem(item.id, { expiry_date: date })
+                      }
+                      disabled={submitting}
+                    />
+                  </View>
+                )}
                 {typeof item.confidence === 'number' && item.confidence < 0.7 && (
                   <Typography variant="caption" color="muted" className="mt-4">
                     Possible match. Check the name and details before adding it.
