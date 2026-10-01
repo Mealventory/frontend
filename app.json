@@ -14,11 +14,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mealventory.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Mealventory requires camera access to scan grocery receipts and barcodes."
+        "NSCameraUsageDescription": "Mealventory requires camera access to scan grocery receipts and barcodes.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.mealventory.app"
+      "package": "com.mealventory.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +43,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "aa13e851-d5f6-4179-a1e3-6571dad7d73f"
+      }
     }
   }
 }
