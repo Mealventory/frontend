@@ -9,8 +9,16 @@ export function usernameFor(email: string, username = '') {
   return username.trim() || email.trim().split('@')[0];
 }
 
+let signOutCleanup: (() => Promise<void>) | undefined;
+export function setSignOutCleanup(cleanup: () => Promise<void>) {
+  signOutCleanup = cleanup;
+  return () => { if (signOutCleanup === cleanup) signOutCleanup = undefined; };
+}
+
 export async function signOutAccount(client: SupabaseClient | null) {
-  const { error } = await accountClient(client).auth.signOut();
+  const account = accountClient(client);
+  await signOutCleanup?.();
+  const { error } = await account.auth.signOut();
   if (error) throw error;
 }
 
