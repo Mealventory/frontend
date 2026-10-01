@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -34,8 +35,8 @@ export function LoginScreen({ onNavigate }: LoginScreenProps) {
       >
         {/* Hero Section */}
         <View className="bg-brand-50 dark:bg-brand-500/10 px-8 pt-10 pb-8 items-center rounded-b-[36px] mb-6">
-          <View className="w-[72px] h-[72px] rounded-[24px] bg-ground-surface dark:bg-ground-elevated items-center justify-center shadow-md shadow-brand-500/20 mb-3.5 border border-border-default">
-            <Text className="text-4xl">🥦</Text>
+          <View className="w-[72px] h-[72px] rounded-[24px] overflow-hidden shadow-md shadow-brand-500/20 mb-3.5 border border-border-default">
+            <Image source={require("../../assets/branding/icon.png")} className="w-[72px] h-[72px]" resizeMode="cover" />
           </View>
           <Text className="text-[26px] font-bold text-text-primary tracking-tight">
             Mealventory
