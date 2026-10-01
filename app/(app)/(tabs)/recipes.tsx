@@ -180,7 +180,16 @@ export default function RecipesTabScreen() {
           <Button label="Share recipes saved on this phone" variant="secondary" onPress={() => { setSaveError(''); void shareLocalRecipes().catch(e => setSaveError(e instanceof Error ? e.message : 'Could not share recipes.')); }} />
         </View>}
 
-        <Typography variant="h1">Recipes</Typography>
+        <View className="flex-row items-center justify-between gap-3">
+          <Typography variant="h1">Recipes</Typography>
+          <Button
+            label="Meal Plan"
+            variant="outline"
+            size="sm"
+            leadingIcon={<Icon name="CalendarDays" size={15} />}
+            onPress={() => router.push("/(app)/meal-plan" as any)}
+          />
+        </View>
 
         <View className="flex-row mt-4 mb-5 p-1 rounded-xl bg-ground-subtle dark:bg-ground-elevated">
           {(["recommended", "saved"] as RecipeView[]).map((tab) => {
