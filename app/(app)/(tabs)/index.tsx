@@ -48,7 +48,7 @@ export default function PantryDashboardScreen() {
         <TouchableOpacity
           onPress={()=>setFilterOpen(true)}
           accessibilityRole="button"
-          accessibilityLabel={activeFilterCount>0?`Filter pantry, ${activeFilterCount} active filters`:'Filter pantry'}
+          accessibilityLabel={activeFilterCount>0?`Filter pantry, ${activeFilterCount} active ${activeFilterCount===1?'filter':'filters'}`:'Filter pantry'}
           className={`relative w-11 h-11 items-center justify-center rounded-xl border ${activeFilterCount>0?'bg-brand-50 dark:bg-brand-500/20 border-brand-500':'bg-ground-surface border-border-default'}`}
         >
           <Icon name="Filter" size={21} color={activeFilterCount>0?'#10B981':'#64748B'} />
