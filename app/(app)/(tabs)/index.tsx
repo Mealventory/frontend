@@ -75,7 +75,7 @@ export default function PantryDashboardScreen() {
       refreshControl={<RefreshControl refreshing={inventoryLoading} onRefresh={()=>void refreshInventory()} />}
       keyboardShouldPersistTaps="handled" contentContainerStyle={{paddingHorizontal:20,paddingBottom:28}} showsVerticalScrollIndicator={false}
       ListEmptyComponent={inventoryError?null:inventoryLoading?<ActivityIndicator accessibilityLabel="Loading pantry" color="#10B981" />:inventory.length===0?
-        <EmptyState icon="Refrigerator" title="A fresh start for your kitchen" description="Add a few ingredients and let’s see what’s cooking." actionLabel="Scan your first product" onAction={()=>router.push('/(app)/(tabs)/scan' as any)} secondaryLabel="Add food manually" onSecondary={()=>router.push('/(modal)/manual-add' as any)} />:
+        <EmptyState icon="Refrigerator" title="A fresh start for your kitchen" description="Add a few ingredients and let’s see what’s cooking." actionLabel="Scan your first item" onAction={()=>router.push('/(app)/(tabs)/scan' as any)} secondaryLabel="Add food manually" onSecondary={()=>router.push('/(modal)/manual-add' as any)} />:
         <EmptyState icon="Search" title={group==='all'?'Nothing on this shelf':'Nothing in this expiry group'} description="Try another shelf, ingredient or expiry group." actionLabel="Clear filters" onAction={clear} />}
     />
   </SafeAreaView>;

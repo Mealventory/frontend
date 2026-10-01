@@ -90,7 +90,7 @@ export async function fetchProductByBarcode(
       name = `${brand} ${name}`;
     }
     if (!name) {
-      name = brand ? `${brand} Product` : `Item (${cleanBarcode})`;
+      name = brand ? `${brand} Item` : `Item (${cleanBarcode})`;
     }
 
     // Capitalize first letter

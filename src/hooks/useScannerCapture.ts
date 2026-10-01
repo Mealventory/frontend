@@ -23,7 +23,7 @@ export type ScannerModeConfig = {
 };
 
 export const SCANNER_MODES: ScannerModeConfig[] = [
-  { id: "food", label: "Product", icon: "Apple", instruction: "Center product or grocery items in frame" },
+  { id: "food", label: "Item", icon: "Apple", instruction: "Center item in frame" },
   { id: "tag", label: "Tag", icon: "Calendar", instruction: "Fill the frame with the printed best-before date" },
   { id: "receipt", label: "Receipt", icon: "Receipt", instruction: "Align store receipt within boundary guides" },
   { id: "barcode", label: "Barcode", icon: "Barcode", instruction: "Position barcode in frame for instant auto-scan" },
@@ -268,7 +268,7 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
           ? "Barcode"
           : mode === "tag"
           ? "Tag"
-          : "Product";
+          : "Item";
       const rawMsg = (err?.message || "").trim();
       let msg: string;
 
@@ -341,7 +341,7 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
           ? "Barcode"
           : mode === "tag"
           ? "Tag"
-          : "Product";
+          : "Item";
       setErrorMessage(`${elementName} could not be detected. Please adjust camera framing and retry.`);
     }
   };

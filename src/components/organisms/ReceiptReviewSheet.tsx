@@ -125,7 +125,7 @@ export function ReceiptReviewSheet({
         return "Tag scan";
       case "food":
       default:
-        return "Product AI";
+        return "Item AI";
     }
   }, [mode]);
 
@@ -454,7 +454,7 @@ export function ReceiptReviewSheet({
                 {item.isEditing && (
                   <View className="gap-3 mt-3.5 pt-3.5 border-t border-border-default">
                     <FormField
-                      label="Product Name"
+                      label="Item Name"
                       value={item.name}
                       onChangeText={(val) => onUpdateItem(item.id, { name: val })}
                       leadingIcon={<Icon name="Tag" size={16} color="#94A3B8" />}

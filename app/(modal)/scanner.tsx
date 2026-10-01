@@ -20,7 +20,7 @@ import {
 } from "@/src/hooks/useScannerCapture";
 
 // Supported modes configuration:
-// - Product: id: "food"
+// - Item: id: "food"
 // - Tag: id: "tag"
 // - Receipt: id: "receipt"
 // - Barcode: id: "barcode"
@@ -89,7 +89,7 @@ export default function FullscreenScannerModal() {
             Camera Access Required
           </Typography>
           <Typography variant="body" className="text-white/70 text-center mb-6 leading-6">
-            Mealventory needs camera access to scan barcodes for instant product lookup, read receipts, and detect produce with AI Vision.
+            Mealventory needs camera access to scan barcodes for instant item lookup, read receipts, and detect food items with AI Vision.
           </Typography>
           <Button
             label="Grant Camera Permission"
@@ -216,16 +216,19 @@ export default function FullscreenScannerModal() {
           )}
 
           {/* Mode Switcher Segmented Control */}
-          <View className="w-full max-w-[340px] self-center flex-row items-center justify-between mb-4 bg-black/60 p-1 rounded-full border border-white/20">
+          <View className="w-full max-w-[360px] self-center flex-row items-center justify-between mb-4 bg-black/60 p-1 rounded-full border border-white/20">
             {modes.map((m) => {
               const isSelected = mode === m.id;
+              const displayLabel = m.label
+                ? m.label.charAt(0).toUpperCase() + m.label.slice(1)
+                : m.id.charAt(0).toUpperCase() + m.id.slice(1);
               return (
                 <TouchableOpacity
                   key={`${m.id}-${m.label}`}
                   activeOpacity={0.75}
                   disabled={scanning}
                   onPress={() => selectMode(m.id)}
-                  className={`flex-1 flex-row items-center justify-center py-2 px-2 rounded-full ${
+                  className={`flex-1 flex-row items-center justify-center py-2 px-1.5 rounded-full ${
                     isSelected ? "bg-brand-500" : "bg-transparent"
                   }`}
                 >
@@ -236,11 +239,11 @@ export default function FullscreenScannerModal() {
                   />
                   <Text
                     numberOfLines={1}
-                    className={`ml-1.5 text-[12.5px] font-semibold ${
+                    className={`ml-1 text-[12px] font-semibold ${
                       isSelected ? "text-white" : "text-white/70"
                     }`}
                   >
-                    {m.label}
+                    {displayLabel}
                   </Text>
                 </TouchableOpacity>
               );
@@ -294,7 +297,7 @@ export default function FullscreenScannerModal() {
           </View>
           <Typography variant="h3" className="text-white font-bold mb-1 text-center">
             {mode === "barcode"
-              ? "Resolving Product Barcode..."
+              ? "Resolving Barcode..."
               : mode === "receipt"
               ? "Reading your receipt..."
               : mode === "tag"
@@ -303,7 +306,7 @@ export default function FullscreenScannerModal() {
           </Typography>
           <Typography variant="caption" className="text-white/70 text-center">
             {mode === "barcode"
-              ? "Extracting product name, brand, and storage zone"
+              ? "Extracting item name, brand, and storage zone"
               : "Detecting items, quantities, and expiration dates"}
           </Typography>
         </View>

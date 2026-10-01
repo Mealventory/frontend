@@ -176,9 +176,16 @@ test('useScannerCapture exposes shared modes, barcode types, and default food mo
   assert.equal(c.flashOn, false);
   assert.equal(c.errorMessage, null);
   assert.equal(c.activeModeConfig.id, 'food');
+  assert.equal(c.activeModeConfig.label, 'Item');
 
   const modeIds = h.constants.SCANNER_MODES.map(m => m.id);
   assert.deepEqual(modeIds, ['food', 'tag', 'receipt', 'barcode']);
+
+  const modeLabels = h.constants.SCANNER_MODES.map(m => m.label);
+  assert.deepEqual(modeLabels, ['Item', 'Tag', 'Receipt', 'Barcode']);
+  for (const m of h.constants.SCANNER_MODES) {
+    assert.equal(m.label[0], m.label[0].toUpperCase(), `Mode label ${m.label} must start with uppercase`);
+  }
   assert.ok(h.constants.BARCODE_TYPES.includes('ean13'));
   assert.ok(h.constants.BARCODE_TYPES.includes('upc_a'));
 });

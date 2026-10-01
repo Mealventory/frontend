@@ -98,7 +98,7 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
               <View className="items-center mt-6 gap-2">
                 <ActivityIndicator size="small" color="#10B981" />
                 <Text className="text-[13px] font-medium text-white/70">
-                  Identifying product...
+                  Identifying item...
                 </Text>
               </View>
             ) : (
@@ -151,7 +151,7 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
 
           {detected && (
             <View className="gap-5">
-              {/* Product Card */}
+              {/* Item Card */}
               <View className="flex-row items-center p-4 bg-ground-subtle dark:bg-ground-card rounded-[22px] border border-border-default shadow-sm">
                 <View className="w-[60px] h-[60px] rounded-[18px] bg-ground-surface dark:bg-ground-elevated items-center justify-center mr-4 shadow-sm">
                   <Text className="text-3xl">{detected.emoji}</Text>
