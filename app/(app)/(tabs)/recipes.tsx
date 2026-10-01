@@ -8,6 +8,8 @@ import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { useInventory } from "@/src/context/InventoryContext";
 import { useAuth } from "@/src/context/AuthContext";
 import { generateRecipes } from "@/src/lib/recipeApi";
+import { batchCreateInventoryItems } from "@/src/lib/inventoryApi";
+import { missingDevTestPantryItems } from "@/src/lib/devTestData";
 import type { Recipe } from "@/src/types";
 
 type RecipeView = "recommended" | "saved";
@@ -49,6 +51,7 @@ export default function RecipesTabScreen() {
     savedRecipesLoading,
     isRecipeSaved,
     toggleSavedRecipe,
+    refreshInventory,
   } = useInventory();
   const { session, household } = useAuth();
   const scope = `${session?.user.id}:${household?.id}`;
@@ -60,6 +63,8 @@ export default function RecipesTabScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [testDataBusy, setTestDataBusy] = useState(false);
+  const [testDataNotice, setTestDataNotice] = useState("");
 
   useEffect(() => {
     setResult(null);
@@ -117,6 +122,36 @@ export default function RecipesTabScreen() {
       setSaveError(
         e instanceof Error ? e.message : "Could not update saved recipes."
       );
+    }
+  };
+
+  const loadTestPantry = async () => {
+    if (!__DEV__ || !session || !household || testDataBusy) return;
+    const missing = missingDevTestPantryItems(inventory.map((item) => item.name));
+    if (missing.length === 0) {
+      setTestDataNotice("Test pantry is already loaded in this household.");
+      return;
+    }
+
+    setTestDataBusy(true);
+    setError("");
+    setTestDataNotice("");
+    try {
+      await batchCreateInventoryItems(
+        session.access_token,
+        household.id,
+        missing
+      );
+      await refreshInventory();
+      setTestDataNotice(
+        `${missing.length} test ${missing.length === 1 ? "item" : "items"} added to this household.`
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not load the test pantry."
+      );
+    } finally {
+      setTestDataBusy(false);
     }
   };
 
@@ -203,15 +238,28 @@ export default function RecipesTabScreen() {
                 onPress={generate}
               />
               {__DEV__ && (
-                <Button
-                  label="Load test recipe"
-                  variant="secondary"
-                  className="mt-3"
-                  onPress={() => {
-                    setError("");
-                    setResult({ scope, recipes: [TEST_RECIPE] });
-                  }}
-                />
+                <View className="gap-2 mt-3">
+                  <Button
+                    label="Load test recipe"
+                    variant="secondary"
+                    onPress={() => {
+                      setError("");
+                      setResult({ scope, recipes: [TEST_RECIPE] });
+                    }}
+                  />
+                  <Button
+                    label={testDataBusy ? "Loading test pantry…" : "Load test pantry"}
+                    variant="outline"
+                    loading={testDataBusy}
+                    disabled={testDataBusy || !household}
+                    onPress={() => void loadTestPantry()}
+                  />
+                  {!!testDataNotice && (
+                    <Typography variant="caption" color="fresh">
+                      {testDataNotice}
+                    </Typography>
+                  )}
+                </View>
               )}
             </View>
 
