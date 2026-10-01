@@ -1,18 +1,25 @@
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { Alert } from "react-native";
+import { Session } from "@supabase/supabase-js";
 import { FoodItem, Recipe } from "../types";
+import { supabase } from "../lib/supabase";
+import {
+  createHousehold as apiCreateHousehold,
+  getHouseholdItems,
+  getHouseholds,
+  joinHousehold as apiJoinHousehold,
+  registerBackendUser,
+  Household,
+  HouseholdItem,
+} from "../lib/api";
 
-export const initialInventory: FoodItem[] = [
-  { id: "1", name: "Whole Milk", category: "Dairy", expDate: "Sep 16", daysLeft: 2, quantity: "1 gallon", emoji: "🥛" },
-  { id: "2", name: "Free Range Eggs", category: "Dairy", expDate: "Sep 22", daysLeft: 8, quantity: "12 eggs", emoji: "🥚" },
-  { id: "3", name: "Sourdough Bread", category: "Bakery", expDate: "Sep 17", daysLeft: 3, quantity: "1 loaf", emoji: "🍞" },
-  { id: "4", name: "Baby Spinach", category: "Produce", expDate: "Sep 18", daysLeft: 4, quantity: "5 oz bag", emoji: "🥬" },
-  { id: "5", name: "Chicken Breast", category: "Meat", expDate: "Sep 15", daysLeft: 1, quantity: "1.5 lbs", emoji: "🍗" },
-  { id: "6", name: "Cherry Tomatoes", category: "Produce", expDate: "Sep 20", daysLeft: 6, quantity: "1 pint", emoji: "🍅" },
-  { id: "7", name: "Greek Yogurt", category: "Dairy", expDate: "Sep 25", daysLeft: 11, quantity: "32 oz", emoji: "🫙" },
-  { id: "8", name: "Sharp Cheddar", category: "Dairy", expDate: "Oct 5", daysLeft: 21, quantity: "8 oz block", emoji: "🧀" },
-  { id: "9", name: "Avocados", category: "Produce", expDate: "Sep 16", daysLeft: 2, quantity: "2 ct", emoji: "🥑" },
-  { id: "10", name: "Pasta Penne", category: "Pantry", expDate: "Mar 12", daysLeft: 179, quantity: "16 oz box", emoji: "🍝" },
-];
+export const initialInventory: FoodItem[] = [];
 
 export const initialRecipes: Recipe[] = [
   {
@@ -20,11 +27,12 @@ export const initialRecipes: Recipe[] = [
     name: "Spinach & Egg Scramble",
     time: "12 min",
     difficulty: "Easy",
-    match: 95,
+    match: 0,
     uses: ["Baby Spinach", "Free Range Eggs", "Sharp Cheddar"],
     emoji: "🍳",
     tag: "Breakfast",
-    description: "Fluffy scrambled eggs with wilted spinach and melted cheddar.",
+    description:
+      "Fluffy scrambled eggs with wilted spinach and melted cheddar.",
     steps: [
       "Heat butter in pan on medium heat",
       "Add spinach and wilt for 2 minutes",
@@ -37,11 +45,12 @@ export const initialRecipes: Recipe[] = [
     name: "Avocado Toast",
     time: "8 min",
     difficulty: "Easy",
-    match: 90,
+    match: 0,
     uses: ["Avocados", "Sourdough Bread", "Cherry Tomatoes"],
     emoji: "🥑",
     tag: "Breakfast",
-    description: "Creamy avocado on toasted sourdough with fresh tomatoes.",
+    description:
+      "Creamy avocado on toasted sourdough with fresh tomatoes.",
     steps: [
       "Toast sourdough until golden and crisp",
       "Mash avocado with salt, pepper and a squeeze of lemon",
@@ -54,11 +63,12 @@ export const initialRecipes: Recipe[] = [
     name: "Grilled Chicken Salad",
     time: "25 min",
     difficulty: "Medium",
-    match: 88,
+    match: 0,
     uses: ["Chicken Breast", "Baby Spinach", "Cherry Tomatoes"],
     emoji: "🥗",
     tag: "Lunch",
-    description: "Juicy grilled chicken over fresh spinach with a light vinaigrette.",
+    description:
+      "Juicy grilled chicken over fresh spinach with a light vinaigrette.",
     steps: [
       "Season chicken with olive oil, salt, garlic, and herbs",
       "Grill 6 minutes per side until thoroughly cooked",
@@ -71,11 +81,12 @@ export const initialRecipes: Recipe[] = [
     name: "Cheesy Penne Bake",
     time: "30 min",
     difficulty: "Medium",
-    match: 82,
+    match: 0,
     uses: ["Chicken Breast", "Pasta Penne", "Sharp Cheddar"],
     emoji: "🍝",
     tag: "Dinner",
-    description: "Hearty baked penne with grilled chicken and rich cheddar sauce.",
+    description:
+      "Hearty baked penne with grilled chicken and rich cheddar sauce.",
     steps: [
       "Cook penne pasta al dente in salted boiling water",
       "Grill and dice chicken breast",
@@ -88,11 +99,12 @@ export const initialRecipes: Recipe[] = [
     name: "Yogurt Parfait",
     time: "5 min",
     difficulty: "Easy",
-    match: 78,
+    match: 0,
     uses: ["Greek Yogurt"],
-    emoji: "🫙",
+    emoji: "🥣",
     tag: "Snack",
-    description: "Layered Greek yogurt with granola and fresh berries.",
+    description:
+      "Layered Greek yogurt with granola and fresh berries.",
     steps: [
       "Spoon Greek yogurt into a glass or bowl",
       "Add a generous layer of crunchy granola",
@@ -102,13 +114,24 @@ export const initialRecipes: Recipe[] = [
   },
 ];
 
-export type FigmaScreen = "login" | "home" | "scan" | "recipes" | "item-detail" | "settings";
+export type FigmaScreen =
+  | "login"
+  | "home"
+  | "scan"
+  | "recipes"
+  | "item-detail"
+  | "settings";
 
 export interface UserProfile {
   name: string;
   email: string;
   household: string;
   initials: string;
+}
+
+interface AuthResult {
+  hasHousehold: boolean;
+  emailConfirmationRequired: boolean;
 }
 
 interface InventoryContextType {
@@ -119,48 +142,331 @@ interface InventoryContextType {
   selectedRecipe: Recipe | null;
   expiringSoonCount: number;
   user: UserProfile;
+  household: Household | null;
+  householdId: string | null;
   isAuthenticated: boolean;
+  loading: boolean;
   navigate: (screen: FigmaScreen) => void;
   addItem: (item: FoodItem) => void;
   removeItem: (id: string) => void;
   openItem: (item: FoodItem) => void;
   openRecipe: (recipe: Recipe) => void;
-  login: (email?: string) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  signup: (email: string, password: string) => Promise<AuthResult>;
+  logout: () => Promise<void>;
+  createHousehold: (name: string) => Promise<Household>;
+  joinHousehold: (inviteCode: string) => Promise<Household>;
+  refreshUserData: () => Promise<void>;
 }
 
-const defaultUser: UserProfile = {
-  name: "Pablo Gomez",
-  email: "pablo@mealventory.app",
-  household: "Ordonez Family Kitchen",
-  initials: "PG",
+const emptyUser: UserProfile = {
+  name: "Guest",
+  email: "",
+  household: "No household",
+  initials: "G",
 };
 
-const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
+function mapInventoryItem(item: HouseholdItem): FoodItem {
+  const daysLeft = item.expiry_date
+    ? Math.ceil(
+        (new Date(`${item.expiry_date}T00:00:00`).getTime() -
+          new Date().setHours(0, 0, 0, 0)) /
+          (1000 * 60 * 60 * 24),
+      )
+    : 999;
 
-export function InventoryProvider({ children }: { children: React.ReactNode }) {
-  const [inventory, setInventory] = useState<FoodItem[]>(initialInventory);
-  const [currentScreen, setCurrentScreen] = useState<FigmaScreen>("home");
-  const [selectedItem, setSelectedItem] = useState<FoodItem | null>(initialInventory[0]);
+  const emojiByCategory: Record<string, string> = {
+    Produce: "🥬",
+    Dairy: "🥛",
+    Meat: "🍗",
+    Bakery: "🍞",
+    Pantry: "🥫",
+    Beverage: "🧃",
+    Snacks: "🍿",
+  };
+
+  const expiry = item.expiry_date
+    ? new Date(`${item.expiry_date}T00:00:00`).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+    : "No expiry";
+
+  const quantity = `${String(item.quantity)} ${item.unit}`;
+
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category ?? "Pantry",
+    expDate: expiry,
+    daysLeft,
+    quantity,
+    emoji: emojiByCategory[item.category ?? "Pantry"] ?? "🍽️",
+  };
+}
+
+const InventoryContext = createContext<InventoryContextType | undefined>(
+  undefined,
+);
+
+export function InventoryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [inventory, setInventory] = useState<FoodItem[]>([]);
+  const [currentScreen, setCurrentScreen] =
+    useState<FigmaScreen>("login");
+  const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [user, setUser] = useState<UserProfile>(defaultUser);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [user, setUser] = useState<UserProfile>(emptyUser);
+  const [household, setHousehold] = useState<Household | null>(null);
+  const [householdId, setHouseholdId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const expiringSoonCount = useMemo(
     () => inventory.filter((item) => item.daysLeft <= 3).length,
-    [inventory]
+    [inventory],
   );
 
   const dynamicRecipes = useMemo(() => {
-    const pantryItemNames = new Set(inventory.map((i) => i.name.toLowerCase()));
+    const pantryItemNames = new Set(
+      inventory.map((item) => item.name.toLowerCase()),
+    );
+
     return initialRecipes.map((recipe) => {
-      const haveCount = recipe.uses.filter((ing) =>
-        pantryItemNames.has(ing.toLowerCase())
+      const haveCount = recipe.uses.filter((ingredient) =>
+        pantryItemNames.has(ingredient.toLowerCase()),
       ).length;
-      const match = Math.round((haveCount / recipe.uses.length) * 100);
+
+      const match =
+        recipe.uses.length === 0
+          ? 0
+          : Math.round((haveCount / recipe.uses.length) * 100);
+
       return { ...recipe, match };
     });
   }, [inventory]);
+
+  const resetAuthState = () => {
+    setIsAuthenticated(false);
+    setInventory([]);
+    setHousehold(null);
+    setHouseholdId(null);
+    setUser(emptyUser);
+    setCurrentScreen("login");
+    setSelectedItem(null);
+    setSelectedRecipe(null);
+  };
+
+  const loadSessionData = async (session: Session) => {
+    const email = session.user.email ?? "";
+    const fallbackName = email.split("@")[0] || "User";
+    const fallbackInitials = fallbackName.slice(0, 2).toUpperCase();
+
+    await registerBackendUser();
+
+    const households = await getHouseholds();
+    const selectedHousehold = households[0] ?? null;
+
+    setIsAuthenticated(true);
+    setUser({
+      name: fallbackName,
+      email,
+      household: selectedHousehold?.name ?? "No household",
+      initials: fallbackInitials,
+    });
+
+    setHousehold(selectedHousehold);
+    setHouseholdId(selectedHousehold?.id ?? null);
+
+    if (selectedHousehold) {
+      const items = await getHouseholdItems(selectedHousehold.id);
+      const mapped = items.map(mapInventoryItem);
+
+      setInventory(mapped);
+      setSelectedItem(mapped[0] ?? null);
+      setCurrentScreen("home");
+    } else {
+      setInventory([]);
+      setSelectedItem(null);
+      setCurrentScreen("home");
+    }
+  };
+
+  const refreshUserData = async () => {
+    const { data } = await supabase.auth.getSession();
+
+    if (!data.session) {
+      resetAuthState();
+      return;
+    }
+
+    await loadSessionData(data.session);
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initialize = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+
+        if (!mounted) {
+          return;
+        }
+
+        if (data.session) {
+          await loadSessionData(data.session);
+        } else {
+          resetAuthState();
+        }
+      } catch (error) {
+        console.error("Failed to initialize authentication:", error);
+        resetAuthState();
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initialize();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) {
+        return;
+      }
+
+      if (event === "SIGNED_OUT" || !session) {
+        resetAuthState();
+        return;
+      }
+
+      setTimeout(() => {
+        if (!mounted) {
+          return;
+        }
+
+        loadSessionData(session).catch((error) => {
+          console.error("Failed to load authenticated user:", error);
+        });
+      }, 0);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<AuthResult> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data.session) {
+      throw new Error("Login succeeded but no session was returned.");
+    }
+
+    await loadSessionData(data.session);
+
+    return {
+      hasHousehold: Boolean(household),
+      emailConfirmationRequired: false,
+    };
+  };
+
+  const signup = async (
+    email: string,
+    password: string,
+  ): Promise<AuthResult> => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data.session) {
+      return {
+        hasHousehold: false,
+        emailConfirmationRequired: true,
+      };
+    }
+
+    await loadSessionData(data.session);
+
+    const households = await getHouseholds();
+
+    return {
+      hasHousehold: households.length > 0,
+      emailConfirmationRequired: false,
+    };
+  };
+
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    resetAuthState();
+  };
+
+  const createHousehold = async (name: string) => {
+    const created = await apiCreateHousehold(name);
+
+    setHousehold(created);
+    setHouseholdId(created.id);
+    setUser((prev) => ({
+      ...prev,
+      household: created.name,
+    }));
+
+    const items = await getHouseholdItems(created.id);
+    const mapped = items.map(mapInventoryItem);
+
+    setInventory(mapped);
+    setSelectedItem(mapped[0] ?? null);
+    setCurrentScreen("home");
+
+    return created;
+  };
+
+  const joinHousehold = async (inviteCode: string) => {
+    const joined = await apiJoinHousehold(inviteCode);
+
+    setHousehold(joined);
+    setHouseholdId(joined.id);
+    setUser((prev) => ({
+      ...prev,
+      household: joined.name,
+    }));
+
+    const items = await getHouseholdItems(joined.id);
+    const mapped = items.map(mapInventoryItem);
+
+    setInventory(mapped);
+    setSelectedItem(mapped[0] ?? null);
+    setCurrentScreen("home");
+
+    return joined;
+  };
 
   const addItem = (item: FoodItem) => {
     setInventory((prev) => [item, ...prev]);
@@ -180,24 +486,6 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
     setCurrentScreen("recipes");
   };
 
-  const login = (email?: string) => {
-    if (email) {
-      setUser((prev) => ({
-        ...prev,
-        email,
-        name: email.split("@")[0],
-        initials: email.slice(0, 2).toUpperCase(),
-      }));
-    }
-    setIsAuthenticated(true);
-    setCurrentScreen("home");
-  };
-
-  const logout = () => {
-    setIsAuthenticated(false);
-    setCurrentScreen("login");
-  };
-
   return (
     <InventoryContext.Provider
       value={{
@@ -208,14 +496,21 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         selectedRecipe,
         expiringSoonCount,
         user,
+        household,
+        householdId,
         isAuthenticated,
+        loading,
         navigate: setCurrentScreen,
         addItem,
         removeItem,
         openItem,
         openRecipe,
         login,
+        signup,
         logout,
+        createHousehold,
+        joinHousehold,
+        refreshUserData,
       }}
     >
       {children}
@@ -225,8 +520,10 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
 
 export function useInventory() {
   const context = useContext(InventoryContext);
+
   if (!context) {
     throw new Error("useInventory must be used within an InventoryProvider");
   }
+
   return context;
 }
