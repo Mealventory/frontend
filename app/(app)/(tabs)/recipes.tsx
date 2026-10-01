@@ -49,6 +49,7 @@ export default function RecipesTabScreen() {
     openRecipe,
     savedRecipes,
     savedRecipesLoading,
+    savedRecipesError, refreshSavedRecipes, shareLocalRecipes,
     isRecipeSaved,
     toggleSavedRecipe,
     refreshInventory,
@@ -173,6 +174,11 @@ export default function RecipesTabScreen() {
       className="flex-1 bg-ground-canvas"
     >
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        {view === 'saved' && <View className="mb-4 gap-2">
+          <Typography variant="caption" color="muted">Saved recipes are shared with everyone in this household.</Typography>
+          <Button label="Share recipes saved on this phone" variant="secondary" onPress={() => { setSaveError(''); void shareLocalRecipes().catch(e => setSaveError(e instanceof Error ? e.message : 'Could not share recipes.')); }} />
+        </View>}
+
         <Typography variant="h1">Recipes</Typography>
 
         <View className="flex-row mt-4 mb-5 p-1 rounded-xl bg-ground-subtle dark:bg-ground-elevated">
@@ -300,6 +306,8 @@ export default function RecipesTabScreen() {
               ))}
             </View>
           </>
+        ) : savedRecipesError ? (
+          <EmptyState icon="WifiOff" title="Could not sync saved recipes" description={savedRecipesError} actionLabel="Retry" onAction={() => void refreshSavedRecipes()} />
         ) : savedRecipesLoading ? (
           <View className="items-center py-16 gap-3">
             <ActivityIndicator size="large" color="#10B981" />
@@ -321,7 +329,7 @@ export default function RecipesTabScreen() {
               <View className="flex-row items-center gap-2">
                 <Icon name="Heart" size={18} color="#10B981" />
                 <Typography variant="body" className="font-bold">
-                  Your saved collection
+                  Household saved collection
                 </Typography>
               </View>
               <Typography variant="caption" color="muted" className="mt-1">
