@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, FlatList, ScrollView, TextInput, TouchableOpacity, RefreshControl, AppState, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Typography, Button } from '@/src/components/atoms';
 import { Icon } from '@/src/components/atoms/Icon';
 import { PantryItemCard } from '@/src/components/domain/PantryItemCard';
@@ -20,10 +20,15 @@ const buckets = [
 ];
 export default function PantryDashboardScreen() {
   const router = useRouter();
+  const routeParams = useLocalSearchParams<{ zone?: string | string[] }>();
+  const routeZone = Array.isArray(routeParams.zone) ? routeParams.zone[0] : routeParams.zone;
+  const requestedZone = routeZone
+    ? Object.keys(zones).find((label) => zones[label] === routeZone)
+    : undefined;
   const { household, session } = useAuth();
   const { inventory, openItem, refreshInventory, inventoryLoading, inventoryError } = useInventory();
   const [selectedCat,setSelectedCat] = useState('All');
-  const [zone,setZone] = useState('All zones');
+  const [zone,setZone] = useState(requestedZone ?? 'All zones');
   const [group,setGroup] = useState<ExpiryGroup>('all');
   const [filterOpen,setFilterOpen] = useState(false);
   const [search,setSearch] = useState('');
@@ -37,7 +42,14 @@ export default function PantryDashboardScreen() {
     return()=>{clearInterval(timer);listener.remove();};
   },[]);
   const clear=()=>{setSearch('');setQuery('');setSelectedCat('All');setZone('All zones');setGroup('all');setFilterOpen(false);};
-  useEffect(clear,[household?.id,session?.user.id]);
+  useEffect(()=>{
+    setSearch('');
+    setQuery('');
+    setSelectedCat('All');
+    setZone(requestedZone ?? 'All zones');
+    setGroup('all');
+    setFilterOpen(false);
+  },[household?.id,session?.user.id,requestedZone]);
   const activeFilterCount=(zone==='All zones'?0:1)+(selectedCat==='All'?0:1);
   const view=useMemo(()=>pantryView(inventory,today,zones[zone],selectedCat,query,group),[inventory,today,zone,selectedCat,query,group]);
   const header=<View className="gap-3 pb-4">
