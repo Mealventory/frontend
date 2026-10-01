@@ -193,7 +193,7 @@ export default function ShoppingTabScreen() {
         )}
 
         {loading ? (
-          <View className="items-center py-12 gap-3">
+          <View key="shopping-loading" className="items-center py-12 gap-3">
             <ActivityIndicator size="large" color="#10B981" />
             <Typography variant="caption" color="muted">
               Loading shopping list…
@@ -206,7 +206,11 @@ export default function ShoppingTabScreen() {
             description="Add something below, or send missing ingredients here from a saved recipe."
           />
         ) : (
-          <View className="p-4 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-5 gap-3">
+          <View
+            key="shopping-items"
+            className="p-4 bg-ground-card rounded-2xl border border-border-default mb-5 gap-3"
+            style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 1, elevation: 1 }}
+          >
             {items.map((item) => (
               <View
                 key={item.id}
