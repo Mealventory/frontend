@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feat/72-storage-zone-dashboard
+  pull_request:
+    branches:
+      - main
 
 jobs:
   frontend-checks:
