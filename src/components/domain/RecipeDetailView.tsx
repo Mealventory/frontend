@@ -9,6 +9,7 @@ export interface RecipeDetailViewProps {
   onBack: () => void;
   saved?: boolean;
   onToggleSaved?: () => void | Promise<void>;
+  onStartCooking?: () => void;
   onAddMissingIngredients?: (
     ingredients: string[]
   ) => Promise<{ added: number; skipped: number }>;
@@ -20,6 +21,7 @@ export function RecipeDetailView({
   onBack,
   saved = false,
   onToggleSaved,
+  onStartCooking,
   onAddMissingIngredients,
 }: RecipeDetailViewProps) {
   const [shoppingBusy, setShoppingBusy] = useState(false);
@@ -146,6 +148,19 @@ export function RecipeDetailView({
           Use soon: {recipe.priorityIngredients.join(", ")}
         </Text>
       ) : null}
+
+      {onStartCooking && (
+        <TouchableOpacity
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel={`Start cooking ${recipe.name}`}
+          onPress={onStartCooking}
+          className="min-h-[56px] mb-6 px-5 rounded-2xl bg-brand-500 flex-row items-center justify-center gap-2"
+        >
+          <Icon name="ChefHat" size={19} color="#FFFFFF" />
+          <Text className="text-[16px] font-bold text-white">Start Cooking</Text>
+        </TouchableOpacity>
+      )}
 
       <View className="mb-6">
         <View className="flex-row items-end justify-between gap-3 mb-3">

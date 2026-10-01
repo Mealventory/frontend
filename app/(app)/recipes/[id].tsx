@@ -101,6 +101,12 @@ export default function RecipeDetailRouteScreen() {
         inventoryItemNames={inventoryNames}
         saved={isRecipeSaved(recipe)}
         onToggleSaved={toggleSaved}
+        onStartCooking={() =>
+          router.push({
+            pathname: "/(app)/recipes/[id]/cook",
+            params: { id: recipe.id },
+          } as any)
+        }
         onAddMissingIngredients={addMissing}
         onBack={() => router.back()}
       />

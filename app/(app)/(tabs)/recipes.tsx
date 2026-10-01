@@ -16,8 +16,8 @@ type RecipeView = "recommended" | "saved";
 
 const TEST_RECIPE: Recipe = {
   id: "dev-creamy-chicken-pasta",
-  name: "Creamy Chicken Pasta",
-  time: "30 min",
+  name: "Cooking Mode Test Pasta",
+  time: "1 min",
   difficulty: "Easy",
   match: 0,
   uses: [
@@ -28,17 +28,18 @@ const TEST_RECIPE: Recipe = {
     "Garlic",
   ],
   emoji: "🍝",
-  tag: "Test recipe",
+  tag: "Cooking test",
   description:
-    "A simple creamy chicken pasta used to test saved recipes, pantry matching, and shopping-list integration.",
+    "A dev-only recipe with short steps and timers so every Cooking Mode interaction can be tested quickly.",
   priorityIngredients: ["Chicken Breast"],
   missingIngredients: ["Garlic"],
   steps: [
-    "Cook the penne until al dente and reserve a little pasta water.",
-    "Cook the chicken in a skillet until fully cooked, then slice it.",
-    "Add garlic, milk, and cheddar to the skillet and stir into a creamy sauce.",
-    "Add the pasta and chicken, toss together, and loosen with pasta water if needed.",
-    "Season to taste and serve warm.",
+    "Gather the ingredients and get ready to test Cooking Mode.",
+    "Warm the skillet for 5 seconds.",
+    "Stir the sauce for 10 seconds.",
+    "Add the pasta and chicken, then toss until evenly coated.",
+    "Let the pasta rest for 5 seconds before serving.",
+    "Plate the pasta and finish the meal.",
   ],
 };
 
@@ -246,7 +247,7 @@ export default function RecipesTabScreen() {
               {__DEV__ && (
                 <View className="gap-2 mt-3">
                   <Button
-                    label="Load test recipe"
+                    label="Load cooking-mode test recipe"
                     variant="secondary"
                     onPress={() => {
                       setError("");
