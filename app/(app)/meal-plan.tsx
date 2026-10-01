@@ -465,7 +465,7 @@ export default function MealPlanScreen() {
                 >
                   <View className="flex-row items-center justify-between mb-3">
                     <View className="flex-row items-center gap-2">
-                      <Typography variant="h4">{label.weekday}</Typography>
+                      <Typography variant="body" className="font-bold">{label.weekday}</Typography>
                       {isToday && (
                         <View className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/15">
                           <Text className="text-[10px] font-bold text-brand-500">
@@ -620,7 +620,7 @@ export default function MealPlanScreen() {
           <View className="mt-5 p-4 rounded-[22px] bg-ground-card border border-border-default">
             <View className="flex-row items-start justify-between gap-3 mb-3">
               <View className="flex-1">
-                <Typography variant="h4">Choose a recipe</Typography>
+                <Typography variant="body" className="font-bold">Choose a recipe</Typography>
                 <Typography variant="caption" color="muted">
                   {pickerTarget.slot === "lunch" ? "Lunch" : "Dinner"} ·{" "}
                   {parseLocalDateKey(pickerTarget.date).toLocaleDateString(
