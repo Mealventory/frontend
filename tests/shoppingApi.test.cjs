@@ -95,3 +95,61 @@ test("missing recipe ingredients skip existing names and add unique new items", 
     global.fetch = original;
   }
 });
+
+for (const phase of ['fetch', 'body']) {
+  test(`timeout during ${phase} clears timer and allows a successful retry`, async () => {
+    const api = loadApi();
+    const original = { fetch: global.fetch, setTimeout: global.setTimeout, clearTimeout: global.clearTimeout };
+    let expire, clears = 0;
+    try {
+      global.setTimeout = (fn, ms) => { assert.equal(ms, 12000); expire = fn; return 123; };
+      global.clearTimeout = () => { clears++; };
+      global.fetch = async (_, { signal }) => {
+        const wait = () => new Promise((resolve, reject) => {
+          signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+          expire();
+        });
+        return phase === 'fetch' ? wait() : { ok: true, status: 200, json: wait };
+      };
+      await assert.rejects(api.addShoppingItem('token', 'home', 'Milk'), /timed out.*may have been saved/);
+      assert.equal(clears, 1);
+      global.fetch = async (_, { signal }) => {
+        assert.equal(signal.aborted, false);
+        return { ok: true, status: 200, json: async () => [] };
+      };
+      assert.deepEqual(await api.listShoppingItems('token', 'home'), []);
+      assert.equal(clears, 2);
+    } finally { Object.assign(global, original); }
+  });
+}
+
+test('network errors are actionable; authentication errors keep their meaning', async () => {
+  const api = loadApi(); const original = global.fetch;
+  try {
+    global.fetch = async () => { throw new TypeError('Network request failed'); };
+    await assert.rejects(api.listShoppingItems('token', 'home'), /Check your connection/);
+    for (const [status, message] of [[401, /sign in/], [403, /access/], [404, /not found/]]) {
+      global.fetch = async () => ({ ok: false, status });
+      await assert.rejects(api.listShoppingItems('token', 'home'), message);
+    }
+    global.fetch = async () => ({ ok: true, status: 204, json: () => { throw Error('Unexpected body read'); } });
+    assert.equal(await api.deleteShoppingItem('token', 'home', 'item'), undefined);
+  } finally { global.fetch = original; }
+});
+
+test('retry after a partially completed recipe batch skips items already saved', async () => {
+  const api = loadApi(); const original = global.fetch;
+  const stored = []; let fail = true;
+  try {
+    global.fetch = async (_, options) => {
+      if (!options.method) return { ok: true, status: 200, json: async () => stored };
+      const item = JSON.parse(options.body);
+      if (item.name === 'Lemon' && fail) { fail = false; throw new TypeError('Offline'); }
+      stored.push(item);
+      return { ok: true, status: 201, json: async () => item };
+    };
+    await assert.rejects(api.addMissingIngredientsToShopping('token', 'home', [' Garlic ', 'garlic', 'Lemon']), /connection/);
+    assert.deepEqual(await api.addMissingIngredientsToShopping('token', 'home', ['Garlic', 'Lemon']), { added: 1, skipped: 1 });
+    assert.deepEqual(stored.map(item => item.name), ['Garlic', 'Lemon']);
+  } finally { global.fetch = original; }
+});

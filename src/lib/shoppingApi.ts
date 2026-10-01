@@ -31,24 +31,36 @@ async function shoppingRequest<T>(
   init: RequestInit = {}
 ): Promise<T> {
   if (!base) throw new Error("The backend connection is not configured.");
-  const response = await fetch(`${base}/api/v1/shopping${path}`, {
-    ...init,
-    headers: {
-      ...headers(token, householdId, Boolean(init.body)),
-      ...(init.headers || {}),
-    },
-  });
-
-  if (!response.ok) {
-    if (response.status === 401) throw new Error("Please sign in again.");
-    if (response.status === 403)
-      throw new Error("You no longer have access to this household.");
-    if (response.status === 404) throw new Error("Shopping item not found.");
-    throw new Error("Could not update the shopping list. Please try again.");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(`${base}/api/v1/shopping${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        ...headers(token, householdId, Boolean(init.body)),
+        ...(init.headers || {}),
+      },
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("Please sign in again.");
+      if (response.status === 403) throw new Error("You no longer have access to this household.");
+      if (response.status === 404) throw new Error("Shopping item not found.");
+      throw new Error("Could not update the shopping list. Please try again.");
+    }
+    if (response.status === 204) return undefined as T;
+    return await response.json();
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("The shopping request timed out. Refresh the list before trying again; your change may have been saved.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("Could not reach the shopping service. Check your connection and refresh the list before trying again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-
-  if (response.status === 204) return undefined as T;
-  return response.json();
 }
 
 export function listShoppingItems(token: string, householdId: string) {
@@ -104,14 +116,14 @@ export async function addMissingIngredientsToShopping(
   householdId: string,
   ingredients: string[]
 ): Promise<{ added: number; skipped: number }> {
-  const unique = Array.from(
-    new Map(
-      ingredients
-        .map((name) => name.trim())
-        .filter(Boolean)
-        .map((name) => [name.toLocaleLowerCase(), name] as const)
-    ).values()
-  );
+  // Keep the first spelling while comparing names without case or edge spaces.
+  const names = new Map<string, string>();
+  for (const ingredient of ingredients) {
+    const name = ingredient.trim();
+    const key = name.toLocaleLowerCase();
+    if (name && !names.has(key)) names.set(key, name);
+  }
+  const unique = [...names.values()];
   if (unique.length === 0) return { added: 0, skipped: 0 };
 
   const existing = await listShoppingItems(token, householdId);
