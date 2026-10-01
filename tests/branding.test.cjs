@@ -1,0 +1,53 @@
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+
+test("Expo branding points to the Mealventory logo asset set", () => {
+  const config = JSON.parse(fs.readFileSync("app.json", "utf8")).expo;
+
+  assert.equal(config.icon, "./assets/branding/icon.png");
+  assert.equal(config.ios.icon, "./assets/branding/icon.png");
+  assert.equal(config.splash.image, "./assets/branding/mealventory-logo.png");
+  assert.equal(config.splash.resizeMode, "contain");
+  assert.equal(config.splash.backgroundColor, "#F6F8F4");
+  assert.equal(
+    config.android.adaptiveIcon.foregroundImage,
+    "./assets/branding/adaptive-icon.png"
+  );
+  assert.equal(config.android.adaptiveIcon.backgroundColor, "#F6F8F4");
+  assert.equal(config.web.favicon, "./assets/branding/favicon.png");
+
+  const notifications = config.plugins.find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === "expo-notifications"
+  );
+  assert.ok(notifications, "expo-notifications branding config is missing");
+  assert.equal(
+    notifications[1].icon,
+    "./assets/branding/notification-icon.png"
+  );
+  assert.equal(notifications[1].color, "#087F5B");
+});
+
+test("all configured branding files are committed", () => {
+  for (const path of [
+    "assets/branding/icon.png",
+    "assets/branding/adaptive-icon.png",
+    "assets/branding/favicon.png",
+    "assets/branding/mealventory-logo.png",
+    "assets/branding/notification-icon.png",
+  ]) {
+    assert.equal(fs.existsSync(path), true, `${path} is missing`);
+    assert.ok(fs.statSync(path).size > 0, `${path} is empty`);
+  }
+});
+
+test("active in-app brand placeholders use the Mealventory image", () => {
+  const household = fs.readFileSync("src/screens/HouseholdScreen.tsx", "utf8");
+  const login = fs.readFileSync("src/screens/LoginScreen.tsx", "utf8");
+
+  assert.match(household, /assets\/branding\/icon\.png/);
+  assert.doesNotMatch(household, /<Leaf\b/);
+
+  assert.match(login, /assets\/branding\/icon\.png/);
+  assert.doesNotMatch(login, /🥦/);
+});
