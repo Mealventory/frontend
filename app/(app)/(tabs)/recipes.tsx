@@ -12,6 +12,34 @@ import type { Recipe } from "@/src/types";
 
 type RecipeView = "recommended" | "saved";
 
+const TEST_RECIPE: Recipe = {
+  id: "dev-creamy-chicken-pasta",
+  name: "Creamy Chicken Pasta",
+  time: "30 min",
+  difficulty: "Easy",
+  match: 0,
+  uses: [
+    "Chicken Breast",
+    "Pasta Penne",
+    "Sharp Cheddar",
+    "Whole Milk",
+    "Garlic",
+  ],
+  emoji: "🍝",
+  tag: "Test recipe",
+  description:
+    "A simple creamy chicken pasta used to test saved recipes, pantry matching, and shopping-list integration.",
+  priorityIngredients: ["Chicken Breast"],
+  missingIngredients: ["Garlic"],
+  steps: [
+    "Cook the penne until al dente and reserve a little pasta water.",
+    "Cook the chicken in a skillet until fully cooked, then slice it.",
+    "Add garlic, milk, and cheddar to the skillet and stir into a creamy sauce.",
+    "Add the pasta and chicken, toss together, and loosen with pasta water if needed.",
+    "Season to taste and serve warm.",
+  ],
+};
+
 export default function RecipesTabScreen() {
   const router = useRouter();
   const {
@@ -174,6 +202,17 @@ export default function RecipesTabScreen() {
                 disabled={busy || !household}
                 onPress={generate}
               />
+              {__DEV__ && (
+                <Button
+                  label="Load test recipe"
+                  variant="secondary"
+                  className="mt-3"
+                  onPress={() => {
+                    setError("");
+                    setResult({ scope, recipes: [TEST_RECIPE] });
+                  }}
+                />
+              )}
             </View>
 
             {error ? <Typography className="mb-4">{error}</Typography> : null}
