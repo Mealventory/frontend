@@ -36,7 +36,7 @@ export default function PantryDashboardScreen() {
     const listener=AppState.addEventListener('change',state=>{if(state==='active')update();});
     return()=>{clearInterval(timer);listener.remove();};
   },[]);
-  const clear=()=>{setSearch('');setQuery('');setSelectedCat('All');setZone('All zones');setGroup('all');};
+  const clear=()=>{setSearch('');setQuery('');setSelectedCat('All');setZone('All zones');setGroup('all');setFilterOpen(false);};
   useEffect(clear,[household?.id,session?.user.id]);
   const activeFilterCount=(zone==='All zones'?0:1)+(selectedCat==='All'?0:1);
   const view=useMemo(()=>pantryView(inventory,today,zones[zone],selectedCat,query,group),[inventory,today,zone,selectedCat,query,group]);
