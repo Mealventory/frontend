@@ -7,9 +7,9 @@ import { FoodItem, Recipe } from "../types";
 import {
   loadSavedRecipes,
   recipeSaveKey,
-  removeSavedRecipe,
-  saveRecipe,
 } from "../lib/savedRecipes";
+
+import { householdSavedRecipes } from "../lib/householdSavedRecipes";
 
 export const initialInventory: FoodItem[] = [
   { id: "1", name: "Whole Milk", category: "Dairy", expDate: "Sep 16", daysLeft: 2, quantity: "1 gallon", emoji: "🥛" },
@@ -126,6 +126,9 @@ interface InventoryContextType {
   recipes: Recipe[];
   savedRecipes: Recipe[];
   savedRecipesLoading: boolean;
+  savedRecipesError: string;
+  refreshSavedRecipes: () => Promise<void>;
+  shareLocalRecipes: () => Promise<void>;
   isRecipeSaved: (recipe: Recipe) => boolean;
   toggleSavedRecipe: (recipe: Recipe) => Promise<boolean>;
   currentScreen: FigmaScreen;
@@ -194,6 +197,26 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   const savedRecipesRef = useRef<Recipe[]>([]);
   savedRecipesRef.current = savedRecipes;
   const [savedRecipesLoading, setSavedRecipesLoading] = useState(false);
+  const [savedRecipesError, setSavedRecipesError] = useState('');
+  const [savedScope, setSavedScope] = useState(scope);
+  const savedRevision = useRef(0);
+  const savedFetchScope = useRef<string | null>(null);
+  const savingScope = useRef<string | null>(null);
+  const refreshSavedRecipes = async () => {
+    if (demo || !household || !session || savingScope.current === scope || savedFetchScope.current === scope) return;
+    savedFetchScope.current = scope;
+    const revision = ++savedRevision.current;
+    try {
+      const recipes = await householdSavedRecipes(await token(), household.id);
+      if (activeScope.current !== scope || revision !== savedRevision.current) return;
+      setSavedRecipes(recipes); savedRecipesRef.current = recipes; setSavedScope(scope); setSavedRecipesError('');
+    } catch (error) {
+      if (activeScope.current === scope && revision === savedRevision.current) setSavedRecipesError(error instanceof Error ? error.message : 'Could not sync recipes.');
+    } finally {
+      if (savedFetchScope.current === scope) savedFetchScope.current = null;
+      if (activeScope.current === scope && revision === savedRevision.current) setSavedRecipesLoading(false);
+    }
+  };
   const [user, setUser] = useState<UserProfile>(defaultUser);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   useEffect(() => {
@@ -210,33 +233,14 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   }, [scope, demo, refreshInventory]);
 
   useEffect(() => {
-    let active = true;
-    setSavedRecipes([]);
-    savedRecipesRef.current = [];
-
-    if (demo || !session?.user.id || !household?.id) {
-      setSavedRecipesLoading(false);
-      return () => { active = false; };
-    }
-
-    setSavedRecipesLoading(true);
-    void loadSavedRecipes(session.user.id, household.id)
-      .then((recipes) => {
-        if (!active || activeScope.current !== scope) return;
-        setSavedRecipes(recipes);
-        savedRecipesRef.current = recipes;
-      })
-      .catch(() => {
-        if (!active || activeScope.current !== scope) return;
-        setSavedRecipes([]);
-        savedRecipesRef.current = [];
-      })
-      .finally(() => {
-        if (active && activeScope.current === scope) setSavedRecipesLoading(false);
-      });
-
-    return () => { active = false; };
-  }, [demo, scope, session?.user.id, household?.id]);
+    savedRevision.current++;
+    setSavedRecipes([]); savedRecipesRef.current = []; setSavedScope(scope); setSavedRecipesError('');
+    setSavedRecipesLoading(!demo && Boolean(session && household));
+    void refreshSavedRecipes();
+    const timer = setInterval(() => { if (AppState.currentState === 'active') void refreshSavedRecipes(); }, 5000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshSavedRecipes(); });
+    return () => { savedRevision.current++; clearInterval(timer); listener.remove(); };
+  }, [demo, scope]);
   const accountName = session?.user.user_metadata?.username || session?.user.user_metadata?.display_name || session?.user.email?.split('@')[0] || '';
   const accountUser = session ? {
     name: accountName, email: session.user.email || '',
@@ -325,42 +329,37 @@ export function InventoryProvider({ children, demo = false }: { children: React.
 
   const isRecipeSaved = useCallback((recipe: Recipe) => {
     const key = recipeSaveKey(recipe);
-    return savedRecipes.some((saved) => recipeSaveKey(saved) === key);
-  }, [savedRecipes]);
+    return savedScope === scope && savedRecipes.some((saved) => recipeSaveKey(saved) === key);
+  }, [savedRecipes, savedScope, scope]);
 
-  const toggleSavedRecipe = useCallback(async (recipe: Recipe) => {
-    const key = recipeSaveKey(recipe);
-    const previous = savedRecipesRef.current;
-    const wasSaved = previous.some((saved) => recipeSaveKey(saved) === key);
-    const next = wasSaved
-      ? previous.filter((saved) => recipeSaveKey(saved) !== key)
-      : [recipe, ...previous.filter((saved) => recipeSaveKey(saved) !== key)].slice(0, 50);
-
-    setSavedRecipes(next);
-    savedRecipesRef.current = next;
-
-    if (demo) return !wasSaved;
-    if (!session?.user.id || !household?.id) {
-      setSavedRecipes(previous);
-      savedRecipesRef.current = previous;
-      throw new Error("Choose a household before saving recipes.");
-    }
-
+  const mutateSharedRecipes = async (recipes: Recipe[], remove = false) => {
+    if (!session || !household) throw new Error('Choose a household first.');
+    if (savingScope.current === scope) throw new Error('Please wait for the current recipe to finish saving.');
+    savingScope.current = scope; savedRevision.current++;
     try {
-      if (wasSaved) {
-        await removeSavedRecipe(session.user.id, household.id, recipe);
-      } else {
-        await saveRecipe(session.user.id, household.id, recipe);
+      const access = await token();
+      for (const recipe of recipes) {
+        if (activeScope.current !== scope) return;
+        await householdSavedRecipes(access, household.id, remove ? 'remove' : 'save', recipe);
       }
-      return !wasSaved;
-    } catch (error) {
-      if (activeScope.current === scope) {
-        setSavedRecipes(previous);
-        savedRecipesRef.current = previous;
-      }
-      throw error;
+    } finally {
+      if (savingScope.current === scope) savingScope.current = null;
+      if (activeScope.current === scope) await refreshSavedRecipes();
     }
-  }, [demo, household?.id, scope, session?.user.id]);
+  };
+  const toggleSavedRecipe = async (recipe: Recipe) => {
+    const wasSaved = savedRecipesRef.current.some(saved => recipeSaveKey(saved) === recipeSaveKey(recipe));
+    if (demo) {
+      setSavedRecipes(wasSaved ? savedRecipes.filter(saved => recipeSaveKey(saved) !== recipeSaveKey(recipe)) : [recipe, ...savedRecipes]);
+    } else await mutateSharedRecipes([recipe], wasSaved);
+    return !wasSaved;
+  };
+  const shareLocalRecipes = async () => {
+    if (!session || !household) throw new Error('Choose a household first.');
+    const local = await loadSavedRecipes(session.user.id, household.id);
+    if (activeScope.current !== scope) return;
+    await mutateSharedRecipes(local);
+  };
 
   const login = (email?: string) => {
     if (email) {
@@ -388,7 +387,8 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         inventoryLoading,
         inventoryError,
         recipes: dynamicRecipes,
-        savedRecipes,
+        savedRecipes: savedScope === scope ? savedRecipes : [],
+        savedRecipesError, refreshSavedRecipes, shareLocalRecipes,
         savedRecipesLoading,
         isRecipeSaved,
         toggleSavedRecipe,

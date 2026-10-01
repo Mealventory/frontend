@@ -90,7 +90,7 @@ export function RecipeDetailView({
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityState={{ selected: saved }}
-            accessibilityLabel={saved ? "Remove from saved recipes" : "Save recipe"}
+            accessibilityLabel={saved ? "Remove from household saved recipes" : "Save recipe for household"}
             onPress={() => void onToggleSaved()}
             className={`w-10 h-10 rounded-[14px] border items-center justify-center ${
               saved
