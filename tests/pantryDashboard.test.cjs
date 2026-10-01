@@ -28,7 +28,7 @@ test('dashboard filters actual rows, opens item and recipes, and resets for anot
  const list=nodes.find(n=>n.type==='FlatList');
  assert.deepEqual(list.props.data.map(i=>i.id),['1']);
  assert.equal(nodes.find(n=>n.type==='FilterSheet').props.visible,false);
- assert.ok(nodes.find(n=>n.props?.accessibilityLabel==='Filter pantry, 1 active filters'));
+ assert.ok(nodes.find(n=>n.props?.accessibilityLabel==='Filter pantry, 1 active filter'));
  const card=list.props.renderItem({item:list.props.data[0]});card.props.onPress(list.props.data[0]);
  assert.equal(h.opened[0].id,'1');assert.equal(h.pushes[0],'/(app)/inventory/1');
  nodes.find(n=>n.props?.label==='Find recipes for expiring food').props.onPress();
