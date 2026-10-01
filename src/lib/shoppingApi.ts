@@ -133,7 +133,7 @@ export async function listConsumedShoppingSuggestions(
     const seen = new Set<string>();
     const suggestions: string[] = [];
     for (let index = rows.length - 1; index >= 0 && suggestions.length < limit; index -= 1) {
-      const name = typeof rows[index]?.name === "string" ? rows[index].name.trim() : "";
+      const candidate = rows[index]?.name;\n      const name = typeof candidate === "string" ? candidate.trim() : "";
       const key = name.toLocaleLowerCase();
       if (!name || seen.has(key)) continue;
       seen.add(key);
