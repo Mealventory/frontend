@@ -111,6 +111,48 @@ export function clearCheckedShoppingItems(token: string, householdId: string) {
   );
 }
 
+export async function listConsumedShoppingSuggestions(
+  token: string,
+  householdId: string,
+  limit = 6
+): Promise<string[]> {
+  if (!base) throw new Error("The backend connection is not configured.");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(`${base}/api/v1/items?status=consumed`, {
+      signal: controller.signal,
+      headers: headers(token, householdId),
+    });
+    if (!response.ok) {
+      if (response.status === 401) throw new Error("Please sign in again.");
+      if (response.status === 403) throw new Error("You no longer have access to this household.");
+      throw new Error("Could not load replenishment suggestions.");
+    }
+    const rows = (await response.json()) as Array<{ name?: unknown }>;
+    const seen = new Set<string>();
+    const suggestions: string[] = [];
+    for (let index = rows.length - 1; index >= 0 && suggestions.length < limit; index -= 1) {
+      const name = typeof rows[index]?.name === "string" ? rows[index].name.trim() : "";
+      const key = name.toLocaleLowerCase();
+      if (!name || seen.has(key)) continue;
+      seen.add(key);
+      suggestions.push(name);
+    }
+    return suggestions;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("Replenishment suggestions timed out.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("Could not reach the inventory service for suggestions.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function addMissingIngredientsToShopping(
   token: string,
   householdId: string,
