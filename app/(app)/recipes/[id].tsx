@@ -107,6 +107,12 @@ export default function RecipeDetailRouteScreen() {
             params: { id: recipe.id },
           } as any)
         }
+        onPlanMeal={() =>
+          router.push({
+            pathname: "/(app)/meal-plan",
+            params: { recipeId: recipe.id },
+          } as any)
+        }
         onAddMissingIngredients={addMissing}
         onBack={() => router.back()}
       />
