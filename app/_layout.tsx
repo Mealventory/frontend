@@ -1,3 +1,4 @@
+import { NotificationProvider } from "@/src/context/NotificationContext";
 import "../global.css";
 import { useEffect } from "react";
 import { Stack, useRouter, usePathname } from "expo-router";
@@ -83,9 +84,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-      <InventoryProvider>
+      <NotificationProvider><InventoryProvider>
         <RootLayoutContent />
-      </InventoryProvider>
+      </InventoryProvider></NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

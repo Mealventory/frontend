@@ -1,3 +1,4 @@
+import { useNotifications } from "@/src/context/NotificationContext";
 import React, { useEffect, useState } from "react";
 import { View, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -9,6 +10,7 @@ import { accountClient, signOutAccount, changePassword } from "@/src/lib/account
 import { useAuth } from "@/src/context/AuthContext";
 
 export default function SettingsTabScreen() {
+  const notifications = useNotifications();
   const router = useRouter();
   const rootNavigation = useNavigation("/");
   const { colorScheme, isDark, themePreference, setThemePreference, toggleTheme } = useAppTheme();
@@ -235,6 +237,12 @@ export default function SettingsTabScreen() {
               className="self-start mt-1"
             />
           </View>
+        </View>
+
+        <View className="p-5 bg-ground-card rounded-2xl border border-border-default mb-6 gap-3">
+          <Typography variant="h3">Notifications</Typography>
+          <Typography variant="caption" color="muted">{notifications.status}</Typography>
+          <Button label="Enable / retry notifications" variant="secondary" disabled={notifications.busy} loading={notifications.busy} onPress={() => void notifications.enable()} />
         </View>
 
         {/* Household Section */}
