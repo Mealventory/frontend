@@ -420,7 +420,7 @@ export default function ShoppingTabScreen() {
           >
             <View>
               <View className="flex-row items-center justify-between mb-2">
-                <Typography variant="h4">To Buy</Typography>
+                <Typography variant="body" className="font-bold">To Buy</Typography>
                 <Typography variant="caption" color="muted">
                   {toBuy.length}
                 </Typography>
@@ -450,7 +450,7 @@ export default function ShoppingTabScreen() {
             {purchased.length > 0 && (
               <View className="pt-3 border-t border-border-default">
                 <View className="flex-row items-center justify-between mb-2">
-                  <Typography variant="h4">Purchased</Typography>
+                  <Typography variant="body" className="font-bold">Purchased</Typography>
                   <Typography variant="caption" color="muted">
                     {purchased.length}
                   </Typography>
