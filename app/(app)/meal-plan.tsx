@@ -709,9 +709,31 @@ export default function MealPlanScreen() {
                                 <Text className="text-[11px] font-bold text-text-subtle uppercase tracking-wider">
                                   {slot}
                                 </Text>
-                                <View className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/15">
-                                  <Text className="text-[10px] font-bold text-brand-500">
-                                    {match}% ready
+                                <View
+                                  className={
+                                    "px-2 py-0.5 rounded-full " +
+                                    (readiness.status === "ready"
+                                      ? "bg-urgency-fresh-bg"
+                                      : readiness.status === "low"
+                                        ? "bg-urgency-soon-bg"
+                                        : "bg-urgency-critical-bg")
+                                  }
+                                >
+                                  <Text
+                                    className={
+                                      "text-[10px] font-bold " +
+                                      (readiness.status === "ready"
+                                        ? "text-urgency-fresh"
+                                        : readiness.status === "low"
+                                          ? "text-urgency-soon"
+                                          : "text-urgency-critical")
+                                    }
+                                  >
+                                    {readiness.status === "ready"
+                                      ? "Ready"
+                                      : readiness.status === "low"
+                                        ? "Low readiness · " + match + "%"
+                                        : "Missing ingredients"}
                                   </Text>
                                 </View>
                               </View>
@@ -721,29 +743,66 @@ export default function MealPlanScreen() {
                               <Text className="text-[12px] text-text-muted mt-0.5">
                                 {meal.recipe.time} · {meal.recipe.tag}
                               </Text>
+                              {readiness.status === "ready" ? (
+                                <Text className="text-[12px] text-urgency-fresh mt-2">
+                                  All listed ingredients are in your pantry.
+                                </Text>
+                              ) : (
+                                <>
+                                  <Text className="text-[12px] text-text-secondary mt-2 leading-5">
+                                    Missing from pantry: {readiness.missingIngredients.join(", ")}
+                                  </Text>
+                                  {readiness.shoppingCoveredIngredients.length > 0 && (
+                                    <Text className="text-[12px] text-brand-500 mt-1 leading-5">
+                                      On Shopping: {readiness.shoppingCoveredIngredients.join(", ")}
+                                    </Text>
+                                  )}
+                                  {isUpcomingWarning && (
+                                    <View className="flex-row items-center gap-1.5 mt-2">
+                                      <Icon name="AlertTriangle" size={14} color="#F59E0B" />
+                                      <Text className="text-[12px] font-bold text-urgency-soon">
+                                        Needs shopping soon
+                                      </Text>
+                                    </View>
+                                  )}
+                                </>
+                              )}
                             </View>
                           </View>
 
                           {!movingFrom && (
-                            <View className="flex-row gap-2 mt-3 pt-3 border-t border-border-default">
-                              <Button
-                                label="Move"
-                                variant="ghost"
-                                size="sm"
-                                className="flex-1"
-                                leadingIcon={<Icon name="Move" size={14} />}
-                                onPress={() =>
-                                  setMovingFrom({ date: dateKey, slot })
-                                }
-                              />
-                              <Button
-                                label="Remove"
-                                variant="ghost"
-                                size="sm"
-                                className="flex-1"
-                                leadingIcon={<Icon name="Trash2" size={14} />}
-                                onPress={() => void removeMeal(meal)}
-                              />
+                            <View className="gap-2 mt-3 pt-3 border-t border-border-default">
+                              {readiness.unresolvedIngredients.length > 0 && (
+                                <Button
+                                  label="Add Missing to Shopping"
+                                  variant="secondary"
+                                  size="sm"
+                                  loading={busyKey === shoppingBusyKey}
+                                  disabled={Boolean(busyKey) && busyKey !== shoppingBusyKey}
+                                  leadingIcon={<Icon name="ShoppingBasket" size={14} />}
+                                  onPress={() => void addMealToShopping(meal)}
+                                />
+                              )}
+                              <View className="flex-row gap-2">
+                                <Button
+                                  label="Move"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex-1"
+                                  leadingIcon={<Icon name="Move" size={14} />}
+                                  onPress={() =>
+                                    setMovingFrom({ date: dateKey, slot })
+                                  }
+                                />
+                                <Button
+                                  label="Remove"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex-1"
+                                  leadingIcon={<Icon name="Trash2" size={14} />}
+                                  onPress={() => void removeMeal(meal)}
+                                />
+                              </View>
                             </View>
                           )}
                         </Pressable>
