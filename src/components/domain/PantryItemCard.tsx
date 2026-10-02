@@ -56,9 +56,9 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
    </View>:null;
  return <View className="gap-1">
   <FoodItemCard item={display} today={today} quantityControls={controls} onPress={selected=>{if(!locked.current)onPress(selected);}} />
-  {item.quantityTrackingEnabled&&item.remainingPercent!=null&&<View className={`mx-3 px-3 py-2 rounded-xl border ${item.isLowStock?'bg-urgency-soon-bg border-urgency-soon/30':'bg-ground-subtle border-border-default'}`}>
+  {item.remainingPercent!=null&&<View className={`mx-3 px-3 py-2 rounded-xl border ${item.isLowStock?'bg-urgency-soon-bg border-urgency-soon/30':'bg-ground-subtle border-border-default'}`}>
    <Text className={item.isLowStock?'text-urgency-soon font-bold':'text-text-muted'}>
-    {item.isLowStock?'Low stock · ':''}{item.remainingPercent}% remaining · alert at {item.lowStockThresholdPercent??10}%
+    {item.isLowStock?'Low stock · ':''}{item.remainingPercent}% remaining
    </Text>
   </View>}
   {(finish||!!error)&&<View className="px-3 pb-2 gap-2">
