@@ -2,7 +2,7 @@ import { ThemeSelector } from "@/src/components/molecules/ThemeSelector";
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { useNotifications } from "@/src/context/NotificationContext";
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useNavigation } from "expo-router";
 import { Typography, Button, Icon, Badge, Input } from "@/src/components/atoms";
@@ -15,8 +15,8 @@ export default function SettingsTabScreen() {
   const notifications = useNotifications();
   const router = useRouter();
   const rootNavigation = useNavigation("/");
-  const { colorScheme, isDark, themePreference, setThemePreference, toggleTheme } = useAppTheme();
-  const { session, household } = useAuth();
+  const { colorScheme, themePreference } = useAppTheme();
+  const { session } = useAuth();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
 
