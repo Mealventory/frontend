@@ -43,7 +43,6 @@ export default function ItemDetailScreen() {
     finally { setDeleting(false); }
   };
 
-  const quantityUnit = item.quantity.replace(/^\d+(?:\.\d+)?\s*/, '') || 'units';
   const infoRows = [
     { label: "Expiration Date", value: item.expDate },
     { label: "Category", value: item.category },
@@ -108,19 +107,19 @@ export default function ItemDetailScreen() {
           ))}
         </View>
 
-        {item.quantityTrackingEnabled && item.remainingPercent != null && (
+        {item.remainingPercent != null && (
           <View className={`p-4 rounded-[22px] border mb-4 ${item.isLowStock ? 'bg-urgency-soon-bg border-urgency-soon/30' : 'bg-ground-surface border-border-default'}`}>
             <View className="flex-row items-center gap-2 mb-2">
               <Icon name="Gauge" size={18} color={item.isLowStock ? '#F59E0B' : '#10B981'} />
               <Text className={`text-[15px] font-bold ${item.isLowStock ? 'text-urgency-soon' : 'text-text-primary'}`}>
-                {item.isLowStock ? 'Low stock' : 'Quantity tracking'}
+                {item.isLowStock ? 'Low stock' : 'Quantity remaining'}
               </Text>
             </View>
             <Text className="text-[14px] text-text-secondary">
-              {item.quantity} remaining · {item.remainingPercent}% of {item.initialQuantity ?? '—'} {quantityUnit}
+              {item.quantity} remaining · {item.remainingPercent}% left
             </Text>
             <Text className="text-[12px] text-text-muted mt-1">
-              Low-stock alert at {item.lowStockThresholdPercent ?? 10}% remaining
+              Mealventory warns automatically at 10% remaining.
             </Text>
           </View>
         )}
