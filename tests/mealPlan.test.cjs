@@ -67,13 +67,32 @@ test("week helpers always build a Monday through Sunday week", () => {
   assert.equal(api.localDateKey(api.shiftWeek(monday, -1)), "2026-09-21");
 });
 
-test("ingredient readiness and weekly missing ingredients use pantry names case-insensitively", () => {
+test("ingredient readiness reports exact missing ingredients and resolves after pantry refresh", () => {
   const { api } = loadMealPlan();
   const pasta = recipe("1", "Pasta", ["Pasta", "Tomato", "Garlic"]);
-  const salad = recipe("2", "Salad", ["Spinach", "Tomato"]);
-  const inventory = new Set(["pasta", "TOMATO".toLowerCase()]);
+  const initialInventory = new Set(["PASTA", "tomato"]);
 
-  assert.equal(api.mealMatchPercent(pasta, inventory), 67);
+  assert.deepEqual(api.missingIngredientsForRecipe(pasta, initialInventory), ["Garlic"]);
+  assert.deepEqual(api.mealReadiness(pasta, initialInventory), {
+    state: "missing",
+    matchPercent: 67,
+    missingIngredients: ["Garlic"],
+  });
+
+  const refreshedInventory = new Set(["pasta", "tomato", "garlic"]);
+  assert.deepEqual(api.mealReadiness(pasta, refreshedInventory), {
+    state: "ready",
+    matchPercent: 100,
+    missingIngredients: [],
+  });
+});
+
+test("weekly missing ingredients are deduplicated across planned meals", () => {
+  const { api } = loadMealPlan();
+  const pasta = recipe("1", "Pasta", ["Pasta", "Tomato", "Garlic"]);
+  const salad = recipe("2", "Salad", ["Spinach", "Tomato", "garlic"]);
+  const inventory = new Set(["pasta", "tomato"]);
+
   const missing = api.weeklyMissingIngredients(
     [
       { date: "2026-10-01", slot: "lunch", recipe: pasta },
@@ -82,6 +101,16 @@ test("ingredient readiness and weekly missing ingredients use pantry names case-
     inventory
   );
   assert.deepEqual(missing, ["Garlic", "Spinach"]);
+});
+
+test("readiness lead time flags today and tomorrow without inventing meal times", () => {
+  const { api } = loadMealPlan();
+  const today = new Date(2026, 9, 1, 21, 30, 0);
+
+  assert.equal(api.isDateWithinLeadTime("2026-10-01", today, 1), true);
+  assert.equal(api.isDateWithinLeadTime("2026-10-02", today, 1), true);
+  assert.equal(api.isDateWithinLeadTime("2026-09-30", today, 1), false);
+  assert.equal(api.isDateWithinLeadTime("2026-10-03", today, 1), false);
 });
 
 test("moving a meal into an empty slot preserves the recipe and clears the source", () => {
@@ -177,13 +206,19 @@ test("persisted move swaps occupied slots and remove deletes only the selected m
   assert.equal(plan[0].recipe.name, "Pasta");
 });
 
-test("meal planner route exposes week navigation, move mode, and weekly shopping action", () => {
+test("meal planner route exposes readiness warnings and shopping actions", () => {
   const source = fs.readFileSync("app/(app)/meal-plan.tsx", "utf8");
   assert.match(source, /Previous week/);
   assert.match(source, /Next week/);
   assert.match(source, /Meal picked up/);
   assert.match(source, /Move meal here/);
+  assert.match(source, /Add Missing to Shopping/);
   assert.match(source, /Add Missing Week to Shopping/);
+  assert.match(source, /Shopping needed soon/);
+  assert.match(source, /Open Shopping/);
+  assert.match(source, /listShoppingItems/);
+  assert.match(source, /mealReadiness/);
+  assert.match(source, /isDateWithinLeadTime/);
   assert.match(source, /Nothing planned this week/);
 });
 
