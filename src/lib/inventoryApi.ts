@@ -6,9 +6,6 @@ export type InventoryRow = {
   name: string;
   category: string | null;
   quantity: number | string;
-  quantity_tracking_enabled?: boolean;
-  initial_quantity?: number | string | null;
-  low_stock_threshold_percent?: number | string;
   remaining_percent?: number | string | null;
   is_low_stock?: boolean;
   unit: string;
@@ -20,9 +17,6 @@ export type NewItem = {
   name: string;
   category: string;
   quantity: number;
-  quantity_tracking_enabled?: boolean;
-  initial_quantity?: number | null;
-  low_stock_threshold_percent?: number;
   unit: string;
   expiry_date: string | null;
   storage_zone?: StorageZone;
@@ -115,9 +109,6 @@ export function toFoodItem(row: InventoryRow): FoodItem {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   return { id: row.id, name: row.name, category: row.category || 'Pantry',
     quantity: `${Number(row.quantity)} ${row.unit}`,
-    quantityTrackingEnabled: Boolean(row.quantity_tracking_enabled),
-    initialQuantity: row.initial_quantity == null ? null : Number(row.initial_quantity),
-    lowStockThresholdPercent: row.low_stock_threshold_percent == null ? 10 : Number(row.low_stock_threshold_percent),
     remainingPercent: row.remaining_percent == null ? null : Number(row.remaining_percent),
     isLowStock: Boolean(row.is_low_stock),
     emoji: '🍽️',
