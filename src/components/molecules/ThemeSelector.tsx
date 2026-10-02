@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeContext';
 import { Icon } from '../atoms/Icon';
@@ -11,7 +11,6 @@ const options = [
 
 export function ThemeSelector() {
   const { themePreference, isDark, setThemePreference } = useAppTheme();
-  const [error, setError] = useState('');
   return <View>
     <View style={[styles.track, { backgroundColor: isDark ? '#1E293B' : '#F1F5F9', borderColor: isDark ? '#334155' : '#E2E8F0' }]}>
       {options.map(option => {
@@ -19,14 +18,13 @@ export function ThemeSelector() {
         const color = selected ? '#FFFFFF' : isDark ? '#CBD5E1' : '#475569';
         return <TouchableOpacity key={option.id} activeOpacity={0.75} accessibilityRole="radio"
           accessibilityLabel={`${option.label} appearance`} accessibilityState={{ checked: selected }}
-          onPress={() => { setError(''); void setThemePreference(option.id).catch(() => setError('Could not change appearance. Please try again.')); }}
+          onPress={() => { void setThemePreference(option.id); }}
           style={[styles.option, { backgroundColor: selected ? '#059669' : 'transparent' }]}>
           <Icon name={option.icon} size={16} color={color} />
           <Text style={[styles.label, { color }]}>{option.label}</Text>
         </TouchableOpacity>;
       })}
     </View>
-    {!!error && <Text accessibilityRole="alert" style={{ color: isDark ? '#FB7185' : '#BE123C', marginTop: 8 }}>{error}</Text>}
   </View>;
 }
 const styles = StyleSheet.create({
