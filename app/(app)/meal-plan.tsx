@@ -544,6 +544,49 @@ export default function MealPlanScreen() {
           </View>
         )}
 
+        {!loading && upcomingWarnings.length > 0 && (
+          <View
+            accessibilityRole="alert"
+            className="mb-5 p-4 rounded-2xl bg-urgency-soon-bg border border-urgency-soon/40"
+          >
+            <View className="flex-row items-start gap-3">
+              <View className="w-10 h-10 rounded-xl bg-ground-surface items-center justify-center">
+                <Icon name="AlertTriangle" size={19} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Typography variant="body" className="font-bold">
+                  Upcoming meals need shopping
+                </Typography>
+                <Typography variant="caption" color="muted" className="mt-1">
+                  {upcomingWarnings.length} planned {upcomingWarnings.length === 1 ? "meal has" : "meals have"} unresolved ingredients in the next 2 days.
+                </Typography>
+              </View>
+            </View>
+            <Text className="text-[12px] text-text-secondary leading-5 mt-3">
+              {upcomingWarnings
+                .map(({ meal, readiness }) => {
+                  const day = parseLocalDateKey(meal.date).toLocaleDateString(
+                    undefined,
+                    { weekday: "short" }
+                  );
+                  return day + " " + meal.slot + ": " +
+                    readiness.unresolvedIngredients.join(", ");
+                })
+                .join(" · ")}
+            </Text>
+            <Typography variant="caption" color="muted" className="mt-2">
+              Meal times are not stored yet, so this reminder stays in-app instead of guessing a notification time.
+            </Typography>
+            <Button
+              label="Open Shopping"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onPress={() => router.push("/(app)/(tabs)/shopping" as any)}
+            />
+          </View>
+        )}
+
         {loading ? (
           <View className="py-16 items-center gap-3">
             <ActivityIndicator size="large" color="#10B981" />
