@@ -59,7 +59,7 @@ export default function PantryDashboardScreen() {
   const activeFilterCount=(zone==='All zones'?0:1)+(selectedCat==='All'?0:1);
   const view=useMemo(()=>pantryView(inventory,today,zones[zone],selectedCat,query,group),[inventory,today,zone,selectedCat,query,group]);
   const lowStockItems=useMemo(
-    ()=>inventory.filter(item=>item.quantityTrackingEnabled&&item.isLowStock),
+    ()=>inventory.filter(item=>item.isLowStock),
     [inventory]
   );
   const addLowStockToShopping=async(itemName:string,itemId:string)=>{
@@ -126,7 +126,7 @@ export default function PantryDashboardScreen() {
             <View className="flex-1">
               <Typography variant="body" className="font-bold">{item.name}</Typography>
               <Typography variant="caption" color="muted">
-                {item.quantity} remaining · {item.remainingPercent ?? 0}% of reference · alert at {item.lowStockThresholdPercent ?? 10}%
+                {item.quantity} remaining · {item.remainingPercent ?? 0}% left
               </Typography>
             </View>
             <Icon name="TriangleAlert" size={20} color="#F59E0B" />
