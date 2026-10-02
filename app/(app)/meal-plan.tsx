@@ -628,9 +628,6 @@ export default function MealPlanScreen() {
                       const isSource =
                         movingFrom?.date === dateKey &&
                         movingFrom?.slot === slot;
-                      const match = meal
-                        ? mealMatchPercent(meal.recipe, inventoryNames)
-                        : null;
 
                       if (!meal) {
                         return (
@@ -669,11 +666,22 @@ export default function MealPlanScreen() {
                         );
                       }
 
+                      const readiness = mealIngredientReadiness(
+                        meal.recipe,
+                        inventoryNames,
+                        shoppingNames
+                      );
+                      const match = readiness.matchPercent;
+                      const isUpcomingWarning =
+                        readiness.unresolvedIngredients.length > 0 &&
+                        isMealDateWithinWarningWindow(dateKey);
+                      const shoppingBusyKey = "shopping:" + key;
+
                       return (
                         <Pressable
                           key={slot}
                           accessibilityRole="button"
-                          accessibilityLabel={`${slot}: ${meal.recipe.name}, ${match}% ingredients available`}
+                          accessibilityLabel={slot + ": " + meal.recipe.name + ", " + match + "% ingredients available, " + readiness.unresolvedIngredients.length + " still need shopping"}
                           disabled={Boolean(busyKey)}
                           onLongPress={() =>
                             setMovingFrom({ date: dateKey, slot })
