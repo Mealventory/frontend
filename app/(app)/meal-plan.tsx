@@ -15,11 +15,15 @@ import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
 import {
   addMissingIngredientsToShopping,
+  listShoppingItems,
+  type ShoppingItem,
 } from "@/src/lib/shoppingApi";
 import {
   applyMealMove,
+  isMealDateWithinWarningWindow,
   loadMealPlan,
   localDateKey,
+  mealIngredientReadiness,
   mealMatchPercent,
   mealSlotKey,
   mealsForWeek,
@@ -28,6 +32,7 @@ import {
   savePlannedMeal,
   shiftWeek,
   startOfWeek,
+  upcomingMealReadinessWarnings,
   weeklyMissingIngredients,
   weekDates,
   type MealSlot,
