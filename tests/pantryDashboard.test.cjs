@@ -14,7 +14,7 @@ function harness(){
  function render(){cursor=0;const nodes=walk(Screen());while(tasks.length)tasks.shift()();return nodes;}
  return {render,data,pushes,opened,scope:id=>household=id,route:value=>routeZone=value,dispose:()=>slots.forEach(v=>v?.cleanup?.())};
 }
-test('dashboard filters actual rows, opens item and recipes, and resets for another household',()=>{
+test('dashboard filters actual rows, opens item and calendar, and resets for another household',()=>{
  const h=harness();try{
  h.render();let nodes=h.render();
  assert.equal(nodes.some(n=>n.type==='Chips'),false);
@@ -32,8 +32,8 @@ test('dashboard filters actual rows, opens item and recipes, and resets for anot
  assert.ok(nodes.find(n=>n.props?.accessibilityLabel==='Filter pantry, 1 active filter'));
  const card=list.props.renderItem({item:list.props.data[0]});card.props.onPress(list.props.data[0]);
  assert.equal(h.opened[0].id,'1');assert.equal(h.pushes[0],'/(app)/inventory/1');
- nodes.find(n=>n.props?.label==='Find recipes for expiring food').props.onPress();
- assert.equal(h.pushes[1],'/(app)/(tabs)/recipes');
+ nodes.find(n=>n.props?.accessibilityLabel==='Open expiry calendar').props.onPress();
+ assert.equal(h.pushes[1],'/(app)/expiry-calendar');
  h.scope('two');h.render();nodes=h.render();
  sheet=nodes.find(n=>n.type==='FilterSheet');
  assert.equal(sheet.props.selectedZone,'All zones');

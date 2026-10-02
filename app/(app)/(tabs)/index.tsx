@@ -60,6 +60,14 @@ export default function PantryDashboardScreen() {
         <Typography variant="caption" color="muted">{inventory.length} items in your household</Typography></View>
       <View className="flex-row items-center gap-2">
         <TouchableOpacity
+          onPress={()=>router.push('/(app)/expiry-calendar' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Open expiry calendar"
+          className="w-11 h-11 items-center justify-center rounded-xl border bg-ground-surface border-border-default"
+        >
+          <Icon name="CalendarDays" size={21} color="#64748B" />
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={()=>setFilterOpen(true)}
           accessibilityRole="button"
           accessibilityLabel={activeFilterCount>0?`Filter pantry, ${activeFilterCount} active ${activeFilterCount===1?'filter':'filters'}`:'Filter pantry'}
@@ -89,9 +97,7 @@ export default function PantryDashboardScreen() {
           <Typography variant="caption" color="muted">{bucket.hint}</Typography>
         </TouchableOpacity>)}
       </ScrollView>
-      <Button label="Open expiry calendar" variant="outline" onPress={()=>router.push('/(app)/expiry-calendar' as any)} />
       {group!=='all'&&<Button label="Show all expiry dates" variant="ghost" onPress={()=>setGroup('all')} />}
-      {view.counts.today+view.counts.soon>0&&<Button label="Find recipes for expiring food" variant="secondary" onPress={()=>router.push('/(app)/(tabs)/recipes' as any)} />}
       <Typography variant="caption" color="muted">{view.items.length} items · Nearest expiry first · Undated items last</Typography>
     </View>}
     {!!inventoryError&&<EmptyState icon="WifiOff" title="A little connection hiccup" description={inventoryError} actionLabel="Try again" onAction={()=>void refreshInventory()} />}
