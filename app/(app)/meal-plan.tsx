@@ -519,6 +519,34 @@ export default function MealPlanScreen() {
           </View>
         )}
 
+        {!loading && upcomingMissingMeals.length > 0 && (
+          <View
+            accessibilityRole="alert"
+            className="mb-4 p-4 rounded-2xl bg-urgency-soon-bg border border-urgency-soon/40"
+          >
+            <View className="flex-row items-start gap-3">
+              <View className="w-10 h-10 rounded-xl bg-ground-surface items-center justify-center">
+                <Icon name="ShoppingBasket" size={18} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Typography variant="body" className="font-bold">
+                  {upcomingMissingMeals.length} upcoming meal{upcomingMissingMeals.length === 1 ? "" : "s"} need ingredients
+                </Typography>
+                <Typography variant="caption" color="muted" className="mt-1">
+                  This in-app reminder covers today and tomorrow. Meal times are not set, so Mealventory will not invent a notification time.
+                </Typography>
+              </View>
+            </View>
+            <Button
+              label="Open Shopping"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onPress={() => router.push("/(app)/(tabs)/shopping" as any)}
+            />
+          </View>
+        )}
+
         {loading ? (
           <View className="py-16 items-center gap-3">
             <ActivityIndicator size="large" color="#10B981" />
@@ -560,9 +588,21 @@ export default function MealPlanScreen() {
                       const isSource =
                         movingFrom?.date === dateKey &&
                         movingFrom?.slot === slot;
-                      const match = meal
-                        ? mealMatchPercent(meal.recipe, inventoryNames)
+                      const readiness = meal
+                        ? mealReadiness(meal.recipe, inventoryNames)
                         : null;
+                      const match = readiness?.matchPercent ?? null;
+                      const missingIngredients = readiness?.missingIngredients ?? [];
+                      const missingNotInShopping = missingIngredients.filter(
+                        (ingredient) =>
+                          !shoppingNames.has(ingredient.trim().toLocaleLowerCase())
+                      );
+                      const missingInShopping =
+                        missingIngredients.length - missingNotInShopping.length;
+                      const needsSoon =
+                        Boolean(meal) &&
+                        missingIngredients.length > 0 &&
+                        isDateWithinLeadTime(dateKey, new Date(), 1);
 
                       if (!meal) {
                         return (
@@ -605,7 +645,7 @@ export default function MealPlanScreen() {
                         <Pressable
                           key={slot}
                           accessibilityRole="button"
-                          accessibilityLabel={`${slot}: ${meal.recipe.name}, ${match}% ingredients available`}
+                          accessibilityLabel={`${slot}: ${meal.recipe.name}, ${readiness?.state === "ready" ? "ready" : `${missingIngredients.length} ingredients missing`}`}
                           disabled={Boolean(busyKey)}
                           onLongPress={() =>
                             setMovingFrom({ date: dateKey, slot })
@@ -620,7 +660,9 @@ export default function MealPlanScreen() {
                               ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
                               : movingFrom
                                 ? "border-brand-500/40 bg-ground-surface"
-                                : "border-border-default bg-ground-surface"
+                                : needsSoon
+                                  ? "border-urgency-soon bg-urgency-soon-bg"
+                                  : "border-border-default bg-ground-surface"
                           }`}
                           style={{ opacity: busyKey === key ? 0.55 : 1 }}
                         >
@@ -631,9 +673,23 @@ export default function MealPlanScreen() {
                                 <Text className="text-[11px] font-bold text-text-subtle uppercase tracking-wider">
                                   {slot}
                                 </Text>
-                                <View className="px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-500/15">
-                                  <Text className="text-[10px] font-bold text-brand-500">
-                                    {match}% ready
+                                <View
+                                  className={`px-2 py-0.5 rounded-full ${
+                                    readiness?.state === "ready"
+                                      ? "bg-brand-50 dark:bg-brand-500/15"
+                                      : "bg-urgency-soon-bg"
+                                  }`}
+                                >
+                                  <Text
+                                    className={`text-[10px] font-bold ${
+                                      readiness?.state === "ready"
+                                        ? "text-brand-500"
+                                        : "text-urgency-soon"
+                                    }`}
+                                  >
+                                    {readiness?.state === "ready"
+                                      ? "Ready"
+                                      : `${missingIngredients.length} missing · ${match}% ready`}
                                   </Text>
                                 </View>
                               </View>
@@ -643,8 +699,46 @@ export default function MealPlanScreen() {
                               <Text className="text-[12px] text-text-muted mt-0.5">
                                 {meal.recipe.time} · {meal.recipe.tag}
                               </Text>
+                              {missingIngredients.length > 0 && (
+                                <View className="mt-2 gap-1">
+                                  <Text className="text-[12px] font-semibold text-urgency-soon">
+                                    Missing: {missingIngredients.join(", ")}
+                                  </Text>
+                                  {missingInShopping > 0 && (
+                                    <Text className="text-[11px] text-text-muted">
+                                      {missingInShopping} missing item{missingInShopping === 1 ? "" : "s"} already in Shopping
+                                    </Text>
+                                  )}
+                                  {needsSoon && (
+                                    <Text className="text-[10px] font-bold text-urgency-soon uppercase tracking-wider">
+                                      Shopping needed soon
+                                    </Text>
+                                  )}
+                                </View>
+                              )}
                             </View>
                           </View>
+
+                          {!movingFrom && missingIngredients.length > 0 && (
+                            <Button
+                              label={
+                                missingNotInShopping.length > 0
+                                  ? "Add Missing to Shopping"
+                                  : "Missing Items Already in Shopping"
+                              }
+                              variant="outline"
+                              size="sm"
+                              className="mt-3"
+                              loading={busyKey === `shopping:${key}`}
+                              disabled={
+                                missingNotInShopping.length === 0 ||
+                                (Boolean(busyKey) && busyKey !== `shopping:${key}`)
+                              }
+                              onPress={() =>
+                                void addMealToShopping(meal, missingIngredients)
+                              }
+                            />
+                          )}
 
                           {!movingFrom && (
                             <View className="flex-row gap-2 mt-3 pt-3 border-t border-border-default">
@@ -776,9 +870,16 @@ export default function MealPlanScreen() {
                   {missingForWeek.join(", ")}
                 </Text>
                 <Button
-                  label="Add Missing Week to Shopping"
+                  label={
+                    missingWeekNotInShopping.length > 0
+                      ? "Add Missing Week to Shopping"
+                      : "All Missing Items Are in Shopping"
+                  }
                   loading={busyKey === "shopping"}
-                  disabled={Boolean(busyKey) && busyKey !== "shopping"}
+                  disabled={
+                    missingWeekNotInShopping.length === 0 ||
+                    (Boolean(busyKey) && busyKey !== "shopping")
+                  }
                   onPress={() => void addWeekToShopping()}
                 />
               </>
