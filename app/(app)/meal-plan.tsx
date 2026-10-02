@@ -323,8 +323,64 @@ export default function MealPlanScreen() {
     } as any);
   };
 
+  const refreshShopping = async () => {
+    if (!session || !household) return;
+    try {
+      const latest = await listShoppingItems(
+        session.access_token,
+        household.id
+      );
+      setShoppingItems(latest);
+    } catch {
+      // The add helper remains duplicate-safe even if this refresh fails.
+    }
+  };
+
+  const addMealToShopping = async (meal: PlannedMeal) => {
+    if (!session || !household || busyKey) return;
+    const readiness = mealIngredientReadiness(
+      meal.recipe,
+      inventoryNames,
+      shoppingNames
+    );
+    if (readiness.unresolvedIngredients.length === 0) return;
+
+    const key = "shopping:" + mealSlotKey(meal.date, meal.slot);
+    setBusyKey(key);
+    setError("");
+    setNotice("");
+    try {
+      const result = await addMissingIngredientsToShopping(
+        session.access_token,
+        household.id,
+        readiness.unresolvedIngredients
+      );
+      await refreshShopping();
+      const skipped =
+        result.skipped > 0
+          ? " " + result.skipped + " already " +
+            (result.skipped === 1 ? "was" : "were") + " on the list."
+          : "";
+      setNotice(
+        result.added > 0
+          ? result.added + " ingredient" + (result.added === 1 ? "" : "s") +
+            " for " + meal.recipe.name + " added to Shopping." + skipped
+          : "The missing ingredients for " + meal.recipe.name +
+            " are already on Shopping."
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : "Could not add this meal's missing ingredients to Shopping."
+      );
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
   const addWeekToShopping = async () => {
-    if (!session || !household || missingForWeek.length === 0 || busyKey) return;
+    if (!session || !household || unresolvedForWeek.length === 0 || busyKey) return;
     setBusyKey("shopping");
     setError("");
     setNotice("");
@@ -332,8 +388,9 @@ export default function MealPlanScreen() {
       const result = await addMissingIngredientsToShopping(
         session.access_token,
         household.id,
-        missingForWeek
+        unresolvedForWeek
       );
+      await refreshShopping();
       const skipped =
         result.skipped > 0
           ? ` ${result.skipped} already ${result.skipped === 1 ? "was" : "were"} on the list.`
