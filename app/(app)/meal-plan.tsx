@@ -696,7 +696,9 @@ export default function MealPlanScreen() {
                               ? "border-brand-500 bg-brand-50 dark:bg-brand-500/10"
                               : movingFrom
                                 ? "border-brand-500/40 bg-ground-surface"
-                                : "border-border-default bg-ground-surface"
+                                : isUpcomingWarning
+                                  ? "border-urgency-soon/50 bg-urgency-soon-bg"
+                                  : "border-border-default bg-ground-surface"
                           }`}
                           style={{ opacity: busyKey === key ? 0.55 : 1 }}
                         >
