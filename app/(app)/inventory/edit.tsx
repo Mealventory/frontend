@@ -43,9 +43,10 @@ function EditForm({ item }: { item: FoodItem }) {
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState('');
+  const liveQuantity = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
   const save = async () => {
     if (lock.current) return;
-    const amount = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    const amount = liveQuantity;
     let expiry: string | null;
     try { expiry = normalizeExpiryDate(date); } catch (e) { setError((e as Error).message); return; }
     if (!name.trim() || !category.trim()) { setError('Enter an item name and category.'); return; }
@@ -101,7 +102,7 @@ function EditForm({ item }: { item: FoodItem }) {
               disabled={saving}
               onValueChange={(enabled) => {
                 setTrackQuantity(enabled);
-                if (enabled && !referenceQuantity.trim() && amount?.[1]) {
+                if (enabled && !referenceQuantity.trim() && liveQuantity?.[1]) {
                   setReferenceQuantity(amount[1]);
                 }
               }}
@@ -110,7 +111,7 @@ function EditForm({ item }: { item: FoodItem }) {
           {trackQuantity && (
             <View className="gap-3">
               <FormField
-                label={`Reference quantity (${amount?.[2]?.trim() || 'units'})`}
+                label={`Reference quantity (${liveQuantity?.[2]?.trim() || 'units'})`}
                 value={referenceQuantity}
                 onChangeText={setReferenceQuantity}
                 editable={!saving}
