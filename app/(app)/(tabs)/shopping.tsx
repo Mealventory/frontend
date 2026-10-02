@@ -2,6 +2,7 @@ import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Linking,
   ScrollView,
   TextInput,
   View,
@@ -22,6 +23,15 @@ import {
   updateShoppingItem,
   type ShoppingItem,
 } from "@/src/lib/shoppingApi";
+import {
+  addHouseholdStore,
+  deleteHouseholdStore,
+  listHouseholdStores,
+  normalizeStoreUrl,
+  reorderHouseholdStores,
+  updateHouseholdStore,
+  type HouseholdStore,
+} from "@/src/lib/storeApi";
 
 function quantityLabel(item: ShoppingItem) {
   const quantity = Number(item.quantity);
@@ -43,6 +53,12 @@ export default function ShoppingTabScreen() {
   const { refreshInventory } = useInventory();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [stores, setStores] = useState<HouseholdStore[]>([]);
+  const [storeName, setStoreName] = useState("");
+  const [storeUrl, setStoreUrl] = useState("");
+  const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
+  const [storeBusy, setStoreBusy] = useState<string | null>(null);
+  const [storeError, setStoreError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [customItem, setCustomItem] = useState("");
@@ -58,21 +74,34 @@ export default function ShoppingTabScreen() {
     if (!session || !household) {
       setItems([]);
       setSuggestions([]);
+      setStores([]);
+      setStoreName("");
+      setStoreUrl("");
+      setEditingStoreId(null);
+      setStoreError("");
       setLoading(false);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const [shopping, replenishment] = await Promise.all([
+      setStoreError("");
+      const [shopping, replenishment, householdStores] = await Promise.all([
         listShoppingItems(session.access_token, household.id),
         listConsumedShoppingSuggestions(
           session.access_token,
           household.id
         ).catch(() => []),
+        listHouseholdStores(session.access_token, household.id).catch((e) => {
+          setStoreError(
+            e instanceof Error ? e.message : "Could not load household stores."
+          );
+          return [];
+        }),
       ]);
       setItems(shopping);
       setSuggestions(replenishment);
+      setStores(householdStores);
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Could not load the shopping list."
@@ -98,6 +127,126 @@ export default function ShoppingTabScreen() {
     const onList = new Set(items.map((item) => normalizedName(item.name)));
     return suggestions.filter((name) => !onList.has(normalizedName(name)));
   }, [items, suggestions]);
+
+  const resetStoreForm = () => {
+    setStoreName("");
+    setStoreUrl("");
+    setEditingStoreId(null);
+  };
+
+  const saveStore = async () => {
+    const name = storeName.trim();
+    if (!session || !household || !name || storeBusy) return;
+
+    const websiteUrl = storeUrl.trim() ? normalizeStoreUrl(storeUrl) : null;
+    if (storeUrl.trim() && !websiteUrl) {
+      setStoreError("Enter a valid http or https website URL.");
+      return;
+    }
+
+    setStoreBusy(editingStoreId || "save");
+    setStoreError("");
+    setNotice("");
+    try {
+      if (editingStoreId) {
+        const updated = await updateHouseholdStore(
+          session.access_token,
+          household.id,
+          editingStoreId,
+          { name, website_url: websiteUrl }
+        );
+        setStores((current) =>
+          current.map((store) => (store.id === updated.id ? updated : store))
+        );
+        setNotice(`${updated.name} updated.`);
+      } else {
+        const added = await addHouseholdStore(
+          session.access_token,
+          household.id,
+          name,
+          websiteUrl
+        );
+        setStores((current) => [...current, added]);
+        setNotice(`${added.name} added to your household stores.`);
+      }
+      resetStoreForm();
+    } catch (e) {
+      setStoreError(
+        e instanceof Error ? e.message : "Could not save the household store."
+      );
+    } finally {
+      setStoreBusy(null);
+    }
+  };
+
+  const beginStoreEdit = (store: HouseholdStore) => {
+    setEditingStoreId(store.id);
+    setStoreName(store.name);
+    setStoreUrl(store.website_url || "");
+    setStoreError("");
+  };
+
+  const removeStore = async (store: HouseholdStore) => {
+    if (!session || !household || storeBusy) return;
+    setStoreBusy(store.id);
+    setStoreError("");
+    setNotice("");
+    try {
+      await deleteHouseholdStore(session.access_token, household.id, store.id);
+      setStores((current) => current.filter((row) => row.id !== store.id));
+      if (editingStoreId === store.id) resetStoreForm();
+      setNotice(`${store.name} removed from household stores.`);
+    } catch (e) {
+      setStoreError(
+        e instanceof Error ? e.message : "Could not remove the household store."
+      );
+    } finally {
+      setStoreBusy(null);
+    }
+  };
+
+  const moveStore = async (index: number, direction: -1 | 1) => {
+    if (!session || !household || storeBusy) return;
+    const target = index + direction;
+    if (target < 0 || target >= stores.length) return;
+
+    const previous = stores;
+    const next = [...stores];
+    [next[index], next[target]] = [next[target], next[index]];
+    setStores(next);
+    setStoreBusy("order");
+    setStoreError("");
+    try {
+      const reordered = await reorderHouseholdStores(
+        session.access_token,
+        household.id,
+        next.map((store) => store.id)
+      );
+      setStores(reordered);
+    } catch (e) {
+      setStores(previous);
+      setStoreError(
+        e instanceof Error ? e.message : "Could not reorder household stores."
+      );
+    } finally {
+      setStoreBusy(null);
+    }
+  };
+
+  const openStoreWebsite = async (store: HouseholdStore) => {
+    if (!store.website_url) return;
+    const url = normalizeStoreUrl(store.website_url);
+    if (!url) {
+      setStoreError("This store website URL is not valid.");
+      return;
+    }
+    setStoreError("");
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setStoreError("Could not open this store website.");
+    }
+  };
 
   const toggleItem = async (item: ShoppingItem) => {
     if (!session || !household || busyId || moving) return;
@@ -359,6 +508,144 @@ export default function ShoppingTabScreen() {
             </Typography>
           </View>
         )}
+
+        <View className="mb-5 p-4 bg-ground-card rounded-2xl border border-border-default gap-4">
+          <View className="flex-row items-center gap-3">
+            <View className="w-10 h-10 rounded-xl bg-brand-50 dark:bg-brand-500/15 items-center justify-center">
+              <Icon name="Store" size={18} color="#10B981" />
+            </View>
+            <View className="flex-1">
+              <Typography variant="body" className="font-bold">
+                Frequently shopped stores
+              </Typography>
+              <Typography variant="caption" color="muted">
+                Household links for quick shopping access
+              </Typography>
+            </View>
+          </View>
+
+          {!!storeError && (
+            <View
+              accessibilityRole="alert"
+              className="p-3 rounded-xl bg-urgency-critical-bg border border-urgency-critical/30"
+            >
+              <Typography variant="caption" className="text-urgency-critical">
+                {storeError}
+              </Typography>
+            </View>
+          )}
+
+          {stores.length === 0 ? (
+            <View className="p-3 rounded-xl bg-ground-surface">
+              <Typography variant="caption" color="muted">
+                Save the stores your household uses most. These links will also support future Shopping features without requiring location access.
+              </Typography>
+            </View>
+          ) : (
+            <View className="gap-3">
+              {stores.map((store, index) => (
+                <View
+                  key={store.id}
+                  className="p-3 rounded-xl bg-ground-surface border border-border-default gap-2"
+                  style={{ opacity: storeBusy === store.id ? 0.55 : 1 }}
+                >
+                  <View className="flex-row items-start gap-3">
+                    <View className="flex-1">
+                      <Typography variant="body" className="font-bold">
+                        {store.name}
+                      </Typography>
+                      <Typography variant="caption" color="muted">
+                        {store.website_url || "No website saved"}
+                      </Typography>
+                    </View>
+                    {store.website_url && (
+                      <Button
+                        label="Visit"
+                        variant="outline"
+                        size="sm"
+                        onPress={() => void openStoreWebsite(store)}
+                      />
+                    )}
+                  </View>
+                  <View className="flex-row flex-wrap gap-2">
+                    <Button
+                      label="Up"
+                      variant="ghost"
+                      size="sm"
+                      disabled={index === 0 || Boolean(storeBusy)}
+                      onPress={() => void moveStore(index, -1)}
+                    />
+                    <Button
+                      label="Down"
+                      variant="ghost"
+                      size="sm"
+                      disabled={index === stores.length - 1 || Boolean(storeBusy)}
+                      onPress={() => void moveStore(index, 1)}
+                    />
+                    <Button
+                      label="Edit"
+                      variant="ghost"
+                      size="sm"
+                      disabled={Boolean(storeBusy)}
+                      onPress={() => beginStoreEdit(store)}
+                    />
+                    <Button
+                      label="Remove"
+                      variant="ghost"
+                      size="sm"
+                      disabled={Boolean(storeBusy)}
+                      onPress={() => void removeStore(store)}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          <View className="pt-3 border-t border-border-default gap-3">
+            <Typography variant="caption" className="font-bold">
+              {editingStoreId ? "Edit store" : "Add a store"}
+            </Typography>
+            <TextInput
+              accessibilityLabel="Store name"
+              value={storeName}
+              onChangeText={setStoreName}
+              placeholder="e.g. Costco"
+              placeholderTextColor="#94A3B8"
+              className="min-h-[48px] px-3.5 rounded-xl border border-border-default bg-ground-canvas text-text-primary"
+            />
+            <TextInput
+              accessibilityLabel="Store website"
+              value={storeUrl}
+              onChangeText={setStoreUrl}
+              onSubmitEditing={() => void saveStore()}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              returnKeyType="done"
+              placeholder="costco.ca (optional)"
+              placeholderTextColor="#94A3B8"
+              className="min-h-[48px] px-3.5 rounded-xl border border-border-default bg-ground-canvas text-text-primary"
+            />
+            <View className="flex-row gap-2">
+              <Button
+                label={editingStoreId ? "Save Changes" : "Add Store"}
+                className="flex-1"
+                loading={storeBusy === "save" || storeBusy === editingStoreId}
+                disabled={!storeName.trim() || Boolean(storeBusy)}
+                onPress={() => void saveStore()}
+              />
+              {editingStoreId && (
+                <Button
+                  label="Cancel"
+                  variant="ghost"
+                  disabled={Boolean(storeBusy)}
+                  onPress={resetStoreForm}
+                />
+              )}
+            </View>
+          </View>
+        </View>
 
         {availableSuggestions.length > 0 && (
           <View className="mb-5 p-4 bg-ground-card rounded-2xl border border-border-default gap-3">
