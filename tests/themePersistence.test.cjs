@@ -226,10 +226,26 @@ test('both settings screens use the shared native appearance selector', () => {
   assert.ok(!selector.includes('className='));
 });
 
+test('Expo and NativeWind configuration support app-controlled system appearance', () => {
+  const appConfig = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+  assert.equal(appConfig.expo.userInterfaceStyle, 'automatic');
+
+  const tailwind = fs.readFileSync('tailwind.config.js', 'utf8');
+  assert.ok(tailwind.includes('darkMode: "class"'));
+  assert.ok(tailwind.includes('input: "var(--color-ground-input)"'));
+
+  const input = fs.readFileSync('src/components/atoms/Input.tsx', 'utf8');
+  assert.ok(input.includes('bg-ground-input'));
+  assert.ok(input.includes('text-text-primary'));
+  assert.ok(!input.includes('useAppTheme'));
+});
+
 test('global.css uses the selected theme class without an OS media override', () => {
   const globalCss = fs.readFileSync('global.css', 'utf8');
   assert.ok(globalCss.includes(':root[class~="dark"]'));
   assert.ok(!globalCss.includes('@media (prefers-color-scheme: dark)')); 
   assert.ok(globalCss.includes('--color-ground-canvas'));
+  assert.ok(globalCss.includes('--color-ground-input: #F8FAFC'));
+  assert.ok(globalCss.includes('--color-ground-input: #0F172A'));
   assert.ok(globalCss.includes('--color-brand-500'));
 });
