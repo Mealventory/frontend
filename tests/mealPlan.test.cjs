@@ -67,13 +67,55 @@ test("week helpers always build a Monday through Sunday week", () => {
   assert.equal(api.localDateKey(api.shiftWeek(monday, -1)), "2026-09-21");
 });
 
-test("ingredient readiness and weekly missing ingredients use pantry names case-insensitively", () => {
+test("ingredient readiness separates pantry gaps, shopping coverage, and unresolved needs", () => {
   const { api } = loadMealPlan();
   const pasta = recipe("1", "Pasta", ["Pasta", "Tomato", "Garlic"]);
   const salad = recipe("2", "Salad", ["Spinach", "Tomato"]);
   const inventory = new Set(["pasta", "TOMATO".toLowerCase()]);
+  const shopping = new Set(["garlic"]);
 
   assert.equal(api.mealMatchPercent(pasta, inventory), 67);
+  assert.deepEqual(
+    api.mealIngredientReadiness(pasta, inventory, shopping),
+    {
+      status: "low",
+      matchPercent: 67,
+      missingIngredients: ["Garlic"],
+      shoppingCoveredIngredients: ["Garlic"],
+      unresolvedIngredients: [],
+    }
+  );
+
+  assert.deepEqual(
+    api.mealIngredientReadiness(
+      recipe("3", "Soup", ["Carrot", "Celery"]),
+      new Set(),
+      new Set(["celery"])
+    ),
+    {
+      status: "missing",
+      matchPercent: 0,
+      missingIngredients: ["Carrot", "Celery"],
+      shoppingCoveredIngredients: ["Celery"],
+      unresolvedIngredients: ["Carrot"],
+    }
+  );
+
+  assert.deepEqual(
+    api.mealIngredientReadiness(
+      recipe("4", "Toast", ["Bread"]),
+      new Set(["bread"]),
+      new Set()
+    ),
+    {
+      status: "ready",
+      matchPercent: 100,
+      missingIngredients: [],
+      shoppingCoveredIngredients: [],
+      unresolvedIngredients: [],
+    }
+  );
+
   const missing = api.weeklyMissingIngredients(
     [
       { date: "2026-10-01", slot: "lunch", recipe: pasta },
@@ -82,6 +124,61 @@ test("ingredient readiness and weekly missing ingredients use pantry names case-
     inventory
   );
   assert.deepEqual(missing, ["Garlic", "Spinach"]);
+});
+
+test("upcoming readiness warnings include only unresolved meals in the lead window", () => {
+  const { api } = loadMealPlan();
+  const today = new Date(2026, 9, 2, 12, 0, 0);
+  const meals = [
+    {
+      date: "2026-10-01",
+      slot: "dinner",
+      recipe: recipe("past", "Past", ["Garlic"]),
+    },
+    {
+      date: "2026-10-02",
+      slot: "dinner",
+      recipe: recipe("today", "Today", ["Pasta", "Garlic"]),
+    },
+    {
+      date: "2026-10-03",
+      slot: "lunch",
+      recipe: recipe("tomorrow", "Tomorrow", ["Spinach"]),
+    },
+    {
+      date: "2026-10-04",
+      slot: "dinner",
+      recipe: recipe("soon", "Soon", ["Chicken"]),
+    },
+    {
+      date: "2026-10-05",
+      slot: "dinner",
+      recipe: recipe("later", "Later", ["Rice"]),
+    },
+  ];
+
+  assert.equal(api.isMealDateWithinWarningWindow("2026-10-02", today), true);
+  assert.equal(api.isMealDateWithinWarningWindow("2026-10-04", today), true);
+  assert.equal(api.isMealDateWithinWarningWindow("2026-10-05", today), false);
+  assert.equal(api.isMealDateWithinWarningWindow("2026-10-01", today), false);
+
+  const warnings = api.upcomingMealReadinessWarnings(
+    meals,
+    new Set(["pasta"]),
+    new Set(["spinach"]),
+    today
+  );
+
+  assert.deepEqual(
+    warnings.map(({ meal, readiness }) => ({
+      id: meal.recipe.id,
+      unresolved: readiness.unresolvedIngredients,
+    })),
+    [
+      { id: "today", unresolved: ["Garlic"] },
+      { id: "soon", unresolved: ["Chicken"] },
+    ]
+  );
 });
 
 test("moving a meal into an empty slot preserves the recipe and clears the source", () => {
@@ -177,13 +274,20 @@ test("persisted move swaps occupied slots and remove deletes only the selected m
   assert.equal(plan[0].recipe.name, "Pasta");
 });
 
-test("meal planner route exposes week navigation, move mode, and weekly shopping action", () => {
+test("meal planner route exposes readiness warnings and duplicate-safe shopping actions", () => {
   const source = fs.readFileSync("app/(app)/meal-plan.tsx", "utf8");
   assert.match(source, /Previous week/);
   assert.match(source, /Next week/);
   assert.match(source, /Meal picked up/);
   assert.match(source, /Move meal here/);
+  assert.match(source, /Missing from pantry:/);
+  assert.match(source, /On Shopping:/);
+  assert.match(source, /Needs shopping soon/);
+  assert.match(source, /Upcoming meals need shopping/);
+  assert.match(source, /Meal times are not stored yet/);
+  assert.match(source, /Add Missing to Shopping/);
   assert.match(source, /Add Missing Week to Shopping/);
+  assert.match(source, /listShoppingItems/);
   assert.match(source, /Nothing planned this week/);
 });
 
