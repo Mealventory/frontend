@@ -1,5 +1,6 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, Home, LogOut, RefreshCw, Users } from 'lucide-react-native';
@@ -201,8 +202,7 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
     <View style={styles.headerWrapper}>
       <View style={styles.header}>
         <View style={styles.brand}>
-          <Image source={require("../../assets/branding/icon.png")} style={styles.logoImage} resizeMode="cover" />
-          <Text style={styles.brandText}>mealventory</Text>
+          <BrandLogo width={170} />
         </View>
         {session && (
           <Pressable accessibilityRole="button" accessibilityLabel="Log out" disabled={busy} onPress={signOut} style={styles.signOutHeaderButton}>

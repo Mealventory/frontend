@@ -1,8 +1,8 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useState } from "react";
 import {
   View,
   Text,
-  Image,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -35,12 +35,7 @@ export function LoginScreen({ onNavigate }: LoginScreenProps) {
       >
         {/* Hero Section */}
         <View className="bg-brand-50 dark:bg-brand-500/10 px-8 pt-10 pb-8 items-center rounded-b-[36px] mb-6">
-          <View className="w-[72px] h-[72px] rounded-[24px] overflow-hidden shadow-md shadow-brand-500/20 mb-3.5 border border-border-default">
-            <Image source={require("../../assets/branding/icon.png")} className="w-[72px] h-[72px]" resizeMode="cover" />
-          </View>
-          <Text className="text-[26px] font-bold text-text-primary tracking-tight">
-            Mealventory
-          </Text>
+          <BrandLogo width={220} hero />
           <Text className="text-[14px] text-text-muted mt-0.5">
             Track your food, waste less.
           </Text>

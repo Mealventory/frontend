@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, FlatList, ScrollView, TextInput, TouchableOpacity, RefreshControl, AppState, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -53,6 +54,7 @@ export default function PantryDashboardScreen() {
   const activeFilterCount=(zone==='All zones'?0:1)+(selectedCat==='All'?0:1);
   const view=useMemo(()=>pantryView(inventory,today,zones[zone],selectedCat,query,group),[inventory,today,zone,selectedCat,query,group]);
   const header=<View className="gap-3 pb-4">
+    <BrandLogo />
     <View className="flex-row items-center justify-between gap-3 pt-3">
       <View className="flex-1"><Typography variant="h1">My Kitchen</Typography>
         <Typography variant="caption" color="muted">{inventory.length} items in your household</Typography></View>

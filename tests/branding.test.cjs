@@ -45,9 +45,9 @@ test("active in-app brand placeholders use the Mealventory image", () => {
   const household = fs.readFileSync("src/screens/HouseholdScreen.tsx", "utf8");
   const login = fs.readFileSync("src/screens/LoginScreen.tsx", "utf8");
 
-  assert.match(household, /assets\/branding\/icon\.png/);
+  assert.match(household, /<BrandLogo/);
   assert.doesNotMatch(household, /<Leaf\b/);
 
-  assert.match(login, /assets\/branding\/icon\.png/);
+  assert.match(login, /<BrandLogo/);
   assert.doesNotMatch(login, /🥦/);
 });

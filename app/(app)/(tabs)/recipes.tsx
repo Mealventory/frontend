@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useState, useEffect, useRef } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -175,6 +176,7 @@ export default function RecipesTabScreen() {
       className="flex-1 bg-ground-canvas"
     >
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <View style={{ marginBottom: 16 }}><BrandLogo /></View>
         {view === 'saved' && <View className="mb-4 gap-2">
           <Typography variant="caption" color="muted">Saved recipes are shared with everyone in this household.</Typography>
           <Button label="Share recipes saved on this phone" variant="secondary" onPress={() => { setSaveError(''); void shareLocalRecipes().catch(e => setSaveError(e instanceof Error ? e.message : 'Could not share recipes.')); }} />

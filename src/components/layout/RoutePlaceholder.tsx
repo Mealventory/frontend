@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -48,6 +49,8 @@ export function RoutePlaceholder({
           />
           <Badge label={category} variant="brand" size="sm" />
         </View>
+
+        <View style={{ alignItems: "center", marginBottom: 20 }}><BrandLogo width={category === "Auth" || category === "Onboarding" ? 180 : 132} hero={category === "Auth" || category === "Onboarding"} /></View>
 
         {/* Hero Info */}
         <View className="items-center p-7 bg-ground-card rounded-[28px] border border-border-default shadow-sm mb-6">
