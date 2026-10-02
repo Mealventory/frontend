@@ -1,7 +1,32 @@
 import type { FoodItem, StorageZone } from '../types';
 const backendUrl = (process.env.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
-export type InventoryRow = { id: string; household_id: string; name: string; category: string | null; quantity: number | string; unit: string; expiry_date: string | null; status: string; storage_zone?: StorageZone | null };
-export type NewItem = { name: string; category: string; quantity: number; unit: string; expiry_date: string | null; storage_zone?: StorageZone };
+export type InventoryRow = {
+  id: string;
+  household_id: string;
+  name: string;
+  category: string | null;
+  quantity: number | string;
+  quantity_tracking_enabled?: boolean;
+  initial_quantity?: number | string | null;
+  low_stock_threshold_percent?: number | string;
+  remaining_percent?: number | string | null;
+  is_low_stock?: boolean;
+  unit: string;
+  expiry_date: string | null;
+  status: string;
+  storage_zone?: StorageZone | null;
+};
+export type NewItem = {
+  name: string;
+  category: string;
+  quantity: number;
+  quantity_tracking_enabled?: boolean;
+  initial_quantity?: number | null;
+  low_stock_threshold_percent?: number;
+  unit: string;
+  expiry_date: string | null;
+  storage_zone?: StorageZone;
+};
 
 export async function inventoryRequest<T>(token: string, household: string, method = 'GET', id?: string, body?: Partial<NewItem>, action?: 'consume' | 'discard'): Promise<T> {
   if (!backendUrl) throw new Error('The backend connection is not configured.');
@@ -89,7 +114,13 @@ export function toFoodItem(row: InventoryRow): FoodItem {
   const expiry = row.expiry_date ? new Date(`${row.expiry_date}T00:00:00`) : null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   return { id: row.id, name: row.name, category: row.category || 'Pantry',
-    quantity: `${Number(row.quantity)} ${row.unit}`, emoji: '🍽️',
+    quantity: `${Number(row.quantity)} ${row.unit}`,
+    quantityTrackingEnabled: Boolean(row.quantity_tracking_enabled),
+    initialQuantity: row.initial_quantity == null ? null : Number(row.initial_quantity),
+    lowStockThresholdPercent: row.low_stock_threshold_percent == null ? 10 : Number(row.low_stock_threshold_percent),
+    remainingPercent: row.remaining_percent == null ? null : Number(row.remaining_percent),
+    isLowStock: Boolean(row.is_low_stock),
+    emoji: '🍽️',
     expiryDate: row.expiry_date, storageZone: row.storage_zone || undefined,
     expDate: expiry ? expiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Not set',
     daysLeft: expiry ? Math.round((expiry.getTime() - today.getTime()) / 86400000) : 36500 };
