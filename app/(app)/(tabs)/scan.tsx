@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useState, useRef, useCallback, useLayoutEffect } from "react";
 import {
   View,
@@ -453,6 +454,7 @@ export default function ScanTabScreen() {
           </TouchableOpacity>
 
           <View className="items-center">
+            <BrandLogo width={112} />
             <Typography variant="h3" className="text-white font-bold">
               AI Scanner
             </Typography>

@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { useNotifications } from "@/src/context/NotificationContext";
 import React, { useEffect, useState } from "react";
 import { View, ScrollView, TouchableOpacity } from "react-native";
@@ -87,6 +88,7 @@ export default function SettingsTabScreen() {
   return (
     <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-ground-canvas">
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 28 }}>
+        <View style={{ marginBottom: 16 }}><BrandLogo /></View>
         <View className="mb-6">
           <Typography variant="h1">Settings</Typography>
           <Typography variant="caption" color="muted">

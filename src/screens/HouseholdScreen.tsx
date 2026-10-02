@@ -1,8 +1,9 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, ArrowRight, Home, Leaf, LogOut, RefreshCw, Users } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Home, LogOut, RefreshCw, Users } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
@@ -201,8 +202,7 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
     <View style={styles.headerWrapper}>
       <View style={styles.header}>
         <View style={styles.brand}>
-          <View style={styles.logo}><Leaf size={23} color="white" /></View>
-          <Text style={styles.brandText}>mealventory</Text>
+          <BrandLogo width={170} />
         </View>
         {session && (
           <Pressable accessibilityRole="button" accessibilityLabel="Log out" disabled={busy} onPress={signOut} style={styles.signOutHeaderButton}>
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
   },
   scroll: { flexGrow: 1, width: "100%", maxWidth: 560, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 24 },
   container: { width: '100%', maxWidth: 520, alignSelf: 'center' },
-  brand: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }, logo: { backgroundColor: green, borderRadius: 13, padding: 9 }, brandText: { fontSize: 22, color: '#183B2D', fontFamily: 'Inter_700Bold', letterSpacing: -.8 },
+  brand: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }, logoImage: { width: 42, height: 42, borderRadius: 13 }, brandText: { fontSize: 22, color: '#183B2D', fontFamily: 'Inter_700Bold', letterSpacing: -.8 },
   iconButton: { padding: 12 }, hero: { marginBottom: 24 }, eyebrow: { fontSize: 10, letterSpacing: 1.8, fontFamily: 'Inter_700Bold', color: green, marginBottom: 13 },
   title: { fontSize: 36, lineHeight: 43, letterSpacing: -1.3, fontFamily: 'Inter_700Bold', color: '#163C2C', marginBottom: 14 },
   subtitle: { fontSize: 15, lineHeight: 23, color: '#617168', marginBottom: 24, fontFamily: 'Inter_400Regular' }, heroIllustration: { backgroundColor: '#E8EFE3', borderRadius: 20, padding: 24, flexDirection: 'row', gap: 20, alignItems: 'center' },
