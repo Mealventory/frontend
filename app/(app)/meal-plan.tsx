@@ -158,9 +158,40 @@ export default function MealPlanScreen() {
     [inventory]
   );
 
+  const shoppingNames = useMemo(
+    () =>
+      new Set(
+        shoppingItems.map((item) => item.name.trim().toLocaleLowerCase())
+      ),
+    [shoppingItems]
+  );
+
   const missingForWeek = useMemo(
     () => weeklyMissingIngredients(visibleMeals, inventoryNames),
     [visibleMeals, inventoryNames]
+  );
+  const unresolvedForWeek = useMemo(
+    () =>
+      missingForWeek.filter(
+        (ingredient) => !shoppingNames.has(ingredient.toLocaleLowerCase())
+      ),
+    [missingForWeek, shoppingNames]
+  );
+  const shoppingCoveredForWeek = useMemo(
+    () =>
+      missingForWeek.filter((ingredient) =>
+        shoppingNames.has(ingredient.toLocaleLowerCase())
+      ),
+    [missingForWeek, shoppingNames]
+  );
+  const upcomingWarnings = useMemo(
+    () =>
+      upcomingMealReadinessWarnings(
+        meals,
+        inventoryNames,
+        shoppingNames
+      ),
+    [meals, inventoryNames, shoppingNames]
   );
 
   const requestedRecipe =
