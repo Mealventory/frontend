@@ -155,7 +155,7 @@ test('ThemeContext exposes distinction between system, light, and dark preferenc
   assert.ok(source.includes('ThemePreference = "system" | "light" | "dark"'));
   assert.ok(source.includes('themePreference: ThemePreference'));
   assert.ok(source.includes('setThemePreference: (pref: ThemePreference)'));
-  assert.ok(source.includes('Appearance.addChangeListener'));
+  assert.ok(source.includes('colorScheme: nativeScheme'));
 });
 
 test('app/_layout.tsx waits for theme hydration before revealing UI and hiding splash screen', () => {
@@ -217,20 +217,13 @@ test('app/_layout.tsx waits for theme hydration before revealing UI and hiding s
   assert.equal(splashHidden, true, 'Splash screen hides once theme is restored');
 });
 
-test('Settings screen offers System, Light, and Dark appearance selector', () => {
-  const settingsTabSource = fs.readFileSync('app/(app)/(tabs)/settings.tsx', 'utf8');
-  assert.ok(settingsTabSource.includes('themePreference'));
-  assert.ok(settingsTabSource.includes('setThemePreference'));
-  assert.ok(settingsTabSource.includes('"system"'));
-  assert.ok(settingsTabSource.includes('"light"'));
-  assert.ok(settingsTabSource.includes('"dark"'));
-
-  const settingsScreenSource = fs.readFileSync('src/screens/SettingsScreen.tsx', 'utf8');
-  assert.ok(settingsScreenSource.includes('themePreference'));
-  assert.ok(settingsScreenSource.includes('setThemePreference'));
-  assert.ok(settingsScreenSource.includes('"system"'));
-  assert.ok(settingsScreenSource.includes('"light"'));
-  assert.ok(settingsScreenSource.includes('"dark"'));
+test('both settings screens use the shared native appearance selector', () => {
+  for (const file of ['app/(app)/(tabs)/settings.tsx', 'src/screens/SettingsScreen.tsx']) {
+    assert.ok(fs.readFileSync(file, 'utf8').includes('<ThemeSelector />'));
+  }
+  const selector = fs.readFileSync('src/components/molecules/ThemeSelector.tsx', 'utf8');
+  for (const mode of ['system', 'light', 'dark']) assert.ok(selector.includes(`id: '${mode}'`));
+  assert.ok(!selector.includes('className='));
 });
 
 test('global.css uses the selected theme class without an OS media override', () => {

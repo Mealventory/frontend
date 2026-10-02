@@ -18,6 +18,7 @@
     /* 2. Grounds & Backgrounds (Light Theme Default)                             */
     /* -------------------------------------------------------------------------- */
     --color-ground-canvas: #FAFAFA;
+    --color-ground-input: #F8FAFC;
     --color-ground-surface: #FFFFFF;
     --color-ground-card: #FFFFFF;
     --color-ground-elevated: #F8FAFC;
@@ -101,6 +102,7 @@
     /* 2. Grounds & Backgrounds (Executive Dark Theme)                            */
     /* -------------------------------------------------------------------------- */
     --color-ground-canvas: #020617;
+    --color-ground-input: #0F172A;
     --color-ground-surface: #0F172A;
     --color-ground-card: rgba(30, 41, 59, 0.75);
     --color-ground-elevated: #1E293B;

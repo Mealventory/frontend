@@ -1,3 +1,4 @@
+import { ThemeSelector } from "@/src/components/molecules/ThemeSelector";
 import React, { useState } from "react";
 import {
   View,
@@ -162,40 +163,7 @@ export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
               : `Explicitly set to ${themePreference} mode`}
           </Text>
 
-          {/* Theme Option Selector */}
-          <View className="flex-row p-1 bg-ground-subtle dark:bg-ground-elevated rounded-xl border border-border-default gap-1 mb-4">
-            {[
-              { id: "system" as const, label: "System", icon: "Smartphone" as const },
-              { id: "light" as const, label: "Light", icon: "Sun" as const },
-              { id: "dark" as const, label: "Dark", icon: "Moon" as const },
-            ].map((option) => {
-              const isActive = themePreference === option.id;
-              return (
-                <TouchableOpacity
-                  key={option.id}
-                  activeOpacity={0.7}
-                  onPress={() => void setThemePreference(option.id)}
-                  className={`flex-1 flex-row items-center justify-center py-2 px-3 rounded-lg gap-1.5 ${
-                    isActive ? "bg-brand-500" : "bg-transparent"
-                  }`}
-                >
-                  <Icon
-                    name={option.icon}
-                    size={16}
-                    color={isActive ? "#FFFFFF" : isDark ? "#94A3B8" : "#64748B"}
-                  />
-                  <Text
-                    className={`text-[12px] font-semibold ${
-                      isActive ? "text-white" : "text-text-secondary"
-                    }`}
-                  >
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
+          <ThemeSelector />
           {/* Expiry Alerts Switch */}
           <View className="flex-row items-center justify-between py-3 border-b border-border-default">
             <View className="flex-row items-center gap-3">
