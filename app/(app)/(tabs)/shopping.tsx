@@ -75,7 +75,9 @@ export default function ShoppingTabScreen() {
       setItems([]);
       setSuggestions([]);
       setStores([]);
-      resetStoreForm();
+      setStoreName("");
+      setStoreUrl("");
+      setEditingStoreId(null);
       setStoreError("");
       setLoading(false);
       return;
