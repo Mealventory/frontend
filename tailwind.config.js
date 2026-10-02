@@ -19,6 +19,7 @@ module.exports = {
           surface: "var(--color-brand-surface)",
         },
         ground: {
+          input: "var(--color-ground-input)",
           canvas: "var(--color-ground-canvas)",
           surface: "var(--color-ground-surface)",
           card: "var(--color-ground-card)",

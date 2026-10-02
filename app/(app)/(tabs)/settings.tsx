@@ -1,3 +1,4 @@
+import { ThemeSelector } from "@/src/components/molecules/ThemeSelector";
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { useNotifications } from "@/src/context/NotificationContext";
 import React, { useEffect, useState } from "react";
@@ -119,40 +120,7 @@ export default function SettingsTabScreen() {
               : `Explicitly set to ${themePreference} mode`}
           </Typography>
 
-          {/* 3-way Option Selector */}
-          <View className="flex-row p-1 bg-ground-subtle rounded-xl border border-border-default gap-1">
-            {[
-              { id: "system" as const, label: "System", icon: "Smartphone" as const },
-              { id: "light" as const, label: "Light", icon: "Sun" as const },
-              { id: "dark" as const, label: "Dark", icon: "Moon" as const },
-            ].map((option) => {
-              const isActive = themePreference === option.id;
-              return (
-                <TouchableOpacity
-                  key={option.id}
-                  activeOpacity={0.7}
-                  onPress={() => void setThemePreference(option.id)}
-                  className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg gap-1.5 ${
-                    isActive ? "bg-brand-500" : "bg-transparent"
-                  }`}
-                >
-                  <Icon
-                    name={option.icon}
-                    size={16}
-                    color={isActive ? "#FFFFFF" : isDark ? "#94A3B8" : "#64748B"}
-                  />
-                  <Typography
-                    variant="caption"
-                    className={`font-semibold ${
-                      isActive ? "text-white" : "text-text-secondary"
-                    }`}
-                  >
-                    {option.label}
-                  </Typography>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <ThemeSelector />
         </View>
 
         {/* Profile & Security Section */}
