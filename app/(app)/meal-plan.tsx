@@ -100,7 +100,6 @@ export default function MealPlanScreen() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const scopeKey = `${session?.user.id || ""}:${household?.id || ""}`;
 
   const load = useCallback(async () => {
     if (!session || !household) {
