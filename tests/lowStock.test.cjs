@@ -25,9 +25,6 @@ test("inventory rows preserve low-stock tracking metadata", () => {
     name: "Flour",
     category: "Pantry",
     quantity: "0.2",
-    quantity_tracking_enabled: true,
-    initial_quantity: "2",
-    low_stock_threshold_percent: "10",
     remaining_percent: "10.0",
     is_low_stock: true,
     unit: "kg",
@@ -37,22 +34,19 @@ test("inventory rows preserve low-stock tracking metadata", () => {
   });
 
   assert.equal(item.quantity, "0.2 kg");
-  assert.equal(item.quantityTrackingEnabled, true);
-  assert.equal(item.initialQuantity, 2);
-  assert.equal(item.lowStockThresholdPercent, 10);
   assert.equal(item.remainingPercent, 10);
   assert.equal(item.isLowStock, true);
 });
 
-test("edit screen configures tracking reference and threshold", () => {
+test("edit screen keeps low-stock tracking automatic", () => {
   const source = fs.readFileSync("app/(app)/inventory/edit.tsx", "utf8");
 
-  assert.match(source, /Track quantity for low stock/);
-  assert.match(source, /Reference quantity/);
-  assert.match(source, /Low-stock threshold/);
-  assert.match(source, /quantity_tracking_enabled: trackQuantity/);
-  assert.match(source, /initial_quantity: trackQuantity \? reference : null/);
-  assert.match(source, /low_stock_threshold_percent/);
+  assert.match(source, /Low-stock tracking is automatic/);
+  assert.match(source, /warns at 10% remaining/);
+  assert.doesNotMatch(source, /Track quantity for low stock/);
+  assert.doesNotMatch(source, /Reference quantity/);
+  assert.doesNotMatch(source, /Low-stock threshold \(%\)/);
+  assert.doesNotMatch(source, /quantity_tracking_enabled/);
 });
 
 test("pantry cards and dashboard visibly separate low-stock state from expiry", () => {
@@ -60,7 +54,7 @@ test("pantry cards and dashboard visibly separate low-stock state from expiry", 
   const dashboard = fs.readFileSync("app/(app)/(tabs)/index.tsx", "utf8");
 
   assert.match(card, /Low stock ·/);
-  assert.match(card, /remaining · alert at/);
+  assert.match(card, /% remaining/);
   assert.match(dashboard, /Quantity alerts are separate from freshness and expiry/);
   assert.match(dashboard, /Add to Shopping/);
 });
