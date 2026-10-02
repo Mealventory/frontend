@@ -74,6 +74,9 @@ export default function ShoppingTabScreen() {
     if (!session || !household) {
       setItems([]);
       setSuggestions([]);
+      setStores([]);
+      resetStoreForm();
+      setStoreError("");
       setLoading(false);
       return;
     }
