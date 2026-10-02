@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
+import { useAuth } from "@/src/context/AuthContext";
+import { RecipeCompletionReview } from "@/src/components/domain/RecipeCompletionReview";
 import { ActivityIndicator, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,11 +11,14 @@ export default function CookingModeRouteScreen() {
   const params = useLocalSearchParams<{ id: string | string[] }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const router = useRouter();
+  const { session, household } = useAuth();
+  const [review, setReview] = useState(false);
   const {
     recipes,
     savedRecipes,
     savedRecipesLoading,
     selectedRecipe,
+    refreshInventory,
   } = useInventory();
 
   const recipe =
@@ -48,16 +53,18 @@ export default function CookingModeRouteScreen() {
     );
   }
 
+  if (review && session && household) return <RecipeCompletionReview
+    key={`${session.user.id}:${household.id}:${recipe.id}`}
+    recipe={recipe} householdId={household.id} userId={session.user.id}
+    onBack={() => setReview(false)} refreshInventory={refreshInventory}
+    onDone={() => router.replace({ pathname: "/(app)/recipes/[id]", params: { id: recipe.id } } as any)}
+  />;
+
   return (
     <CookingModeView
       recipe={recipe}
       onBack={() => router.back()}
-      onFinish={() =>
-        router.replace({
-          pathname: "/(app)/recipes/[id]",
-          params: { id: recipe.id },
-        } as any)
-      }
+      onFinish={() => setReview(true)}
     />
   );
 }

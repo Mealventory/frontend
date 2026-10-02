@@ -6,7 +6,6 @@ import type { Recipe } from "@/src/types";
 import { Icon } from "@/src/components/atoms/Icon";
 import {
   cancelCookingTimer,
-  clearCookingSession,
   formatCookingTimer,
   readCookingSession,
   remainingTimerSeconds,
@@ -77,7 +76,6 @@ export function CookingModeView({ recipe, onBack, onFinish }: CookingModeViewPro
   };
 
   const finish = () => {
-    clearCookingSession(recipe.id);
     onFinish();
   };
 
@@ -219,7 +217,7 @@ export function CookingModeView({ recipe, onBack, onFinish }: CookingModeViewPro
           {isLast && (
             <View className="pt-3 mt-1 border-t border-border-default">
               <Text className="text-[12px] text-text-muted text-center mb-3">
-                Finished every step? This ends the current cooking session.
+                Finished every step? Review what you used before updating your pantry.
               </Text>
               <TouchableOpacity
                 accessibilityRole="button"
