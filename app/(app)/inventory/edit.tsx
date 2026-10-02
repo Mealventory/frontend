@@ -33,16 +33,24 @@ function EditForm({ item }: { item: FoodItem }) {
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState('');
+  const liveQuantity = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
   const save = async () => {
     if (lock.current) return;
-    const amount = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    const amount = liveQuantity;
     let expiry: string | null;
     try { expiry = normalizeExpiryDate(date); } catch (e) { setError((e as Error).message); return; }
     if (!name.trim() || !category.trim()) { setError('Enter an item name and category.'); return; }
     if (!amount || !Number.isFinite(Number(amount[1])) || Number(amount[1]) <= 0) { setError('Enter a positive quantity, such as 2 tubs or 500 g.'); return; }
     lock.current = true; setSaving(true); setError('');
     try {
-      await updateItem(item.id, { name: name.trim(), category: category.trim(), quantity: Number(amount[1]), unit: amount[2] || 'units', expiry_date: expiry || null, storage_zone: zone });
+      await updateItem(item.id, {
+        name: name.trim(),
+        category: category.trim(),
+        quantity: Number(amount[1]),
+        unit: amount[2] || 'units',
+        expiry_date: expiry || null,
+        storage_zone: zone,
+      });
       router.back();
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save changes.'); }
     finally { lock.current = false; setSaving(false); }
@@ -57,6 +65,9 @@ function EditForm({ item }: { item: FoodItem }) {
       <View className="gap-5">
         <FormField label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
         <FormField label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
+        <Typography variant="caption" color="muted">
+          Low-stock tracking is automatic. Mealventory remembers the amount you originally added and warns at 10% remaining.
+        </Typography>
         <FormField label="Category" value={category} onChangeText={setCategory} editable={!saving} maxLength={80} />
         <ExpiryPrediction name={name} zone={zone} value={date} onApply={setDate} itemId={item.id} disabled={saving} />
         <ExpiryDateField value={date} onChangeText={setDate} editable={!saving} />

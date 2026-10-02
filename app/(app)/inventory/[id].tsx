@@ -107,6 +107,23 @@ export default function ItemDetailScreen() {
           ))}
         </View>
 
+        {item.remainingPercent != null && (
+          <View className={`p-4 rounded-[22px] border mb-4 ${item.isLowStock ? 'bg-urgency-soon-bg border-urgency-soon/30' : 'bg-ground-surface border-border-default'}`}>
+            <View className="flex-row items-center gap-2 mb-2">
+              <Icon name="Gauge" size={18} color={item.isLowStock ? '#F59E0B' : '#10B981'} />
+              <Text className={`text-[15px] font-bold ${item.isLowStock ? 'text-urgency-soon' : 'text-text-primary'}`}>
+                {item.isLowStock ? 'Low stock' : 'Quantity remaining'}
+              </Text>
+            </View>
+            <Text className="text-[14px] text-text-secondary">
+              {item.quantity} remaining · {item.remainingPercent}% left
+            </Text>
+            <Text className="text-[12px] text-text-muted mt-1">
+              Mealventory warns automatically at 10% remaining.
+            </Text>
+          </View>
+        )}
+
         <View className="gap-3 mb-4">
           <TouchableOpacity disabled={deleting} accessibilityRole="button"
             onPress={() => router.push({ pathname: '/(app)/inventory/edit', params: { id: item.id } })}
