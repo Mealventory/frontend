@@ -20,7 +20,7 @@ export interface SettingsScreenProps {
 
 export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
   const { user, logout, inventory } = useInventory();
-  const { isDark, toggleTheme, colorScheme, themePreference, setThemePreference } = useAppTheme();
+  const { colorScheme, themePreference } = useAppTheme();
   const [expiryAlerts, setExpiryAlerts] = useState(true);
   const [soundEffects, setSoundEffects] = useState(true);
 
