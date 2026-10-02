@@ -131,7 +131,7 @@ export default function SettingsTabScreen() {
                   activeOpacity={0.7}
                   onPress={() => void setThemePreference(option.id)}
                   className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg gap-1.5 ${
-                    isActive ? "bg-brand-500 shadow-sm" : "bg-transparent"
+                    isActive ? "bg-brand-500" : "bg-transparent"
                   }`}
                 >
                   <Icon

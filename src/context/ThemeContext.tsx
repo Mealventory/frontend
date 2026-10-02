@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { Appearance } from "react-native";
 import { useColorScheme } from "nativewind";
 import {
@@ -34,6 +34,12 @@ const ThemeContext = createContext<ThemeContextType>({
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { setColorScheme: setNativeWindScheme } = useColorScheme();
 
+  // NativeWind returns a new setter each render. Keep hydration independent
+  // of that identity so toggling cannot reload the previous saved preference.
+  const nativeWindSetter = useRef(setNativeWindScheme);
+  nativeWindSetter.current = setNativeWindScheme;
+  const preferenceChanged = useRef(false);
+
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => {
     const webPref = getWebInitialPreference();
     return webPref ?? "system";
@@ -62,11 +68,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     async function loadPreference() {
       try {
         const stored = await themeStorage.getPreference();
-        if (isMounted) {
+        if (isMounted && !preferenceChanged.current) {
           const activePref = stored || "system";
           setThemePreferenceState(activePref);
           try {
-            setNativeWindScheme(activePref);
+            nativeWindSetter.current(activePref);
           } catch {}
         }
       } catch {
@@ -83,17 +89,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [setNativeWindScheme]);
+  }, []);
 
   const setThemePreference = useCallback(
     async (pref: ThemePreference) => {
+      preferenceChanged.current = true;
       setThemePreferenceState(pref);
       try {
-        setNativeWindScheme(pref);
+        nativeWindSetter.current(pref);
       } catch {}
       await themeStorage.setPreference(pref);
     },
-    [setNativeWindScheme]
+    []
   );
 
   const resolvedScheme: ThemeMode =

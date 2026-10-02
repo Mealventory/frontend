@@ -233,10 +233,10 @@ test('Settings screen offers System, Light, and Dark appearance selector', () =>
   assert.ok(settingsScreenSource.includes('"dark"'));
 });
 
-test('global.css defines both media query and class-based dark mode tokens', () => {
+test('global.css uses the selected theme class without an OS media override', () => {
   const globalCss = fs.readFileSync('global.css', 'utf8');
   assert.ok(globalCss.includes(':root[class~="dark"]'));
-  assert.ok(globalCss.includes('@media (prefers-color-scheme: dark)'));
+  assert.ok(!globalCss.includes('@media (prefers-color-scheme: dark)')); 
   assert.ok(globalCss.includes('--color-ground-canvas'));
   assert.ok(globalCss.includes('--color-brand-500'));
 });
