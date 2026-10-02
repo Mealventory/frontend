@@ -153,7 +153,7 @@ test("timed steps can start and cancel a timer without leaving cooking mode", ()
   cooking.clearCookingSession(recipe.id);
 });
 
-test("finish meal is only exposed on the final step and clears session progress", () => {
+test("finish meal opens review without discarding cooking progress", () => {
   cooking.clearCookingSession(recipe.id);
   cooking.saveCookingStep(recipe.id, 2, recipe.steps.length);
   const h = modeHarness();
@@ -162,5 +162,5 @@ test("finish meal is only exposed on the final step and clears session progress"
   assert.ok(finish);
   finish.props.onPress();
   assert.equal(h.finished, 1);
-  assert.equal(cooking.readCookingSession(recipe.id, recipe.steps.length).stepIndex, 0);
+  assert.equal(cooking.readCookingSession(recipe.id, recipe.steps.length).stepIndex, 2);
 });
