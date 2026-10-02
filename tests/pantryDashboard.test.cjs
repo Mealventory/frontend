@@ -61,7 +61,7 @@ test('storage zone route parameter opens pantry with the matching filter applied
 
 test('low-stock items are surfaced separately with one-tap Shopping action',async()=>{
  const h=harness();try{
-  h.data.inventory.push({id:'3',name:'Flour',category:'Pantry',quantity:'0.2 kg',expiryDate:null,storageZone:'pantry',quantityTrackingEnabled:true,initialQuantity:2,remainingPercent:10,lowStockThresholdPercent:10,isLowStock:true});
+  h.data.inventory.push({id:'3',name:'Flour',category:'Pantry',quantity:'0.2 kg',expiryDate:null,storageZone:'pantry',remainingPercent:10,isLowStock:true});
   let nodes=h.render();
   assert.ok(nodes.some(n=>n.props?.children==='Low stock'));
   const add=nodes.find(n=>n.type==='Button'&&n.props?.label==='Add to Shopping');
