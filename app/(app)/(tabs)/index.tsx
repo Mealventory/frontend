@@ -11,6 +11,7 @@ import { EmptyState } from '@/src/components/molecules/EmptyState';
 import { useInventory } from '@/src/context/InventoryContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { localDay, pantryView, ExpiryGroup } from '@/src/lib/pantryExpiry';
+import { addMissingIngredientsToShopping } from '@/src/lib/shoppingApi';
 
 const categories = ['All', 'Produce', 'Dairy', 'Meat', 'Bakery', 'Pantry', 'Beverage', 'Snacks'];
 const zones: Record<string,string> = { 'All zones':'all', Fridge:'fridge', Freezer:'freezer', Pantry:'pantry', Spices:'spicerack' };
@@ -35,6 +36,8 @@ export default function PantryDashboardScreen() {
   const [search,setSearch] = useState('');
   const [query,setQuery] = useState('');
   const [today,setToday] = useState(localDay);
+  const [shoppingBusy,setShoppingBusy] = useState<string | null>(null);
+  const [shoppingNotice,setShoppingNotice] = useState('');
   useEffect(()=>{const timer=setTimeout(()=>setQuery(search),250);return()=>clearTimeout(timer);},[search]);
   useEffect(()=>{
     const update=()=>setToday(localDay());
@@ -50,9 +53,27 @@ export default function PantryDashboardScreen() {
     setZone(requestedZone ?? 'All zones');
     setGroup('all');
     setFilterOpen(false);
+    setShoppingBusy(null);
+    setShoppingNotice('');
   },[household?.id,session?.user.id,requestedZone]);
   const activeFilterCount=(zone==='All zones'?0:1)+(selectedCat==='All'?0:1);
   const view=useMemo(()=>pantryView(inventory,today,zones[zone],selectedCat,query,group),[inventory,today,zone,selectedCat,query,group]);
+  const lowStockItems=useMemo(
+    ()=>inventory.filter(item=>item.quantityTrackingEnabled&&item.isLowStock),
+    [inventory]
+  );
+  const addLowStockToShopping=async(itemName:string,itemId:string)=>{
+    if(!session||!household||shoppingBusy)return;
+    setShoppingBusy(itemId);setShoppingNotice('');
+    try{
+      const result=await addMissingIngredientsToShopping(session.access_token,household.id,[itemName]);
+      setShoppingNotice(result.added>0?`${itemName} added to Shopping.`:`${itemName} is already on Shopping.`);
+    }catch(e){
+      setShoppingNotice(e instanceof Error?e.message:'Could not add this item to Shopping.');
+    }finally{
+      setShoppingBusy(null);
+    }
+  };
   const header=<View className="gap-3 pb-4">
     <BrandLogo />
     <View className="flex-row items-center justify-between gap-3 pt-3">
@@ -87,6 +108,41 @@ export default function PantryDashboardScreen() {
       <Icon name="Search" size={16} color="#94A3B8" />
       <TextInput accessibilityLabel="Search your kitchen" placeholder="Search your kitchen..." placeholderTextColor="#94A3B8" value={search} onChangeText={setSearch} className="flex-1 ml-2.5 text-text-primary py-3" />
     </View>
+    {!inventoryError && lowStockItems.length>0 && <View className="gap-3">
+      <View className="flex-row items-center justify-between gap-3">
+        <View className="flex-1">
+          <Typography variant="h2">Low stock</Typography>
+          <Typography variant="caption" color="muted">
+            Quantity alerts are separate from freshness and expiry.
+          </Typography>
+        </View>
+        <View className="min-w-[32px] h-8 px-2 rounded-full bg-urgency-soon-bg items-center justify-center">
+          <Typography variant="caption" className="font-bold text-urgency-soon">{lowStockItems.length}</Typography>
+        </View>
+      </View>
+      <View className="gap-2">
+        {lowStockItems.map(item=><View key={item.id} className="p-4 rounded-2xl bg-ground-surface border border-urgency-soon/30 gap-3">
+          <View className="flex-row items-start gap-3">
+            <View className="flex-1">
+              <Typography variant="body" className="font-bold">{item.name}</Typography>
+              <Typography variant="caption" color="muted">
+                {item.quantity} remaining · {item.remainingPercent ?? 0}% of reference · alert at {item.lowStockThresholdPercent ?? 10}%
+              </Typography>
+            </View>
+            <Icon name="TriangleAlert" size={20} color="#F59E0B" />
+          </View>
+          <Button
+            label="Add to Shopping"
+            size="sm"
+            variant="outline"
+            loading={shoppingBusy===item.id}
+            disabled={Boolean(shoppingBusy)}
+            onPress={()=>void addLowStockToShopping(item.name,item.id)}
+          />
+        </View>)}
+      </View>
+      {!!shoppingNotice&&<Typography variant="caption" color="muted" accessibilityRole="alert">{shoppingNotice}</Typography>}
+    </View>}
     {!inventoryError && inventory.length>0 && <View className="gap-3">
       <Typography variant="h2">Expiry radar</Typography>
       <Typography variant="caption" color="muted">Counts follow your filters. Next 48 hours covers tomorrow and the following day.</Typography>
