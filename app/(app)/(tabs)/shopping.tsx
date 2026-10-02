@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -305,6 +306,7 @@ export default function ShoppingTabScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 20, paddingBottom: 28 }}
       >
+        <View style={{ marginBottom: 16 }}><BrandLogo /></View>
         <View className="mb-6">
           <Typography variant="h1">Shopping List</Typography>
           <Typography variant="caption" color="muted">

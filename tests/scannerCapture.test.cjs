@@ -25,6 +25,7 @@ function harness(file) {
     'expo-camera': { CameraView: 'Camera', useCameraPermissions: () => [{ granted: true }, () => {}] },
     'expo-image-picker': {},
     'expo-haptics': { impactAsync: async () => {}, ImpactFeedbackStyle: { Medium: 1 } },
+    '@/src/components/atoms/BrandLogo': { BrandLogo: 'BrandLogo' },
     '@/src/components/atoms': { Typography: 'Typography', Icon: 'Icon', Button: 'Button' },
     '@/src/components/molecules': { BarcodeScannerFrame: 'Frame', CameraOverlayControls: 'Controls' },
     '@/src/context/AuthContext': { useAuth: () => ({ session: { access_token: 'token' }, household: { id: 'home' } }) },
