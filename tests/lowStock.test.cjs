@@ -49,12 +49,14 @@ test("edit screen keeps low-stock tracking automatic", () => {
   assert.doesNotMatch(source, /quantity_tracking_enabled/);
 });
 
-test("pantry cards and dashboard visibly separate low-stock state from expiry", () => {
+test("home hides quantity percentage while item detail shows it", () => {
   const card = fs.readFileSync("src/components/domain/PantryItemCard.tsx", "utf8");
   const dashboard = fs.readFileSync("app/(app)/(tabs)/index.tsx", "utf8");
+  const detail = fs.readFileSync("app/(app)/inventory/[id].tsx", "utf8");
 
-  assert.match(card, /Low stock ·/);
-  assert.match(card, /% remaining/);
-  assert.match(dashboard, /Quantity alerts are separate from freshness and expiry/);
-  assert.match(dashboard, /Add to Shopping/);
+  assert.doesNotMatch(card, /remainingPercent/);
+  assert.doesNotMatch(dashboard, /Low stock/);
+  assert.doesNotMatch(dashboard, /Add to Shopping/);
+  assert.match(detail, /item\.remainingPercent/);
+  assert.match(detail, /Mealventory warns automatically at 10% remaining/);
 });
