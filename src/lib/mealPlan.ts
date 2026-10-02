@@ -89,14 +89,51 @@ export function mealsForWeek(
   return meals.filter((meal) => keys.has(meal.date));
 }
 
+export type MealReadinessState = "ready" | "missing";
+
+export interface MealReadiness {
+  state: MealReadinessState;
+  matchPercent: number;
+  missingIngredients: string[];
+}
+
+function inventoryNameSet(
+  inventory: Array<Pick<FoodItem, "name">> | Set<string>
+): Set<string> {
+  const values =
+    inventory instanceof Set
+      ? [...inventory]
+      : inventory.map((item) => item.name);
+  return new Set(
+    values
+      .map((name) => name.trim().toLocaleLowerCase())
+      .filter(Boolean)
+  );
+}
+
+export function missingIngredientsForRecipe(
+  recipe: Pick<Recipe, "uses">,
+  inventory: Array<Pick<FoodItem, "name">> | Set<string>
+): string[] {
+  const names = inventoryNameSet(inventory);
+  const missing = new Map<string, string>();
+
+  for (const ingredient of recipe.uses) {
+    const name = ingredient.trim();
+    const key = name.toLocaleLowerCase();
+    if (name && !names.has(key) && !missing.has(key)) {
+      missing.set(key, name);
+    }
+  }
+
+  return [...missing.values()];
+}
+
 export function mealMatchPercent(
   recipe: Pick<Recipe, "uses">,
   inventory: Array<Pick<FoodItem, "name">> | Set<string>
 ): number {
-  const names =
-    inventory instanceof Set
-      ? inventory
-      : new Set(inventory.map((item) => item.name.trim().toLocaleLowerCase()));
+  const names = inventoryNameSet(inventory);
   if (recipe.uses.length === 0) return 100;
   const have = recipe.uses.filter((name) =>
     names.has(name.trim().toLocaleLowerCase())
@@ -104,23 +141,40 @@ export function mealMatchPercent(
   return Math.round((have / recipe.uses.length) * 100);
 }
 
+export function mealReadiness(
+  recipe: Pick<Recipe, "uses">,
+  inventory: Array<Pick<FoodItem, "name">> | Set<string>
+): MealReadiness {
+  const missingIngredients = missingIngredientsForRecipe(recipe, inventory);
+  return {
+    state: missingIngredients.length === 0 ? "ready" : "missing",
+    matchPercent: mealMatchPercent(recipe, inventory),
+    missingIngredients,
+  };
+}
+
+export function isDateWithinLeadTime(
+  dateKey: string,
+  today = new Date(),
+  leadDays = 1
+): boolean {
+  const target = parseLocalDateKey(dateKey);
+  const start = parseLocalDateKey(localDateKey(today));
+  const end = new Date(start);
+  end.setDate(end.getDate() + Math.max(0, leadDays));
+  return target >= start && target <= end;
+}
+
 export function weeklyMissingIngredients(
   meals: PlannedMeal[],
   inventory: Array<Pick<FoodItem, "name">> | Set<string>
 ): string[] {
-  const names =
-    inventory instanceof Set
-      ? inventory
-      : new Set(inventory.map((item) => item.name.trim().toLocaleLowerCase()));
   const missing = new Map<string, string>();
 
   for (const meal of meals) {
-    for (const ingredient of meal.recipe.uses) {
-      const name = ingredient.trim();
-      const key = name.toLocaleLowerCase();
-      if (name && !names.has(key) && !missing.has(key)) {
-        missing.set(key, name);
-      }
+    for (const ingredient of missingIngredientsForRecipe(meal.recipe, inventory)) {
+      const key = ingredient.toLocaleLowerCase();
+      if (!missing.has(key)) missing.set(key, ingredient);
     }
   }
 
