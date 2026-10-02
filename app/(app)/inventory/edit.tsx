@@ -103,7 +103,7 @@ function EditForm({ item }: { item: FoodItem }) {
               onValueChange={(enabled) => {
                 setTrackQuantity(enabled);
                 if (enabled && !referenceQuantity.trim() && liveQuantity?.[1]) {
-                  setReferenceQuantity(amount[1]);
+                  setReferenceQuantity(liveQuantity[1]);
                 }
               }}
             />
