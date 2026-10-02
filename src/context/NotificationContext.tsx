@@ -67,7 +67,7 @@ export function NotificationProvider({children}: {children: React.ReactNode}) {
         await SecureStore.setItemAsync(key, token);
         await updatePushDevice(user.access_token, token, Platform.OS as 'ios' | 'android');
         if (!valid()) { await updatePushDevice(user.access_token, token); return; }
-        setStatus('This phone is registered. Expiry alert delivery is not enabled yet.');
+        setStatus('This phone is registered for Mealventory alerts.');
       } catch (error) {
         if (valid()) setStatus(error instanceof Error ? error.message : 'Could not register notifications. Please retry.');
       } finally { setBusy(false); }
@@ -82,6 +82,14 @@ export function NotificationProvider({children}: {children: React.ReactNode}) {
     let subscription: {remove: () => void} | undefined;
     let active = true;
     void import('expo-notifications').then(notifications => {
+      notifications.setNotificationHandler?.({
+        handleNotification: async () => ({
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: true,
+          shouldSetBadge: false,
+        }),
+      });
       if (active && previous) subscription = notifications.addPushTokenListener(() => { void sync(); });
     }).catch(() => { if (active) setStatus('Notifications are unavailable in this build.'); });
     const foreground = AppState.addEventListener('change', state => { if (state === 'active') void sync(); });
