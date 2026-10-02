@@ -89,29 +89,100 @@ export function mealsForWeek(
   return meals.filter((meal) => keys.has(meal.date));
 }
 
+export type MealReadinessStatus = "ready" | "low" | "missing";
+
+export interface MealIngredientReadiness {
+  status: MealReadinessStatus;
+  matchPercent: number;
+  missingIngredients: string[];
+  shoppingCoveredIngredients: string[];
+  unresolvedIngredients: string[];
+}
+
+type IngredientNameSource = Array<{ name: string }> | Set<string>;
+
+function normalizedNameSet(source: IngredientNameSource): Set<string> {
+  const values =
+    source instanceof Set
+      ? [...source]
+      : source.map((item) => item.name);
+
+  return new Set(
+    values
+      .map((name) => name.trim().toLocaleLowerCase())
+      .filter(Boolean)
+  );
+}
+
+export function mealIngredientReadiness(
+  recipe: Pick<Recipe, "uses">,
+  inventory: IngredientNameSource,
+  shopping: IngredientNameSource = new Set<string>()
+): MealIngredientReadiness {
+  const inventoryNames = normalizedNameSet(inventory);
+  const shoppingNames = normalizedNameSet(shopping);
+  const listedIngredients = recipe.uses
+    .map((ingredient) => ingredient.trim())
+    .filter(Boolean);
+
+  if (listedIngredients.length === 0) {
+    return {
+      status: "ready",
+      matchPercent: 100,
+      missingIngredients: [],
+      shoppingCoveredIngredients: [],
+      unresolvedIngredients: [],
+    };
+  }
+
+  const missing = new Map<string, string>();
+  let availableCount = 0;
+
+  for (const ingredient of listedIngredients) {
+    const key = ingredient.toLocaleLowerCase();
+    if (inventoryNames.has(key)) {
+      availableCount += 1;
+    } else if (!missing.has(key)) {
+      missing.set(key, ingredient);
+    }
+  }
+
+  const missingIngredients = [...missing.values()];
+  const shoppingCoveredIngredients = missingIngredients.filter((ingredient) =>
+    shoppingNames.has(ingredient.toLocaleLowerCase())
+  );
+  const unresolvedIngredients = missingIngredients.filter(
+    (ingredient) => !shoppingNames.has(ingredient.toLocaleLowerCase())
+  );
+
+  return {
+    status:
+      missingIngredients.length === 0
+        ? "ready"
+        : availableCount > 0
+          ? "low"
+          : "missing",
+    matchPercent: Math.round(
+      (availableCount / listedIngredients.length) * 100
+    ),
+    missingIngredients,
+    shoppingCoveredIngredients,
+    unresolvedIngredients,
+  };
+}
+
 export function mealMatchPercent(
   recipe: Pick<Recipe, "uses">,
   inventory: Array<Pick<FoodItem, "name">> | Set<string>
 ): number {
-  const names =
-    inventory instanceof Set
-      ? inventory
-      : new Set(inventory.map((item) => item.name.trim().toLocaleLowerCase()));
-  if (recipe.uses.length === 0) return 100;
-  const have = recipe.uses.filter((name) =>
-    names.has(name.trim().toLocaleLowerCase())
-  ).length;
-  return Math.round((have / recipe.uses.length) * 100);
+  return mealIngredientReadiness(recipe, inventory).matchPercent;
 }
 
 export function weeklyMissingIngredients(
   meals: PlannedMeal[],
   inventory: Array<Pick<FoodItem, "name">> | Set<string>
 ): string[] {
-  const names =
-    inventory instanceof Set
-      ? inventory
-      : new Set(inventory.map((item) => item.name.trim().toLocaleLowerCase()));
+  const names = normalizedNameSet(inventory);
   const missing = new Map<string, string>();
 
   for (const meal of meals) {
@@ -125,6 +196,50 @@ export function weeklyMissingIngredients(
   }
 
   return [...missing.values()];
+}
+
+function dateKeyOrdinal(value: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  const timestamp = Date.UTC(year, month - 1, day);
+  return Number.isFinite(timestamp) ? Math.floor(timestamp / 86_400_000) : null;
+}
+
+export function isMealDateWithinWarningWindow(
+  mealDate: string,
+  today = new Date(),
+  leadDays = 2
+): boolean {
+  const mealOrdinal = dateKeyOrdinal(mealDate);
+  const todayOrdinal = dateKeyOrdinal(localDateKey(today));
+  if (mealOrdinal === null || todayOrdinal === null) return false;
+  const distance = mealOrdinal - todayOrdinal;
+  return distance >= 0 && distance <= Math.max(0, leadDays);
+}
+
+export interface UpcomingMealReadinessWarning {
+  meal: PlannedMeal;
+  readiness: MealIngredientReadiness;
+}
+
+export function upcomingMealReadinessWarnings(
+  meals: PlannedMeal[],
+  inventory: IngredientNameSource,
+  shopping: IngredientNameSource,
+  today = new Date(),
+  leadDays = 2
+): UpcomingMealReadinessWarning[] {
+  return meals.flatMap((meal) => {
+    if (!isMealDateWithinWarningWindow(meal.date, today, leadDays)) return [];
+    const readiness = mealIngredientReadiness(
+      meal.recipe,
+      inventory,
+      shopping
+    );
+    return readiness.unresolvedIngredients.length > 0
+      ? [{ meal, readiness }]
+      : [];
+  });
 }
 
 export function applyMealMove(
