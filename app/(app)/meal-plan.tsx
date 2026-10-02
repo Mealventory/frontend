@@ -132,7 +132,7 @@ export default function MealPlanScreen() {
       // Shopping availability should not block the planner itself.
       setShoppingNames(new Set());
     }
-  }, [scopeKey]);
+  }, [session?.access_token, household?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -732,7 +732,7 @@ export default function MealPlanScreen() {
                               loading={busyKey === `shopping:${key}`}
                               disabled={
                                 missingNotInShopping.length === 0 ||
-                                (Boolean(busyKey) && busyKey !== `shopping:${key}`)
+                                Boolean(busyKey)
                               }
                               onPress={() =>
                                 void addMealToShopping(meal, missingIngredients)
@@ -878,7 +878,7 @@ export default function MealPlanScreen() {
                   loading={busyKey === "shopping"}
                   disabled={
                     missingWeekNotInShopping.length === 0 ||
-                    (Boolean(busyKey) && busyKey !== "shopping")
+                    Boolean(busyKey)
                   }
                   onPress={() => void addWeekToShopping()}
                 />
