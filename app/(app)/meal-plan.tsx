@@ -15,12 +15,15 @@ import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
 import {
   addMissingIngredientsToShopping,
+  listShoppingItems,
 } from "@/src/lib/shoppingApi";
 import {
   applyMealMove,
+  isDateWithinLeadTime,
   loadMealPlan,
   localDateKey,
   mealMatchPercent,
+  mealReadiness,
   mealSlotKey,
   mealsForWeek,
   movePlannedMeal,
@@ -93,6 +96,7 @@ export default function MealPlanScreen() {
   const [movingFrom, setMovingFrom] = useState<SlotTarget | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [shoppingNames, setShoppingNames] = useState<Set<string>>(new Set());
 
   const scopeKey = `${session?.user.id || ""}:${household?.id || ""}`;
 
@@ -114,11 +118,28 @@ export default function MealPlanScreen() {
     }
   }, [scopeKey]);
 
+  const loadShopping = useCallback(async () => {
+    if (!session || !household) {
+      setShoppingNames(new Set());
+      return;
+    }
+    try {
+      const items = await listShoppingItems(session.access_token, household.id);
+      setShoppingNames(
+        new Set(items.map((item) => item.name.trim().toLocaleLowerCase()))
+      );
+    } catch {
+      // Shopping availability should not block the planner itself.
+      setShoppingNames(new Set());
+    }
+  }, [scopeKey]);
+
   useFocusEffect(
     useCallback(() => {
       void load();
+      void loadShopping();
       return undefined;
-    }, [load])
+    }, [load, loadShopping])
   );
 
   const visibleDates = useMemo(() => weekDates(weekStartDate), [weekStartDate]);
@@ -149,6 +170,26 @@ export default function MealPlanScreen() {
 
   const missingForWeek = useMemo(
     () => weeklyMissingIngredients(visibleMeals, inventoryNames),
+    [visibleMeals, inventoryNames]
+  );
+
+  const missingWeekNotInShopping = useMemo(
+    () =>
+      missingForWeek.filter(
+        (ingredient) => !shoppingNames.has(ingredient.trim().toLocaleLowerCase())
+      ),
+    [missingForWeek, shoppingNames]
+  );
+
+  const upcomingMissingMeals = useMemo(
+    () =>
+      visibleMeals.filter((meal) => {
+        const readiness = mealReadiness(meal.recipe, inventoryNames);
+        return (
+          readiness.state === "missing" &&
+          isDateWithinLeadTime(meal.date, new Date(), 1)
+        );
+      }),
     [visibleMeals, inventoryNames]
   );
 
@@ -292,6 +333,7 @@ export default function MealPlanScreen() {
         household.id,
         missingForWeek
       );
+      await loadShopping();
       const skipped =
         result.skipped > 0
           ? ` ${result.skipped} already ${result.skipped === 1 ? "was" : "were"} on the list.`
@@ -306,6 +348,38 @@ export default function MealPlanScreen() {
         e instanceof Error
           ? e.message
           : "Could not add weekly ingredients to Shopping."
+      );
+    } finally {
+      setBusyKey(null);
+    }
+  };
+
+  const addMealToShopping = async (
+    meal: PlannedMeal,
+    missingIngredients: string[]
+  ) => {
+    if (!session || !household || missingIngredients.length === 0 || busyKey) return;
+    const shoppingKey = `shopping:${mealSlotKey(meal.date, meal.slot)}`;
+    setBusyKey(shoppingKey);
+    setError("");
+    setNotice("");
+    try {
+      const result = await addMissingIngredientsToShopping(
+        session.access_token,
+        household.id,
+        missingIngredients
+      );
+      await loadShopping();
+      setNotice(
+        result.added > 0
+          ? `${result.added} ingredient${result.added === 1 ? "" : "s"} for ${meal.recipe.name} added to Shopping.`
+          : `All missing ingredients for ${meal.recipe.name} are already in Shopping.`
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message
+          : `Could not add ingredients for ${meal.recipe.name} to Shopping.`
       );
     } finally {
       setBusyKey(null);
