@@ -92,6 +92,7 @@ export default function MealPlanScreen() {
 
   const [weekStartDate, setWeekStartDate] = useState(() => startOfWeek(new Date()));
   const [meals, setMeals] = useState<PlannedMeal[]>([]);
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [pickerTarget, setPickerTarget] = useState<SlotTarget | null>(null);
@@ -104,20 +105,25 @@ export default function MealPlanScreen() {
   const load = useCallback(async () => {
     if (!session || !household) {
       setMeals([]);
+      setShoppingItems([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     setError("");
     try {
-      const loaded = await loadMealPlan(session.user.id, household.id);
-      setMeals(loaded);
+      const [loadedMeals, loadedShopping] = await Promise.all([
+        loadMealPlan(session.user.id, household.id),
+        listShoppingItems(session.access_token, household.id).catch(() => []),
+      ]);
+      setMeals(loadedMeals);
+      setShoppingItems(loadedShopping);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load the meal plan.");
     } finally {
       setLoading(false);
     }
-  }, [scopeKey]);
+  }, [household?.id, session?.access_token, session?.user.id]);
 
   useFocusEffect(
     useCallback(() => {
