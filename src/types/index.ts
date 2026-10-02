@@ -20,6 +20,11 @@ export interface FoodItem {
   expDate: string;
   daysLeft: number;
   quantity: string;
+  quantityTrackingEnabled?: boolean;
+  initialQuantity?: number | null;
+  lowStockThresholdPercent?: number;
+  remainingPercent?: number | null;
+  isLowStock?: boolean;
   emoji: string;
   storageZone?: StorageZone;
   barcode?: string;
