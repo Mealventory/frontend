@@ -900,24 +900,33 @@ export default function MealPlanScreen() {
                   Weekly ingredients
                 </Typography>
                 <Typography variant="caption" color="muted">
-                  {missingForWeek.length
-                    ? `${missingForWeek.length} missing across this week's meals`
-                    : "You have every listed ingredient"}
+                  {unresolvedForWeek.length
+                    ? `${unresolvedForWeek.length} still need shopping this week`
+                    : missingForWeek.length
+                      ? "All missing pantry items are already on Shopping"
+                      : "You have every listed ingredient"}
                 </Typography>
               </View>
             </View>
 
             {missingForWeek.length > 0 && (
               <>
-                <Text className="text-[12px] text-text-muted leading-5 mb-3">
-                  {missingForWeek.join(", ")}
+                <Text className="text-[12px] text-text-muted leading-5 mb-2">
+                  Missing from pantry: {missingForWeek.join(", ")}
                 </Text>
-                <Button
-                  label="Add Missing Week to Shopping"
-                  loading={busyKey === "shopping"}
-                  disabled={Boolean(busyKey) && busyKey !== "shopping"}
-                  onPress={() => void addWeekToShopping()}
-                />
+                {shoppingCoveredForWeek.length > 0 && (
+                  <Text className="text-[12px] text-brand-500 leading-5 mb-3">
+                    Already on Shopping: {shoppingCoveredForWeek.join(", ")}
+                  </Text>
+                )}
+                {unresolvedForWeek.length > 0 && (
+                  <Button
+                    label="Add Missing Week to Shopping"
+                    loading={busyKey === "shopping"}
+                    disabled={Boolean(busyKey) && busyKey !== "shopping"}
+                    onPress={() => void addWeekToShopping()}
+                  />
+                )}
               </>
             )}
           </View>
