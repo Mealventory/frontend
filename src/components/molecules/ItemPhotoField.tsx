@@ -3,6 +3,7 @@ import { Image, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Button, Icon, Typography } from "@/src/components/atoms";
 import { ItemPhoto } from "@/src/components/domain/ItemPhoto";
+import { compressImageForUpload } from "@/src/lib/imageOptimizer";
 
 export interface SelectedItemPhoto {
   uri: string;
@@ -72,10 +73,23 @@ export function ItemPhotoField({
         return;
       }
 
+      const compressed = await compressImageForUpload(asset.uri, {
+        maxWidth: 1600,
+        quality: 0.78,
+      });
+      const compressedMatch = compressed.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+      const base64 = compressedMatch?.[2] || asset.base64;
+      const mimeType = compressedMatch?.[1] || asset.mimeType || "image/jpeg";
+      const approximateBytes = Math.ceil(base64.length * 3 / 4);
+      if (approximateBytes > 5 * 1024 * 1024) {
+        onError?.("This photo is still too large after compression. Choose a smaller image.");
+        return;
+      }
+
       onChange({
-        uri: asset.uri,
-        base64: asset.base64,
-        mimeType: asset.mimeType || "image/jpeg",
+        uri: compressedMatch ? compressed : asset.uri,
+        base64,
+        mimeType,
       });
     } catch {
       onError?.("Could not open the photo picker. Please try again.");
