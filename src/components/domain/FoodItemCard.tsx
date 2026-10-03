@@ -2,6 +2,7 @@ import React from "react";
 import { TouchableOpacity, View, Text } from "react-native";
 import { expiryDays, expiryLabel, localDay } from '@/src/lib/pantryExpiry';
 import { FoodItem } from "@/src/types";
+import { ItemPhoto } from "./ItemPhoto";
 
 export interface FoodItemCardProps {
   item: FoodItem;
@@ -50,8 +51,15 @@ export function FoodItemCard({ item, onPress, className = "", today = localDay()
         className="flex-1 min-w-0 flex-row items-center"
       >
       {/* Item icon and title */}
-      <View className={`${quantityControls ? "w-8 h-8 mr-2" : "w-[46px] h-[46px] mr-3.5"} shrink-0 rounded-[16px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center`}>
-        <Text className="text-2xl">{item.emoji}</Text>
+      <View className={quantityControls ? "mr-2" : "mr-3.5"}>
+        <ItemPhoto
+          imageRef={item.imageRef}
+          emoji={item.emoji}
+          name={item.name}
+          size={quantityControls ? 32 : 46}
+          borderRadius={16}
+          emojiSize={24}
+        />
       </View>
 
       {/* Item info */}
