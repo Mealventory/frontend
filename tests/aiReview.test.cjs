@@ -41,6 +41,7 @@ const reviewSheetMod = load('src/components/organisms/ReceiptReviewSheet.tsx', {
     Checkbox: mockComponent,
   },
   '@/src/components/molecules/EmptyState': { EmptyState: mockComponent },
+  '@/src/components/domain/ItemPhoto': { ItemPhoto: mockComponent },
   '@/src/components/molecules': { FormField: mockComponent },
   '@/src/types': {},
 });
@@ -89,6 +90,7 @@ test('parseRawScanItems parses JSON array of scan results into review states', (
       expiry_date: '2026-09-25',
       confidence: 0.95,
       storageZone: 'fridge',
+      imageRef: 'https://images.example/milk.jpg',
     },
     {
       name: 'Honeycrisp Apples',
@@ -110,6 +112,7 @@ test('parseRawScanItems parses JSON array of scan results into review states', (
   assert.equal(parsed[0].unit, 'gallons');
   assert.equal(parsed[0].expiry_date, '2026-09-25');
   assert.equal(parsed[0].confidence, 0.95);
+  assert.equal(parsed[0].imageRef, 'https://images.example/milk.jpg');
   assert.equal(parsed[0].confirmed, true);
   assert.equal(parsed[0].isEditing, false);
 
@@ -169,6 +172,7 @@ test('partial saves retain failures for retry without resending acknowledged ite
   assert.deepEqual(result.errors, ['Peas: Offline']);
   assert.equal(payloads[0].expiry_date, null);
   assert.equal(payloads[0].storage_zone, 'fridge');
+  assert.equal(payloads[0].image_ref, null);
   const remaining = items.filter(item => !result.savedIds.includes(item.id));
   const retried = [];
   const retry = await saveReviewedItems(remaining, async payload => { retried.push(payload.name); });
@@ -278,4 +282,19 @@ test('citrus varieties retain a citrus icon instead of the produce fallback', ()
     assert.equal(getItemEmoji(name, 'Produce'), '🍊');
   }
   assert.equal(getItemEmoji('Broccoli', 'Produce'), '🥦');
+});
+
+
+test('barcode/product image references are persisted in batch review payloads', async () => {
+  const items = parseRawScanItems(JSON.stringify([{
+    id: 'photo-1',
+    name: 'Yogurt',
+    category: 'Dairy',
+    storageZone: 'fridge',
+    imageRef: 'https://images.openfoodfacts.org/yogurt.jpg',
+  }]));
+  let payloads;
+  const result = await batchSaveReviewedItems(items, async value => { payloads = value; });
+  assert.deepEqual(result.errors, []);
+  assert.equal(payloads[0].image_ref, 'https://images.openfoodfacts.org/yogurt.jpg');
 });
