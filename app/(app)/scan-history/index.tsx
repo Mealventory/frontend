@@ -179,11 +179,9 @@ export default function ScanHistoryScreen() {
                             {failed ? "Failed" : "Successful"}
                           </Typography>
                         </View>
-                        {!failed && (
-                          <Typography variant="caption" color="muted" className="ml-2">
-                            {entry.items.length} {entry.items.length === 1 ? "item" : "items"}
-                          </Typography>
-                        )}
+                        <Typography variant="caption" color="muted" className="ml-2">
+                          {entry.items.length} {entry.items.length === 1 ? "item" : "items"}
+                        </Typography>
                       </View>
                     </View>
 
