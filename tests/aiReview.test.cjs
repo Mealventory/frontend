@@ -76,6 +76,7 @@ const { parseRawScanItems, getItemEmoji, saveReviewedItems, batchSaveReviewedIte
   '@/src/context/InventoryContext': { useInventory: () => ({ refreshInventory: async () => {} }) },
   '@/src/lib/supabase': { supabase: null },
   '@/src/lib/inventoryApi': { inventoryRequest: async () => ({}), batchCreateInventoryItems: async () => ([]) },
+  '@/src/lib/scanHistory': { isScannerMode: value => ['food', 'receipt', 'tag', 'barcode'].includes(value), recordScanSuccess: async () => ({}) },
 });
 
 test('parseRawScanItems parses JSON array of scan results into review states', () => {
