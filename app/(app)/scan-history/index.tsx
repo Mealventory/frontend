@@ -151,8 +151,8 @@ export default function ScanHistoryScreen() {
                       </View>
 
                       <Typography
-                        color={failed ? "danger" : "muted"}
-                        className="mt-1"
+                        color="muted"
+                        className={failed ? "mt-1 text-danger-500" : "mt-1"}
                         numberOfLines={2}
                       >
                         {failed
