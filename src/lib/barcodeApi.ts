@@ -84,6 +84,15 @@ export async function fetchProductByBarcode(
     const product = data.product;
     const rawName = (product.product_name || product.product_name_en || product.generic_name || '').trim();
     const brand = (product.brands || '').trim();
+    const rawImage = (
+      product.image_front_url ||
+      product.image_url ||
+      product.image_front_small_url ||
+      ''
+    ).trim();
+    const imageRef = rawImage
+      ? rawImage.replace(/^http:\/\//i, 'https://')
+      : undefined;
 
     let name = rawName;
     if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
@@ -109,6 +118,7 @@ export async function fetchProductByBarcode(
       expiry_date: null,
       confidence: 0.95,
       storageZone: resolveScanZone(storageZone, category),
+      imageRef: imageRef?.startsWith('https://') ? imageRef : undefined,
     };
   } catch {
     return fallbackItem;
