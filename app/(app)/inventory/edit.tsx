@@ -8,6 +8,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FormField, TagChipGroup } from '@/src/components/molecules';
 import { Button, Typography } from '@/src/components/atoms';
 import { useInventory } from '@/src/context/InventoryContext';
+import { useAuth } from '@/src/context/AuthContext';
+import { ItemPhotoField, type SelectedItemPhoto } from '@/src/components/molecules/ItemPhotoField';
+import { deleteItemPhoto, uploadItemPhoto } from '@/src/lib/itemPhotoStorage';
 import type { FoodItem, StorageZone } from '@/src/types';
 
 export default function EditInventoryItemScreen() {
@@ -25,6 +28,7 @@ export default function EditInventoryItemScreen() {
 function EditForm({ item }: { item: FoodItem }) {
   const router = useRouter();
   const { updateItem } = useInventory();
+  const { household } = useAuth();
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity);
   const [category, setCategory] = useState(item.category);
@@ -33,6 +37,8 @@ function EditForm({ item }: { item: FoodItem }) {
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const liveQuantity = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
   const save = async () => {
     if (lock.current) return;
@@ -42,7 +48,17 @@ function EditForm({ item }: { item: FoodItem }) {
     if (!name.trim() || !category.trim()) { setError('Enter an item name and category.'); return; }
     if (!amount || !Number.isFinite(Number(amount[1])) || Number(amount[1]) <= 0) { setError('Enter a positive quantity, such as 2 tubs or 500 g.'); return; }
     lock.current = true; setSaving(true); setError('');
+    let uploadedRef: string | null = null;
     try {
+      if (selectedPhoto) {
+        if (!household?.id) throw new Error('Choose a household before adding a photo.');
+        uploadedRef = await uploadItemPhoto(
+          household.id,
+          selectedPhoto.base64,
+          selectedPhoto.mimeType,
+        );
+      }
+
       await updateItem(item.id, {
         name: name.trim(),
         category: category.trim(),
@@ -50,9 +66,23 @@ function EditForm({ item }: { item: FoodItem }) {
         unit: amount[2] || 'units',
         expiry_date: expiry || null,
         storage_zone: zone,
+        ...(selectedPhoto
+          ? { image_ref: uploadedRef }
+          : removePhoto
+          ? { image_ref: null }
+          : {}),
       });
+
+      if ((selectedPhoto || removePhoto) && item.imageRef) {
+        void deleteItemPhoto(item.imageRef).catch(() => {});
+      }
       router.back();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save changes.'); }
+    } catch (e) {
+      if (uploadedRef) {
+        await deleteItemPhoto(uploadedRef).catch(() => {});
+      }
+      setError(e instanceof Error ? e.message : 'Could not save changes.');
+    }
     finally { lock.current = false; setSaving(false); }
   };
   return <SafeAreaView className="flex-1 bg-ground-canvas">
@@ -63,6 +93,23 @@ function EditForm({ item }: { item: FoodItem }) {
         <View style={{ width: 80 }} />
       </View>
       <View className="gap-5">
+        <ItemPhotoField
+          existingRef={item.imageRef}
+          selected={selectedPhoto}
+          removed={removePhoto}
+          fallbackEmoji={item.emoji}
+          disabled={saving}
+          onChange={(photo) => {
+            setSelectedPhoto(photo);
+            setRemovePhoto(false);
+            setError('');
+          }}
+          onRemove={() => {
+            setSelectedPhoto(null);
+            setRemovePhoto(true);
+          }}
+          onError={setError}
+        />
         <FormField label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
         <FormField label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
         <Typography variant="caption" color="muted">
