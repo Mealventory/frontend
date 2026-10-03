@@ -271,7 +271,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     mutations.current++; revision.current++;
     try {
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, {
-        storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null,
+        storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null, image_ref: item.imageRef ?? null,
       });
       if (activeScope.current === scope) { setInventory(prev => [toFoodItem(row), ...prev.filter(i => i.id !== row.id)]); setInventoryError(''); }
     } finally { mutations.current--; revision.current++; }
