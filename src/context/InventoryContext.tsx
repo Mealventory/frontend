@@ -14,7 +14,7 @@ import {
   getHouseholdItems,
   getHouseholds,
   joinHousehold as apiJoinHousehold,
-  registerBackendUser,
+
   Household,
   HouseholdItem,
 } from "../lib/api";
@@ -265,7 +265,7 @@ export function InventoryProvider({
     const fallbackName = email.split("@")[0] || "User";
     const fallbackInitials = fallbackName.slice(0, 2).toUpperCase();
 
-    await registerBackendUser();
+   
 
     const households = await getHouseholds();
     const selectedHousehold = households[0] ?? null;
