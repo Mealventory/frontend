@@ -33,6 +33,7 @@ function harness(file) {
     '@/src/lib/scanApi': { uploadScanImage: async ({ imageUri }) => { assert.equal(imageUri, 'file:///captured.jpg'); uploads++; return pending; } },
     '@/src/lib/imageOptimizer': { compressImageForUpload: async uri => uri },
     '@/src/lib/barcodeApi': {},
+    '@/src/lib/scanHistory': { recordScanFailure: async () => {} },
   };
   const mod = new Module(file);
   mod.require = name => { if (!(name in mocks)) throw new Error(name); return mocks[name]; };

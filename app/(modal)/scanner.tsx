@@ -22,6 +22,7 @@ import { supabase } from "@/src/lib/supabase";
 import { uploadScanImage, ScannerMode } from "@/src/lib/scanApi";
 import { compressImageForUpload } from "@/src/lib/imageOptimizer";
 import { fetchProductByBarcode } from "@/src/lib/barcodeApi";
+import { recordScanFailure } from "@/src/lib/scanHistory";
 
 const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode" | "Tag" | "Calendar"; instruction: string }[] = [
   { id: "food", label: "Product", icon: "Apple", instruction: "Center the product in the frame" },
@@ -72,6 +73,17 @@ export default function FullscreenScannerModal() {
     const result = await supabase?.auth.getSession();
     if (result?.data?.session?.access_token) return result.data.session.access_token;
     throw new Error("Please sign in again to scan items.");
+  };
+
+  const showScanFailure = (message: string) => {
+    setErrorMessage(message);
+    if (session?.user?.id && household?.id) {
+      void recordScanFailure(
+        { userId: session.user.id, householdId: household.id },
+        mode,
+        message,
+      );
+    }
   };
 
   /**
@@ -278,7 +290,7 @@ export default function FullscreenScannerModal() {
       } else {
         msg = rawMsg || `${elementName} could not be detected. Please adjust camera framing and retry.`;
       }
-      setErrorMessage(msg);
+      showScanFailure(msg);
     } finally {
       if (activeRef.current && generation === scanGeneration.current) { captureLock.current = false; setScanning(false); }
     }
@@ -314,7 +326,7 @@ export default function FullscreenScannerModal() {
       }
     } catch (err: any) {
       const elementName = mode === "receipt" ? "Receipt" : mode === "barcode" ? "Barcode" : mode === "tag" ? "Tag" : "Product";
-      setErrorMessage(`${elementName} could not be detected. Please adjust camera framing and retry.`);
+      showScanFailure(`${elementName} could not be detected. Please adjust camera framing and retry.`);
     }
   };
 
@@ -348,7 +360,7 @@ export default function FullscreenScannerModal() {
     captureLock.current = false;
     if (!imageUri) {
       setScanning(false);
-      setErrorMessage("Unable to capture camera frame. Please try again.");
+      showScanFailure("Unable to capture camera frame. Please try again.");
       return;
     }
 
