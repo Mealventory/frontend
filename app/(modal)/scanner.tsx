@@ -77,7 +77,7 @@ export default function FullscreenScannerModal() {
 
   const showScanFailure = (message: string) => {
     setErrorMessage(message);
-    if (session?.user.id && household?.id) {
+    if (session?.user?.id && household?.id) {
       void recordScanFailure(
         { userId: session.user.id, householdId: household.id },
         mode,
