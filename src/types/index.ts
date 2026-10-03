@@ -25,6 +25,7 @@ export interface FoodItem {
   emoji: string;
   storageZone?: StorageZone;
   barcode?: string;
+  imageRef?: string | null;
 }
 
 export interface Recipe {
