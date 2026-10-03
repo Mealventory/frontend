@@ -9,7 +9,7 @@ import {
   Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Typography, Button, Icon, Badge, Avatar, Checkbox } from "@/src/components/atoms";
+import { Typography, Button, Icon, Badge, Checkbox } from "@/src/components/atoms";
 import { FormField } from "@/src/components/molecules";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { StorageZone } from "@/src/types";
