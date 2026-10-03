@@ -221,6 +221,7 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
         expiry_date,
         confidence,
         storageZone,
+        imageRef: typeof item?.image_ref === 'string' ? item.image_ref : undefined,
       };
     });
   }
