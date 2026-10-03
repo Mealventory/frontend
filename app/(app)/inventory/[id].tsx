@@ -6,6 +6,7 @@ import { Icon } from "@/src/components/atoms/Icon";
 import { FreshnessHero } from "@/src/components/domain/FreshnessHero";
 import { FreshnessMeter } from "@/src/components/domain/FreshnessMeter";
 import { useInventory } from "@/src/context/InventoryContext";
+import { deleteItemPhoto } from "@/src/lib/itemPhotoStorage";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,8 +37,10 @@ export default function ItemDetailScreen() {
     if (deleting) return;
     setDeleting(true); setError('');
     try {
-      if (action === 'delete') await removeItem(item.id);
-      else await transitionItem(item.id, action);
+      if (action === 'delete') {
+        await removeItem(item.id);
+        if (item.imageRef) void deleteItemPhoto(item.imageRef).catch(() => {});
+      } else await transitionItem(item.id, action);
       router.back();
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not update item.'); }
     finally { setDeleting(false); }
