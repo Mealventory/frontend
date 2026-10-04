@@ -11,6 +11,7 @@ import {
   summarizeScanItems,
   type ScanHistoryEntry,
 } from "@/src/lib/scanHistory";
+import { APP_GUTTER } from "@/src/lib/layout";
 
 function relativeTime(value: string) {
   const timestamp = new Date(value).getTime();
@@ -65,7 +66,7 @@ export default function ScanHistoryScreen() {
       edges={["top", "left", "right"]}
       className="flex-1 bg-ground-canvas"
     >
-      <View className="flex-row items-center px-5 pt-2 pb-4">
+      <View className="flex-row items-center px-4 pt-2 pb-4">
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
@@ -96,7 +97,7 @@ export default function ScanHistoryScreen() {
           </Typography>
         </View>
       ) : history.length === 0 ? (
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <ScrollView contentContainerStyle={{ padding: APP_GUTTER }}>
           <EmptyState
             icon="History"
             title="No scans yet"
@@ -107,7 +108,7 @@ export default function ScanHistoryScreen() {
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingBottom: 40 }}
         >
           <View className="gap-3">
             {history.map((entry) => {
