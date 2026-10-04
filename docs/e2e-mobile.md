@@ -37,19 +37,35 @@ For iOS Simulator, a paid Apple Developer account is not required for a local si
 
 ## Start an isolated E2E build
 
-Run the app with the explicit E2E flag:
+The E2E flag is consumed by the JavaScript bundle, so **Metro must be started with the flag enabled**. A native rebuild is only required when the development build is not already installed.
+
+For a first local iOS setup, install the development build:
 
 ```bash
-EXPO_PUBLIC_E2E_MODE=1 npx expo run:ios
+npx expo run:ios
 ```
 
-For Android:
+Then stop any existing Metro process and start a clean E2E Metro server:
 
 ```bash
-EXPO_PUBLIC_E2E_MODE=1 npx expo run:android
+EXPO_PUBLIC_E2E_MODE=1 npx expo start --dev-client -c
 ```
 
-Keep Metro running while executing the Maestro flows.
+Open the installed Mealventory development build in the simulator. The sign-in screen must visibly show `E2E Test Mode` before running Maestro.
+
+For a first Android setup, install the development build with:
+
+```bash
+npx expo run:android
+```
+
+Then use the same E2E Metro command:
+
+```bash
+EXPO_PUBLIC_E2E_MODE=1 npx expo start --dev-client -c
+```
+
+Keep that Metro process running while executing the Maestro flows from another terminal.
 
 ## Run the smoke suite
 
