@@ -21,6 +21,7 @@ export interface SwipeAction {
 interface SwipeActionRowProps {
   children: React.ReactNode;
   actions: SwipeAction[];
+  leadingActions?: SwipeAction[];
   disabled?: boolean;
   testIDPrefix?: string;
   containerClassName?: string;
@@ -43,11 +44,13 @@ function textClasses(tone: SwipeActionTone) {
 export function SwipeActionRow({
   children,
   actions,
+  leadingActions = [],
   disabled = false,
   testIDPrefix = "swipe",
   containerClassName = "",
 }: SwipeActionRowProps) {
-  const revealWidth = Math.max(1, actions.length) * ACTION_WIDTH;
+  const trailingWidth = actions.length * ACTION_WIDTH;
+  const leadingWidth = leadingActions.length * ACTION_WIDTH;
   const translateX = useRef(new Animated.Value(0)).current;
   const currentX = useRef(0);
   const gestureStartX = useRef(0);
@@ -65,26 +68,40 @@ export function SwipeActionRow({
   };
 
   const close = () => animateTo(0);
-  const open = () => animateTo(-revealWidth);
+  const openTrailing = () => animateTo(-trailingWidth);
+  const openLeading = () => animateTo(leadingWidth);
 
   useEffect(() => {
     if (disabled) close();
-  }, [disabled, revealWidth]);
+  }, [disabled, leadingWidth, trailingWidth]);
 
   const responder = useMemo(
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_, gesture) => {
-          if (disabled || actions.length === 0) return false;
+          if (
+            disabled ||
+            (actions.length === 0 && leadingActions.length === 0)
+          ) {
+            return false;
+          }
+
           const horizontal = Math.abs(gesture.dx);
           const vertical = Math.abs(gesture.dy);
-          const headingTowardActions =
-            gesture.dx < 0 || (currentX.current < 0 && gesture.dx > 0);
-          return (
-            headingTowardActions &&
-            horizontal > HORIZONTAL_INTENT_PX &&
-            horizontal > vertical * 1.4
-          );
+          if (
+            horizontal <= HORIZONTAL_INTENT_PX ||
+            horizontal <= vertical * 1.4
+          ) {
+            return false;
+          }
+
+          if (gesture.dx < 0) {
+            return actions.length > 0 || currentX.current > 0;
+          }
+          if (gesture.dx > 0) {
+            return leadingActions.length > 0 || currentX.current < 0;
+          }
+          return false;
         },
         onPanResponderGrant: () => {
           gestureStartX.current = currentX.current;
@@ -95,23 +112,36 @@ export function SwipeActionRow({
         },
         onPanResponderMove: (_, gesture) => {
           const next = Math.max(
-            -revealWidth,
-            Math.min(0, gestureStartX.current + gesture.dx)
+            -trailingWidth,
+            Math.min(leadingWidth, gestureStartX.current + gesture.dx)
           );
           currentX.current = next;
           translateX.setValue(next);
         },
         onPanResponderRelease: (_, gesture) => {
-          const shouldOpen =
-            currentX.current < -revealWidth * OPEN_THRESHOLD ||
-            gesture.vx < -0.45;
-          if (shouldOpen) open();
+          const openLeft =
+            trailingWidth > 0 &&
+            (currentX.current < -trailingWidth * OPEN_THRESHOLD ||
+              gesture.vx < -0.45);
+          const openRight =
+            leadingWidth > 0 &&
+            (currentX.current > leadingWidth * OPEN_THRESHOLD ||
+              gesture.vx > 0.45);
+
+          if (openLeft) openTrailing();
+          else if (openRight) openLeading();
           else close();
         },
         onPanResponderTerminate: close,
         onShouldBlockNativeResponder: () => false,
       }),
-    [actions.length, disabled, revealWidth]
+    [
+      actions.length,
+      disabled,
+      leadingActions.length,
+      leadingWidth,
+      trailingWidth,
+    ]
   );
 
   const invoke = async (action: SwipeAction) => {
@@ -125,45 +155,54 @@ export function SwipeActionRow({
     }
   };
 
+  const renderActions = (
+    rows: SwipeAction[],
+    side: "left" | "right",
+    width: number
+  ) => (
+    <View
+      style={{
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        width,
+        flexDirection: "row",
+        ...(side === "left" ? { left: 0 } : { right: 0 }),
+      }}
+    >
+      {rows.map((action) => {
+        const tone = action.tone ?? "primary";
+        const actionDisabled = disabled || action.disabled;
+        return (
+          <TouchableOpacity
+            key={action.key}
+            testID={`${testIDPrefix}-${action.key}`}
+            accessibilityRole="button"
+            accessibilityLabel={action.accessibilityLabel}
+            accessibilityState={{ disabled: Boolean(actionDisabled) }}
+            activeOpacity={0.75}
+            disabled={actionDisabled}
+            onPress={() => void invoke(action)}
+            className={`flex-1 items-center justify-center px-2 ${actionClasses(
+              tone
+            )} ${actionDisabled ? "opacity-50" : ""}`}
+          >
+            <Text
+              numberOfLines={2}
+              className={`text-xs font-bold text-center ${textClasses(tone)}`}
+            >
+              {action.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
   return (
     <View className={`overflow-hidden ${containerClassName}`}>
-      <View
-        style={{
-          position: "absolute",
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: revealWidth,
-          flexDirection: "row",
-        }}
-      >
-        {actions.map((action) => {
-          const tone = action.tone ?? "primary";
-          const actionDisabled = disabled || action.disabled;
-          return (
-            <TouchableOpacity
-              key={action.key}
-              testID={`${testIDPrefix}-${action.key}`}
-              accessibilityRole="button"
-              accessibilityLabel={action.accessibilityLabel}
-              accessibilityState={{ disabled: Boolean(actionDisabled) }}
-              activeOpacity={0.75}
-              disabled={actionDisabled}
-              onPress={() => void invoke(action)}
-              className={`flex-1 items-center justify-center px-2 ${actionClasses(
-                tone
-              )} ${actionDisabled ? "opacity-50" : ""}`}
-            >
-              <Text
-                numberOfLines={2}
-                className={`text-xs font-bold text-center ${textClasses(tone)}`}
-              >
-                {action.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {leadingWidth > 0 && renderActions(leadingActions, "left", leadingWidth)}
+      {trailingWidth > 0 && renderActions(actions, "right", trailingWidth)}
 
       <Animated.View
         {...responder.panHandlers}
