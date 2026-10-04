@@ -10,9 +10,10 @@ name: Critical pantry journey
 - assertVisible:
     id: "e2e-password"
 - assertVisible: "Continue as E2E tester"
+# iOS 18 simulator can report a successful accessibility tap on this RN Pressable
+# without delivering onPress. The E2E login screen is fixed, so tap its center directly.
 - tapOn:
-    text: "Continue as E2E tester"
-    point: "50%,50%"
+    point: "50%,72%"
     retryTapIfNoChange: true
 
 - assertVisible: "Your household."
