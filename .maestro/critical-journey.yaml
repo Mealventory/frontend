@@ -11,6 +11,7 @@ name: Critical pantry journey
 - tapOn:
     id: "e2e-password"
 - inputText: "MealventoryE2E!"
+- hideKeyboard
 - tapOn:
     id: "e2e-sign-in"
 
@@ -28,6 +29,11 @@ name: Critical pantry journey
 - tapOn:
     id: "e2e-item-quantity"
 - inputText: "2 bags"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "e2e-add-to-kitchen"
+    direction: DOWN
 - tapOn:
     id: "e2e-add-to-kitchen"
 
@@ -42,6 +48,11 @@ name: Critical pantry journey
     id: "e2e-edit-name"
 - eraseText: 40
 - inputText: "E2E Apples Edited"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "e2e-save-edit"
+    direction: DOWN
 - tapOn:
     id: "e2e-save-edit"
 
