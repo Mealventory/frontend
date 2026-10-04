@@ -4,6 +4,7 @@ import {FoodItem} from '@/src/types';
 import {FoodItemCard} from './FoodItemCard';
 import {Button} from '../atoms';
 import {Icon} from '../atoms/Icon';
+import {SwipeActionRow} from '../molecules/SwipeActionRow';
 import {useInventory} from '@/src/context/InventoryContext';
 import {parseQuantity, adjustQuantity} from '@/src/lib/quickQuantity';
 
@@ -55,7 +56,27 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
     </TouchableOpacity>
    </View>:null;
  return <View className="gap-1">
-  <FoodItemCard item={display} today={today} quantityControls={controls} onPress={selected=>{if(!locked.current)onPress(selected);}} />
+  <SwipeActionRow
+   disabled={busy}
+   testIDPrefix={`pantry-swipe-${item.id}`}
+   actions={[
+    {
+     key:'consume',
+     label:'Consumed',
+     accessibilityLabel:`Mark ${item.name} as consumed`,
+     onPress:()=>save(null,'consume'),
+    },
+    {
+     key:'discard',
+     label:'Discarded',
+     accessibilityLabel:`Mark ${item.name} as discarded`,
+     tone:'danger',
+     onPress:()=>save(null,'discard'),
+    },
+   ]}
+  >
+   <FoodItemCard item={display} today={today} quantityControls={controls} onPress={selected=>{if(!locked.current)onPress(selected);}} />
+  </SwipeActionRow>
   {(finish||!!error)&&<View className="px-3 pb-2 gap-2">
    {finish&&<View className="gap-2 p-3 bg-ground-subtle rounded-xl">
     <Text className="text-text-primary font-bold">Finished with {item.name}?</Text>
