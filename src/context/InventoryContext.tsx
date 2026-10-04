@@ -222,13 +222,14 @@ export function InventoryProvider({ children, demo = false }: { children: React.
 
   useEffect(() => {
     const previous = previousUserId.current;
-    if (previous && !session?.user.id) {
+    const current = session?.user.id;
+    if (previous && previous !== current) {
       queryClient.removeQueries({
         predicate: (query) =>
           query.queryKey[0] === INVENTORY_QUERY_ROOT && query.queryKey[1] === previous,
       });
     }
-    previousUserId.current = session?.user.id;
+    previousUserId.current = current;
   }, [session?.user.id, queryClient]);
 
   const [currentScreen, setCurrentScreen] = useState<FigmaScreen>("home");
