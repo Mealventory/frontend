@@ -13,6 +13,7 @@ import { Button, Icon, Typography } from "@/src/components/atoms";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import {
   addMissingIngredientsToShopping,
   listShoppingItems,
@@ -417,7 +418,7 @@ export default function MealPlanScreen() {
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 48 }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-center gap-3 mb-5">
