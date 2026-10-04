@@ -42,7 +42,7 @@ export function RecipeCard({
         <View className="flex-1 min-w-0">
           <View className="flex-row items-start justify-between gap-2">
             <Text
-              numberOfLines={1}
+              numberOfLines={2}
               className="text-[15px] font-bold text-text-primary flex-1 leading-tight"
             >
               {recipe.name}
