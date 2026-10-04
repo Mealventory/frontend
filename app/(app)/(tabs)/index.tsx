@@ -87,7 +87,7 @@ export default function PantryDashboardScreen() {
             <Typography variant="tiny" className="text-white font-bold">{activeFilterCount}</Typography>
           </View>}
         </TouchableOpacity>
-        <TouchableOpacity onPress={()=>router.push('/(modal)/manual-add' as any)} accessibilityRole="button" accessibilityLabel="Add food item manually" className="w-11 h-11 items-center justify-center bg-brand-500 rounded-xl">
+        <TouchableOpacity testID="e2e-add-manual" onPress={()=>router.push('/(modal)/manual-add' as any)} accessibilityRole="button" accessibilityLabel="Add food item manually" className="w-11 h-11 items-center justify-center bg-brand-500 rounded-xl">
           <Icon name="Plus" size={22} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
