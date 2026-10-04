@@ -21,9 +21,17 @@ type Page = 'home' | 'create' | 'join';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
 function Action({ title, onPress, disabled, secondary = false, testID }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean; testID?: string }) {
-  return <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
-    style={[styles.button, secondary && styles.secondary, disabled && { opacity: .5 }]}>
-    <Text style={[styles.buttonText, secondary && { color: green }]}>{title}</Text>
+  return <Pressable
+    testID={testID}
+    accessible
+    accessibilityRole="button"
+    accessibilityLabel={title}
+    accessibilityState={{ disabled: !!disabled }}
+    disabled={disabled}
+    onPress={onPress}
+    style={[styles.button, secondary && styles.secondary, disabled && { opacity: .5 }]}
+  >
+    <Text accessible={false} style={[styles.buttonText, secondary && { color: green }]}>{title}</Text>
     {!secondary && <ArrowRight color="white" size={18} />}
   </Pressable>;
 }
