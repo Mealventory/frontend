@@ -251,7 +251,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                 <Text style={styles.heading}>Reset your password</Text>
                 <Text style={styles.muted}>Enter your email to receive a password recovery link.</Text>
                 <Text style={styles.label}>Email address</Text>
-                <TextInput testID="e2e-email" accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+                <TextInput accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
                 <Action title={busy ? 'Sending…' : 'Send recovery email'} disabled={busy || !email.trim()} onPress={handleForgotPassword} />
                 <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setForgot(false); setError(''); setNotice(''); }}><Text style={styles.link}>Back to sign in</Text></Pressable>
               </> : <>
@@ -262,7 +262,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                   <TextInput accessibilityLabel="Username" style={styles.input} value={username} onChangeText={setUsername} placeholder={`e.g. ${email.includes('@') ? email.split('@')[0] : 'chef_pablo'} (optional)`} placeholderTextColor="#84938C" autoCapitalize="none" autoCorrect={false} />
                 </>}
                 <Text style={styles.label}>Email address</Text>
-                <TextInput accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+                <TextInput testID="e2e-email" accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
                 <Text style={styles.label}>Password</Text>
                 <TextInput testID="e2e-password" accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} placeholder="Your password" placeholderTextColor="#84938C" secureTextEntry autoCapitalize="none" autoComplete={signUp ? 'new-password' : 'current-password'} onSubmitEditing={authenticate} />
                 {!signUp && (
