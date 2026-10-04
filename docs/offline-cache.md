@@ -6,7 +6,7 @@ Mealventory persists successful household inventory queries to MMKV so a previou
 
 - TanStack Query v5 owns real household inventory server state.
 - `react-native-mmkv` stores the persisted query client under the `mealventory-sync-cache` MMKV instance.
-- Only successful inventory queries are dehydrated. Auth/session state, notification state, and unrelated queries are not persisted by this cache.
+- Only inventory queries that already contain data are dehydrated. A failed background refresh can therefore keep the last good pantry on disk; auth/session state, notification state, and unrelated queries are not persisted by this cache.
 - Inventory query keys include both the authenticated user id and selected household id.
 - Cached queries use a seven-day `gcTime` and a seven-day persistence `maxAge`.
 - When the authenticated user changes or signs out, cached inventory queries for the previous user are removed.
