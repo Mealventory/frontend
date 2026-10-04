@@ -14,13 +14,14 @@ import { resolveMemberProfile, formatRole } from '@/src/lib/memberProfiles';
 import { HouseholdInviteCard } from '@/src/components/domain/HouseholdInviteCard';
 import { isValidInviteCode, normalizeInviteCode } from '@/src/lib/householdInvites';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
+import { E2E_HOUSEHOLD, E2E_MEMBER, E2E_SESSION } from '@/src/lib/e2e';
 
 const green = '#087F5B';
 type Page = 'home' | 'create' | 'join';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
-function Action({ title, onPress, disabled, secondary = false }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
+function Action({ title, onPress, disabled, secondary = false, testID }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean; testID?: string }) {
+  return <Pressable testID={testID} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
     style={[styles.button, secondary && styles.secondary, disabled && { opacity: .5 }]}>
     <Text style={[styles.buttonText, secondary && { color: green }]}>{title}</Text>
     {!secondary && <ArrowRight color="white" size={18} />}
@@ -33,7 +34,13 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   const inviteParam = normalizeInviteCode(
     Array.isArray(params.invite) ? params.invite[0] || '' : params.invite || ''
   );
-  const { session, selectHousehold } = useAuth();
+  const {
+    session,
+    selectHousehold,
+    e2eMode,
+    signInE2E,
+    signOutE2E,
+  } = useAuth();
   const sessionRef = useRef<Session | null>(null);
   const generation = useRef(0);
   const memberRequest = useRef(0);
@@ -86,6 +93,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   }, [inviteParam, session?.user.id, router]);
 
   async function accessToken() {
+    if (e2eMode) return E2E_SESSION.access_token;
     if (!supabase) throw new Error('Sign-in is not configured yet.');
     const { data, error } = await supabase.auth.getSession();
     if (error || !data.session) throw new Error('Please sign in again.');
@@ -96,7 +104,9 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     const current = generation.current;
     setLoading(true); setError('');
     try {
-      const rows = await householdRequest<Household[]>('/me', await accessToken());
+      const rows = e2eMode
+        ? [E2E_HOUSEHOLD]
+        : await householdRequest<Household[]>('/me', await accessToken());
       if (current !== generation.current) return;
       setHouseholds(rows);
       setHouseholdsLoaded(true);
@@ -112,7 +122,9 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     const ownerGeneration = generation.current;
     setMemberLoading(true); setMemberError(''); setMembers([]);
     try {
-      const rows = await householdRequest<Member[]>(`/${selected.id}/members`, await accessToken());
+      const rows = e2eMode
+        ? [E2E_MEMBER]
+        : await householdRequest<Member[]>(`/${selected.id}/members`, await accessToken());
       if (current === memberRequest.current && ownerGeneration === generation.current) setMembers(rows);
     } catch (e) { if (current === memberRequest.current && ownerGeneration === generation.current) setMemberError(message(e)); }
     finally { if (current === memberRequest.current) setMemberLoading(false); }
@@ -120,9 +132,19 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   useEffect(() => { if (selected) void refreshMembers(); }, [selected?.id]);
 
   async function authenticate() {
-    if (!supabase || !backendConfigured || busy) return;
+    if (busy) return;
+    if (!e2eMode && (!supabase || !backendConfigured)) return;
     setBusy(true); setError(''); setNotice('');
     try {
+      if (e2eMode) {
+        if (!signInE2E(email, password)) {
+          throw new Error('Use the documented E2E test credentials.');
+        }
+        setPassword('');
+        setUsername('');
+        return;
+      }
+      if (!supabase) throw new Error('Sign-in is not configured yet.');
       const defaultUsername = usernameFor(email, username);
       const credentials = {
         email: email.trim(),
@@ -179,7 +201,8 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   async function signOut() {
     setBusy(true);
     try {
-      await signOutAccount(supabase);
+      if (e2eMode) signOutE2E();
+      else await signOutAccount(supabase);
       sessionRef.current = null;
       selectHousehold(null);
       setPassword(''); setUsername('');
@@ -197,7 +220,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   }
 
   const openPage = (next: Page) => { setPage(next); setError(''); setNotice(''); };
-  const ready = !!supabase && backendConfigured;
+  const ready = e2eMode || (!!supabase && backendConfigured);
 
   return <SafeAreaView style={styles.safe}>
     <View style={styles.headerWrapper}>
@@ -228,7 +251,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                 <Text style={styles.heading}>Reset your password</Text>
                 <Text style={styles.muted}>Enter your email to receive a password recovery link.</Text>
                 <Text style={styles.label}>Email address</Text>
-                <TextInput accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+                <TextInput testID="e2e-email" accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
                 <Action title={busy ? 'Sending…' : 'Send recovery email'} disabled={busy || !email.trim()} onPress={handleForgotPassword} />
                 <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setForgot(false); setError(''); setNotice(''); }}><Text style={styles.link}>Back to sign in</Text></Pressable>
               </> : <>
@@ -241,14 +264,14 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                 <Text style={styles.label}>Email address</Text>
                 <TextInput accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
                 <Text style={styles.label}>Password</Text>
-                <TextInput accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} placeholder="Your password" placeholderTextColor="#84938C" secureTextEntry autoCapitalize="none" autoComplete={signUp ? 'new-password' : 'current-password'} onSubmitEditing={authenticate} />
+                <TextInput testID="e2e-password" accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} placeholder="Your password" placeholderTextColor="#84938C" secureTextEntry autoCapitalize="none" autoComplete={signUp ? 'new-password' : 'current-password'} onSubmitEditing={authenticate} />
                 {!signUp && (
                   <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setForgot(true); setError(''); setNotice(''); }} style={{ alignSelf: 'flex-end', marginTop: 8 }}>
                     <Text style={[styles.link, { paddingVertical: 2, fontSize: 13 }]}>Forgot password?</Text>
                   </Pressable>
                 )}
                 {!ready && <Text style={styles.info}>App setup is needed before you can sign in. See the frontend connection guide.</Text>}
-                <Action title={busy ? 'Please wait…' : signUp ? 'Create account' : 'Sign in'} disabled={busy || !ready || !email.trim() || !password} onPress={authenticate} />
+                <Action testID="e2e-sign-in" title={busy ? 'Please wait…' : signUp ? 'Create account' : 'Sign in'} disabled={busy || !ready || !email.trim() || !password} onPress={authenticate} />
                 <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setSignUp(!signUp); setForgot(false); setError(''); setNotice(''); }}><Text style={styles.link}>{signUp ? 'Already have an account? Sign in' : 'New here? Create an account'}</Text></Pressable>
               </>}
             </View>
@@ -280,6 +303,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                 )}
                 <Pressable
                   accessibilityRole="button"
+                  testID="e2e-enter-kitchen"
                   accessibilityLabel={`Enter ${selected.name} Kitchen`}
                   onPress={() => { selectHousehold(selected); router.push('/(app)/(tabs)' as any); }}
                   style={styles.cardEnterButton}
