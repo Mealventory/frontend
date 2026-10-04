@@ -62,7 +62,7 @@ export function RootLayoutContent() {
         }}
       >
         <Stack.Screen name="index" />
-        <Stack.Screen name="(app)" />
+        <Stack.Screen name="(app)" options={{ gestureEnabled: false }} />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(modal)" options={{ presentation: "modal" }} />
         <Stack.Screen name="(onboarding)" />
