@@ -10,6 +10,7 @@ import {
   scanModeLabel,
   type ScanHistoryEntry,
 } from "@/src/lib/scanHistory";
+import { APP_GUTTER } from "@/src/lib/layout";
 
 export default function ScanHistoryDetailScreen() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function ScanHistoryDetailScreen() {
   if (!entry) {
     return (
       <SafeAreaView className="flex-1 bg-ground-canvas">
-        <View className="px-5 pt-2">
+        <View className="px-4 pt-2">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back to Recent Scans"
@@ -84,7 +85,7 @@ export default function ScanHistoryDetailScreen() {
             <Icon name="ChevronLeft" size={21} />
           </Pressable>
         </View>
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <ScrollView contentContainerStyle={{ padding: APP_GUTTER }}>
           <EmptyState
             icon="History"
             title="Scan not found"
@@ -108,7 +109,7 @@ export default function ScanHistoryDetailScreen() {
       edges={["top", "left", "right"]}
       className="flex-1 bg-ground-canvas"
     >
-      <View className="flex-row items-center px-5 pt-2 pb-4">
+      <View className="flex-row items-center px-4 pt-2 pb-4">
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
@@ -125,7 +126,7 @@ export default function ScanHistoryDetailScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingBottom: 40 }}>
         <View
           className={`rounded-3xl border p-5 ${
             failed
