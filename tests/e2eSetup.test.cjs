@@ -55,6 +55,11 @@ test("critical Maestro journey covers sign-in, household, pantry mutation, and s
 
   assert.ok(flow.includes("E2E Apples Edited"));
   assert.ok(flow.includes("assertNotVisible"));
+  assert.ok(!flow.includes("clearState: true"));
+  assert.match(
+    flow,
+    /inputText: "e2e@mealventory\.test"\n- hideKeyboard\n- tapOn:\n    id: "e2e-password"/
+  );
 });
 
 test("scanner Maestro flow is deterministic and camera-independent", () => {
@@ -65,6 +70,11 @@ test("scanner Maestro flow is deterministic and camera-independent", () => {
   assert.ok(flow.includes("e2e-barcode-review"));
   assert.ok(flow.includes("E2E Greek Yogurt"));
   assert.ok(flow.includes("Item (012345678905)"));
+  assert.ok(!flow.includes("clearState: true"));
+  assert.match(
+    flow,
+    /inputText: "e2e@mealventory\.test"\n- hideKeyboard\n- tapOn:\n    id: "e2e-password"/
+  );
   assert.ok(scan.includes("if (e2eMode)"));
   assert.ok(scan.includes("E2E_PRODUCT_SCAN_ITEMS"));
   assert.ok(scan.includes("E2E_BARCODE_SCAN_ITEMS"));
