@@ -67,7 +67,7 @@ EXPO_PUBLIC_E2E_MODE=1 npx expo start --dev-client -c
 
 Keep that Metro process running while executing the Maestro flows from another terminal.
 
-The local flows use `launchApp` without `clearState: true`. E2E auth and inventory are in-memory and reset with an app-process restart, while preserving the development client's Metro connection. The fixture email and password are prefilled only in E2E mode; the flows then tap the visible `Continue as E2E tester` button. That button starts the isolated fixture session directly and avoids simulator keyboard, autofill, and focus flakiness.
+The local flows use `launchApp` without `clearState: true`. E2E auth and inventory are in-memory and reset with an app-process restart, while preserving the development client's Metro connection. The fixture values are prefilled only in E2E mode. The flows target stable control IDs, wait for the household screen, scroll to the real Enter kitchen control when needed, and avoid simulator keyboard, autofill, and focus flakiness.
 
 ## Run the smoke suite
 
@@ -79,7 +79,7 @@ npm run test:e2e
 
 That command runs every flow in `.maestro/`.
 
-The fixture credentials used by the suite are intentionally non-production and are prefilled only while E2E mode is active. The E2E-only submit button signs in with these fixed fixture values directly, so Maestro can exercise a real visible sign-in action without depending on simulator keyboard or autofill behavior:
+The fixture credentials used by the suite are intentionally non-production and are prefilled only while E2E mode is active. The E2E-only submit button signs in with these fixed fixture values directly, and the manual-add/edit forms also prefill deterministic fixture values only in E2E mode. Maestro still exercises the real Sign in, Add, Save, Consume, and Sign out actions without depending on simulator keyboard or autofill behavior:
 
 ```text
 Email: e2e@mealventory.test
