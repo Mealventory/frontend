@@ -247,6 +247,11 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
               <View style={styles.heroIllustration}><Home size={52} color={green} strokeWidth={1.5} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>Your people. Your pantry.</Text><Text style={styles.muted}>One household, all together.</Text></View></View>
             </View>
             <View style={styles.card}>
+              {e2eMode && (
+                <Text testID="e2e-mode-indicator" style={styles.e2eIndicator}>
+                  E2E Test Mode
+                </Text>
+              )}
               {forgot ? <>
                 <Text style={styles.heading}>Reset your password</Text>
                 <Text style={styles.muted}>Enter your email to receive a password recovery link.</Text>
@@ -376,6 +381,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, lineHeight: 23, color: '#617168', marginBottom: 24, fontFamily: 'Inter_400Regular' }, heroIllustration: { backgroundColor: '#E8EFE3', borderRadius: 20, padding: 24, flexDirection: 'row', gap: 20, alignItems: 'center' },
   card: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 24, borderWidth: 1, borderColor: '#E4EAE2', marginBottom: 20, gap: 8 }, heading: { textAlign: "center", fontFamily: 'Inter_700Bold', fontSize: 21, color: '#183B2D', marginBottom: 4 },
   muted: { color: '#6B7C72', fontSize: 12, lineHeight: 19 }, label: { color: '#334C3E', fontFamily: 'Inter_600SemiBold', fontSize: 12, marginTop: 14, marginBottom: 2 },
+  e2eIndicator: { alignSelf: 'center', color: green, backgroundColor: '#E6F1E5', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, fontSize: 11, fontFamily: 'Inter_700Bold' },
   input: { minHeight: 52, borderWidth: 1, borderColor: '#DDE5DC', borderRadius: 12, paddingHorizontal: 15, color: '#183B2D', backgroundColor: '#FBFCFA', fontSize: 15 },
   button: { minHeight: 52, backgroundColor: green, paddingHorizontal: 20, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 14 }, buttonText: { textAlign: 'center', flexShrink: 1, color: 'white', fontFamily: 'Inter_600SemiBold', fontSize: 15 }, secondary: { backgroundColor: '#E7EFE4' },
   link: { color: green, fontSize: 13, textAlign: 'center', paddingVertical: 15, fontFamily: 'Inter_600SemiBold' }, error: { backgroundColor: '#FDECE7', color: '#9B3429', borderRadius: 12, padding: 15, lineHeight: 21, marginTop: 12 }, info: { backgroundColor: '#E6F1E5', color: '#2D6347', borderRadius: 12, padding: 15, lineHeight: 21, marginTop: 12 }, footer: { textAlign: 'center', color: '#819086', fontSize: 11, marginVertical: 20 },
