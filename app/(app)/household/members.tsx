@@ -216,7 +216,7 @@ export default function HouseholdMembersScreen() {
             <Typography variant="caption" className="text-urgency-fresh flex-1">
               {notice}
             </Typography>
-            <Pressable onPress={() => setNotice(null)}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss notice" onPress={() => setNotice(null)}>
               <Icon name="X" size={14} color="#059669" />
             </Pressable>
           </View>
