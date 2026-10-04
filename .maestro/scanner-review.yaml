@@ -11,6 +11,7 @@ name: Deterministic scanner review
 - tapOn:
     id: "e2e-password"
 - inputText: "MealventoryE2E!"
+- hideKeyboard
 - tapOn:
     id: "e2e-sign-in"
 - assertVisible: "E2E Test Kitchen"
