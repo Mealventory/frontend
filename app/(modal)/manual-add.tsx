@@ -1,6 +1,7 @@
 import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
+import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
 import React, { useState } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -89,7 +90,11 @@ export default function ManualAddModal() {
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 40, width: "100%", maxWidth: 560, alignSelf: "center" }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        style={{ width: "100%", maxWidth: 560, alignSelf: "center" }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}
+      >
         {/* Top Header */}
         <View className="flex-row items-center justify-between mb-5">
           <Button
