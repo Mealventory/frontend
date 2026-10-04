@@ -13,6 +13,7 @@ import {
 import { ThemeProvider, useAppTheme } from "@/src/context/ThemeContext";
 import { InventoryProvider } from "@/src/context/InventoryContext";
 import { AuthProvider, useAuth } from "@/src/context/AuthContext";
+import { E2E_ENABLED } from "@/src/lib/e2e";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -84,7 +85,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-      <NotificationProvider><InventoryProvider>
+      <NotificationProvider><InventoryProvider demo={E2E_ENABLED}>
         <RootLayoutContent />
       </InventoryProvider></NotificationProvider>
       </AuthProvider>
