@@ -163,7 +163,7 @@ const defaultUser: UserProfile = {
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export function InventoryProvider({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
-  const { session, household } = useAuth();
+  const { session, household, selectHousehold } = useAuth();
   const queryClient = useQueryClient();
   const [demoInventory, setDemoInventory] = useState<FoodItem[]>(initialInventory);
   const scope = demo ? 'demo' : `${session?.user.id || ''}:${household?.id || ''}`;
@@ -219,6 +219,24 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     if (demo || !session?.user.id || !household?.id || mutations.current) return;
     await inventoryQuery.refetch({ cancelRefetch: false });
   }, [demo, session?.user.id, household?.id, inventoryQuery.refetch]);
+
+  useEffect(() => {
+    const error = inventoryQuery.error;
+    if (
+      demo ||
+      !(error instanceof Error) ||
+      error.message !== 'You no longer have access to this household.'
+    ) return;
+
+    queryClient.removeQueries({ queryKey: inventoryKey, exact: true });
+    selectHousehold(null);
+  }, [
+    demo,
+    inventoryQuery.error,
+    inventoryKey,
+    queryClient,
+    selectHousehold,
+  ]);
 
   useEffect(() => {
     const previous = previousUserId.current;
