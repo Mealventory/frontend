@@ -74,6 +74,7 @@ export default function ItemDetailScreen() {
         </Text>
 
         <TouchableOpacity
+          accessibilityRole="button"
           activeOpacity={0.7}
           onPress={() => handleAction("delete")}
           disabled={deleting}
