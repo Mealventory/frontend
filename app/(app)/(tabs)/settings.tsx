@@ -10,6 +10,7 @@ import { useAppTheme } from "@/src/context/ThemeContext";
 import { supabase } from "@/src/lib/supabase";
 import { accountClient, signOutAccount, changePassword } from "@/src/lib/account";
 import { useAuth } from "@/src/context/AuthContext";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 
 export default function SettingsTabScreen() {
   const notifications = useNotifications();
@@ -88,7 +89,7 @@ export default function SettingsTabScreen() {
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-ground-canvas">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 28 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 32 }}>
         <View style={{ marginBottom: 16 }}><BrandLogo /></View>
         <View className="mb-6">
           <Typography variant="h1">Settings</Typography>
