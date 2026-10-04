@@ -26,7 +26,7 @@ export default function ResetPasswordScreen() {
   }
   return <SafeAreaView style={styles.page}><View style={styles.card}>
     <Text style={styles.title}>Choose a new password</Text>
-    {saved ? <><Text>Password updated successfully.</Text><Pressable onPress={() => router.replace('/')}><Text style={styles.link}>Continue to your households</Text></Pressable></> : <>
+    {saved ? <><Text>Password updated successfully.</Text><Pressable accessibilityRole="button" accessibilityLabel="Continue to your households" onPress={() => router.replace('/')}><Text style={styles.link}>Continue to your households</Text></Pressable></> : <>
       {ready && !session && <Text>Open the latest recovery link from your email to continue.</Text>}
       {!!(error || recoveryError) && (
         <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ color: '#B42318' }}>
