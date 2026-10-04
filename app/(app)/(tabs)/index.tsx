@@ -60,6 +60,14 @@ export default function PantryDashboardScreen() {
         <Typography variant="caption" color="muted">{inventory.length} items in your household</Typography></View>
       <View className="flex-row items-center gap-2">
         <TouchableOpacity
+          onPress={()=>router.push('/(app)/activity' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Open household activity"
+          className="w-11 h-11 items-center justify-center rounded-xl border bg-ground-surface border-border-default"
+        >
+          <Icon name="History" size={21} color="#64748B" />
+        </TouchableOpacity>
+        <TouchableOpacity
           onPress={()=>router.push('/(app)/expiry-calendar' as any)}
           accessibilityRole="button"
           accessibilityLabel="Open expiry calendar"
