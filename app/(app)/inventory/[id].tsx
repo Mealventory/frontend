@@ -24,8 +24,10 @@ export default function ItemDetailScreen() {
           Item not found
         </Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Return to Kitchen"
           onPress={() => router.back()}
-          className="px-5 py-2.5 rounded-xl bg-brand-500"
+          className="min-h-[44px] px-5 py-2.5 rounded-xl bg-brand-500 items-center justify-center"
         >
           <Text className="text-white font-bold">Return to Kitchen</Text>
         </TouchableOpacity>
@@ -57,9 +59,11 @@ export default function ItemDetailScreen() {
       {/* Top Header */}
       <View className="flex-row items-center justify-between px-5 pt-3 pb-3">
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Back to Kitchen"
           activeOpacity={0.7}
           onPress={() => router.back()}
-          className="w-[38px] h-[38px] rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
+          className="w-11 h-11 rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
         >
           <Icon name="ArrowLeft" size={18} />
         </TouchableOpacity>
@@ -72,8 +76,9 @@ export default function ItemDetailScreen() {
           activeOpacity={0.7}
           onPress={() => handleAction("delete")}
           disabled={deleting}
-          accessibilityLabel={deleting ? 'Deleting item' : 'Delete item'}
-          className="w-[38px] h-[38px] rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
+          accessibilityLabel={deleting ? 'Deleting item' : `Delete ${item.name}`}
+          accessibilityState={{ disabled: deleting, busy: deleting }}
+          className="w-11 h-11 rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
         >
           <Icon name="Trash2" size={16} color="#F43F5E" />
         </TouchableOpacity>
@@ -129,16 +134,22 @@ export default function ItemDetailScreen() {
 
         <View className="gap-3 mb-4">
           <TouchableOpacity disabled={deleting} accessibilityRole="button"
+            accessibilityLabel={`Edit ${item.name}`}
+            accessibilityState={{ disabled: deleting }}
             onPress={() => router.push({ pathname: '/(app)/inventory/edit', params: { id: item.id } })}
             className="p-4 rounded-xl bg-ground-subtle items-center">
             <Text className="text-brand-600 dark:text-brand-400 font-bold">Edit item</Text>
           </TouchableOpacity>
           <TouchableOpacity disabled={deleting} onPress={() => handleAction('consume')}
-            className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button">
+            className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button"
+            accessibilityLabel={`Mark ${item.name} as consumed`}
+            accessibilityState={{ disabled: deleting, busy: deleting }}>
             <Text className="text-white font-bold">{deleting ? 'Saving…' : 'Mark as consumed'}</Text>
           </TouchableOpacity>
           <TouchableOpacity disabled={deleting} onPress={() => handleAction('discard')}
-            className="p-4 rounded-xl bg-ground-subtle items-center" accessibilityRole="button">
+            className="p-4 rounded-xl bg-ground-subtle items-center" accessibilityRole="button"
+            accessibilityLabel={`Mark ${item.name} as discarded`}
+            accessibilityState={{ disabled: deleting, busy: deleting }}>
             <Text className="text-text-primary font-bold">Mark as discarded</Text>
           </TouchableOpacity>
           <Text className="text-text-muted">These actions apply to the entire item quantity and keep its history.</Text>
@@ -157,6 +168,8 @@ export default function ItemDetailScreen() {
           </Text>
 
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Find recipes using ${item.name}`}
             activeOpacity={0.8}
             onPress={() => router.push("/(app)/(tabs)/recipes" as any)}
             className="w-full h-[44px] rounded-[14px] bg-brand-500 items-center justify-center shadow-sm shadow-brand-500/30"
