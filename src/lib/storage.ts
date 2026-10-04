@@ -46,5 +46,7 @@ function createNativeStorage(): StringStorage {
 
 // Expo Go does not bundle Nitro/MMKV. Keep ordinary Expo Go development usable,
 // while development/release builds get the real synchronous disk cache.
-export const queryStorage: StringStorage =
+export const appStorage: StringStorage =
   Constants.appOwnership === 'expo' ? memoryStorage : createNativeStorage();
+
+export const queryStorage = appStorage;
