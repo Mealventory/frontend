@@ -73,3 +73,12 @@ test("root household flow separates wide-screen centering from scroll padding", 
   assert.ok(root.includes('scrollFrame: { width: "100%", maxWidth: 560, alignSelf: "center" }'));
   assert.ok(!root.includes('maxWidth: 560, alignSelf: "center", paddingHorizontal: 24'));
 });
+
+test("bottom tab bar keeps safe-area clearance without an oversized base height", () => {
+  const tabs = fs.readFileSync("app/(app)/(tabs)/_layout.tsx", "utf8");
+  assert.ok(tabs.includes("const bottomInset = Math.max(insets.bottom, 8)"));
+  assert.ok(tabs.includes("height: 52 + bottomInset"));
+  assert.ok(tabs.includes("paddingBottom: bottomInset"));
+  assert.ok(tabs.includes("paddingTop: 4"));
+  assert.ok(!tabs.includes("height: 64 + insets.bottom"));
+});
