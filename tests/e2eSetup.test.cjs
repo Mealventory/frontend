@@ -17,11 +17,14 @@ test("normal providers only use the in-memory path under the E2E flag", () => {
   const root = fs.readFileSync("app/_layout.tsx", "utf8");
   const auth = fs.readFileSync("src/context/AuthContext.tsx", "utf8");
   const inventory = fs.readFileSync("src/context/InventoryContext.tsx", "utf8");
+  const notifications = fs.readFileSync("src/context/NotificationContext.tsx", "utf8");
 
   assert.ok(root.includes("<InventoryProvider demo={E2E_ENABLED}>"));
   assert.ok(auth.includes("if (E2E_ENABLED || !supabase) return;"));
+  assert.ok(auth.includes("E2E_ENABLED ? false : initialRecovery"));
   assert.ok(auth.includes("if (!E2E_ENABLED) return false;"));
   assert.ok(inventory.includes("if (demo) {"));
+  assert.ok(notifications.includes("if (e2eMode || unavailable || !user)"));
   assert.ok(inventory.includes("const updateDemoItem"));
 });
 
