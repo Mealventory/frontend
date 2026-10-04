@@ -5,21 +5,41 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase, initialRecovery } from '../lib/supabase';
 import { acceptRecoveryLink } from '../lib/account';
 import type { Household } from '../lib/householdApi';
+import {
+  E2E_EMAIL,
+  E2E_ENABLED,
+  E2E_PASSWORD,
+  E2E_SESSION,
+} from '../lib/e2e';
 
 const AuthContext = createContext<{
   session: Session | null; ready: boolean; recovery: boolean; recoveryError: string;
   finishRecovery: () => void;
   household: Household | null; selectHousehold: (household: Household | null) => void;
-}>({ session: null, ready: false, recovery: false, recoveryError: '', finishRecovery: () => {}, household: null, selectHousehold: () => {} });
+  e2eMode: boolean;
+  signInE2E: (email: string, password: string) => boolean;
+  signOutE2E: () => void;
+}>({
+  session: null,
+  ready: false,
+  recovery: false,
+  recoveryError: '',
+  finishRecovery: () => {},
+  household: null,
+  selectHousehold: () => {},
+  e2eMode: false,
+  signInE2E: () => false,
+  signOutE2E: () => {},
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [ready, setReady] = useState(!supabase);
+  const [ready, setReady] = useState(E2E_ENABLED || !supabase);
   const [recovery, setRecovery] = useState(initialRecovery);
   const [recoveryError, setRecoveryError] = useState('');
   const [household, selectHousehold] = useState<Household | null>(null);
   useEffect(() => {
-    if (!supabase) return;
+    if (E2E_ENABLED || !supabase) return;
     const client = supabase;
     let active = true;
     let userId: string | undefined;
@@ -69,8 +89,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const appSubscription = AppState.addEventListener('change', refresh);
     return () => { active = false; data.subscription.unsubscribe(); linkSubscription?.remove(); appSubscription.remove(); };
   }, []);
-  return <AuthContext.Provider value={{ session, ready, recovery, recoveryError,
-    finishRecovery: () => { setRecovery(false); setRecoveryError(''); }, household, selectHousehold }}>
+  const signInE2E = (email: string, password: string) => {
+    if (!E2E_ENABLED) return false;
+    const valid =
+      email.trim().toLowerCase() === E2E_EMAIL &&
+      password === E2E_PASSWORD;
+    if (!valid) return false;
+    setSession(E2E_SESSION);
+    selectHousehold(null);
+    setRecovery(false);
+    setRecoveryError('');
+    setReady(true);
+    return true;
+  };
+
+  const signOutE2E = () => {
+    if (!E2E_ENABLED) return;
+    setSession(null);
+    selectHousehold(null);
+    setRecovery(false);
+    setRecoveryError('');
+    setReady(true);
+  };
+
+  return <AuthContext.Provider value={{
+    session,
+    ready,
+    recovery,
+    recoveryError,
+    finishRecovery: () => { setRecovery(false); setRecoveryError(''); },
+    household,
+    selectHousehold,
+    e2eMode: E2E_ENABLED,
+    signInE2E,
+    signOutE2E,
+  }}>
     {children}
   </AuthContext.Provider>;
 }
