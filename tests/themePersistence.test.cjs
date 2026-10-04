@@ -188,6 +188,19 @@ test('app/_layout.tsx waits for theme hydration before revealing UI and hiding s
       Stack: Object.assign(() => ({ type: 'Stack' }), { Screen: () => null }),
     },
     'expo-status-bar': { StatusBar: () => null },
+    '@tanstack/react-query': {
+      useIsRestoring: () => false,
+    },
+    '@tanstack/react-query-persist-client': {
+      PersistQueryClientProvider: ({ children }) => children,
+    },
+    '@/src/lib/queryClient': {
+      QUERY_CACHE_BUSTER: 'test-cache',
+      QUERY_CACHE_MAX_AGE: 0,
+      queryClient: {},
+      queryPersister: {},
+      shouldPersistQuery: () => true,
+    },
     '@expo-google-fonts/inter': {
       useFonts: () => [true, null],
       Inter_400Regular: {},
