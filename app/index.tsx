@@ -38,12 +38,15 @@ function Action({ title, onPress, disabled, secondary = false, testID }: { title
 
 export default function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boolean }) {
   const router = useRouter();
-  const params = useLocalSearchParams<{ invite?: string | string[] }>();
+  const params = useLocalSearchParams<{ invite?: string | string[]; manage?: string | string[] }>();
   const inviteParam = normalizeInviteCode(
     Array.isArray(params.invite) ? params.invite[0] || '' : params.invite || ''
   );
+  const manageParam = Array.isArray(params.manage) ? params.manage[0] : params.manage;
+  const manageHouseholds = manageParam === '1';
   const {
     session,
+    household: activeHousehold,
     selectHousehold,
     e2eMode,
     signInE2E,
@@ -52,6 +55,8 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   const sessionRef = useRef<Session | null>(null);
   const generation = useRef(0);
   const memberRequest = useRef(0);
+  const activeHouseholdRef = useRef(activeHousehold);
+  activeHouseholdRef.current = activeHousehold;
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState(e2eMode ? E2E_EMAIL : '');
   const [password, setPassword] = useState(e2eMode ? E2E_PASSWORD : '');
@@ -100,6 +105,34 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     }
   }, [inviteParam, session?.user.id, router]);
 
+  useEffect(() => {
+    if (!session?.user.id || !activeHousehold) return;
+    setHouseholds(previous => [
+      activeHousehold,
+      ...previous.filter(item => item.id !== activeHousehold.id),
+    ]);
+    setSelected(activeHousehold);
+    setHouseholdsLoaded(true);
+    setError('');
+  }, [session?.user.id, activeHousehold?.id]);
+
+  useEffect(() => {
+    if (
+      !session?.user.id ||
+      !activeHousehold ||
+      manageHouseholds ||
+      isValidInviteCode(inviteParam)
+    ) return;
+
+    router.replace('/(app)/(tabs)' as any);
+  }, [
+    session?.user.id,
+    activeHousehold?.id,
+    manageHouseholds,
+    inviteParam,
+    router,
+  ]);
+
   async function accessToken() {
     if (e2eMode) return E2E_SESSION.access_token;
     if (!supabase) throw new Error('Sign-in is not configured yet.');
@@ -119,7 +152,21 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
       setHouseholds(rows);
       setHouseholdsLoaded(true);
       setSelected(previous => rows.find(row => row.id === previous?.id) || rows[0] || null);
-    } catch (e) { if (current === generation.current) setError(message(e)); }
+    } catch (e) {
+      if (current !== generation.current) return;
+      const cached = activeHouseholdRef.current;
+      if (cached) {
+        setHouseholds(previous => [
+          cached,
+          ...previous.filter(item => item.id !== cached.id),
+        ]);
+        setSelected(cached);
+        setHouseholdsLoaded(true);
+        setError('');
+      } else {
+        setError(message(e));
+      }
+    }
     finally { if (current === generation.current) setLoading(false); }
   }
   useEffect(() => { if (session?.user.id) void refreshHouseholds(); }, [session?.user.id]);
