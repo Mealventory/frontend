@@ -8,8 +8,10 @@ Mealventory persists successful household inventory queries to MMKV so a previou
 - `react-native-mmkv` stores the persisted query client under the `mealventory-sync-cache` MMKV instance.
 - Only inventory queries that already contain data are dehydrated. A failed background refresh can therefore keep the last good pantry on disk; auth/session state, notification state, and unrelated queries are not persisted by this cache.
 - Inventory query keys include both the authenticated user id and selected household id.
+- The last selected household is stored per user so a normal cold launch can reopen that household without a network lookup.
 - Cached queries use a seven-day `gcTime` and a seven-day persistence `maxAge`.
-- When the authenticated user changes or signs out, cached inventory queries for the previous user are removed.
+- When the authenticated user changes or signs out, cached inventory queries and the remembered household for the previous user are removed.
+- A real backend household-access revocation clears the cached pantry and remembered selection instead of continuing to expose stale access.
 - E2E/demo inventory remains in memory and does not use the persisted production cache.
 
 The persister uses TanStack's current async-storage adapter with MMKV underneath. MMKV reads and writes remain synchronous; the adapter is used because the current TanStack persistence API accepts synchronous storage implementations and the older sync-storage persister is deprecated.
@@ -47,7 +49,7 @@ npx expo start --dev-client
 3. Fully terminate the app.
 4. Enable Airplane Mode.
 5. Relaunch the installed development build.
-6. Sign-in/session restoration should return to the same household, and the cached pantry should render without a pantry loading spinner or connection-error replacement.
+6. The persisted session and remembered household should reopen **My Kitchen** automatically, and the cached pantry should render without a pantry loading spinner or connection-error replacement.
 7. Restore connectivity and pull to refresh; the server result should replace/update the cached query normally.
 
 If there is no cached inventory for the current user/household, a real network failure is still surfaced so the user is not shown a misleading empty pantry.
