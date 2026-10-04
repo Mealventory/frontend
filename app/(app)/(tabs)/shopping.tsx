@@ -15,6 +15,7 @@ import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
 import { batchCreateInventoryItems } from "@/src/lib/inventoryApi";
 import { preparePurchasedInventoryItems } from "@/src/lib/shoppingPantry";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import {
   addShoppingItem,
   clearCheckedShoppingItems,
@@ -453,7 +454,7 @@ export default function ShoppingTabScreen() {
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 20, paddingBottom: 28 }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 32 }}
       >
         <View style={{ marginBottom: 16 }}><BrandLogo /></View>
         <View className="mb-6">

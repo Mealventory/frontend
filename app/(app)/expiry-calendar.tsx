@@ -8,6 +8,7 @@ import { EmptyState } from '@/src/components/molecules/EmptyState';
 import { useInventory } from '@/src/context/InventoryContext';
 import type { FoodItem } from '@/src/types';
 import { expiryDays, expiryLabel, localDay } from '@/src/lib/pantryExpiry';
+import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
 import {
   calendarCells,
   expiryTimeline,
@@ -174,7 +175,7 @@ export default function ExpiryCalendarScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-ground-canvas">
-      <View className="px-5 pt-3 pb-3 border-b border-border-default">
+      <View className="px-4 pt-3 pb-3 border-b border-border-default">
         <View className="flex-row items-center gap-3">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -213,7 +214,7 @@ export default function ExpiryCalendarScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
         {inventory.length === 0 ? (

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Recipe } from "@/src/types";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import { Icon } from "../atoms/Icon";
 
 export interface RecipeDetailViewProps {
@@ -72,7 +73,7 @@ export function RecipeDetailView({
 
   return (
     <ScrollView
-      contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+      contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 100 }}
       showsVerticalScrollIndicator={false}
       className="flex-1"
     >

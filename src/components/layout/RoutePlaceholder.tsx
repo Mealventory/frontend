@@ -31,7 +31,11 @@ export function RoutePlaceholder({
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 40, width: "100%", maxWidth: 560, alignSelf: "center" }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        style={{ width: "100%", maxWidth: 560, alignSelf: "center" }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}
+      >
         {/* Header navigation */}
         <View className="flex-row items-center justify-between mb-6">
           <Button

@@ -7,6 +7,7 @@ import { FreshnessHero } from "@/src/components/domain/FreshnessHero";
 import { FreshnessMeter } from "@/src/components/domain/FreshnessMeter";
 import { useInventory } from "@/src/context/InventoryContext";
 import { deleteItemPhoto } from "@/src/lib/itemPhotoStorage";
+import { APP_GUTTER } from "@/src/lib/layout";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -57,7 +58,7 @@ export default function ItemDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
       {/* Top Header */}
-      <View className="flex-row items-center justify-between px-5 pt-3 pb-3">
+      <View className="flex-row items-center justify-between px-4 pt-3 pb-3">
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Back to Kitchen"
@@ -84,9 +85,9 @@ export default function ItemDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', padding: 20 }}>{error}</Text>}
+      {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', paddingHorizontal: APP_GUTTER, paddingVertical: 12 }}>{error}</Text>}
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
         className="flex-1"
       >

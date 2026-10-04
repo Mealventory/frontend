@@ -93,7 +93,7 @@ export default function RecipeDetailRouteScreen() {
       {!!saveError && (
         <Text
           accessibilityRole="alert"
-          className="mx-5 mt-3 p-3 rounded-xl bg-urgency-critical-bg text-urgency-critical text-[12px] font-semibold"
+          className="mx-4 mt-3 p-3 rounded-xl bg-urgency-critical-bg text-urgency-critical text-[12px] font-semibold"
         >
           {saveError}
         </Text>

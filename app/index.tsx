@@ -13,6 +13,7 @@ import { backendConfigured, Household, householdRequest, Member } from '@/src/li
 import { resolveMemberProfile, formatRole } from '@/src/lib/memberProfiles';
 import { HouseholdInviteCard } from '@/src/components/domain/HouseholdInviteCard';
 import { isValidInviteCode, normalizeInviteCode } from '@/src/lib/householdInvites';
+import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
 
 const green = '#087F5B';
 type Page = 'home' | 'create' | 'join';
@@ -214,7 +215,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     </View>
 
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+      <ScrollView keyboardShouldPersistTaps="handled" style={styles.scrollFrame} contentContainerStyle={styles.scroll}>
         <View style={styles.container}>
           {!session ? <>
             <View style={styles.hero}><Text style={styles.eyebrow}>A LITTLE LESS WASTE. A LOT MORE TOGETHER.</Text>
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F6F8F4' },
   headerWrapper: {
     width: '100%',
-    paddingHorizontal: 24,
+    paddingHorizontal: APP_GUTTER,
     paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: '#F6F8F4',
@@ -342,7 +343,8 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  scroll: { flexGrow: 1, width: "100%", maxWidth: 560, alignSelf: "center", paddingHorizontal: 24, paddingVertical: 24 },
+  scrollFrame: { width: "100%", maxWidth: 560, alignSelf: "center" },
+  scroll: { flexGrow: 1, paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 32 },
   container: { width: '100%', maxWidth: 520, alignSelf: 'center' },
   brand: { flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }, logoImage: { width: 42, height: 42, borderRadius: 13 }, brandText: { fontSize: 22, color: '#183B2D', fontFamily: 'Inter_700Bold', letterSpacing: -.8 },
   iconButton: { padding: 12 }, hero: { marginBottom: 24 }, eyebrow: { fontSize: 10, letterSpacing: 1.8, fontFamily: 'Inter_700Bold', color: green, marginBottom: 13 },

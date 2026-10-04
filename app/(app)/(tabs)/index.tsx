@@ -11,6 +11,7 @@ import { EmptyState } from '@/src/components/molecules/EmptyState';
 import { useInventory } from '@/src/context/InventoryContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { localDay, pantryView, ExpiryGroup } from '@/src/lib/pantryExpiry';
+import { APP_GUTTER } from '@/src/lib/layout';
 
 const categories = ['All', 'Produce', 'Dairy', 'Meat', 'Bakery', 'Pantry', 'Beverage', 'Snacks'];
 const zones: Record<string,string> = { 'All zones':'all', Fridge:'fridge', Freezer:'freezer', Pantry:'pantry', Spices:'spicerack' };
@@ -115,7 +116,7 @@ export default function PantryDashboardScreen() {
       renderItem={({item})=><PantryItemCard key={`${session?.user.id}:${household?.id}:${item.id}`} item={item} today={today} onPress={selected=>{openItem(selected);router.push(`/(app)/inventory/${selected.id}` as any);}} />}
       ItemSeparatorComponent={()=><View className="h-2.5" />}
       refreshControl={<RefreshControl refreshing={inventoryLoading} onRefresh={()=>void refreshInventory()} />}
-      keyboardShouldPersistTaps="handled" contentContainerStyle={{paddingHorizontal:20,paddingBottom:28}} showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingBottom: 32 }} showsVerticalScrollIndicator={false}
       ListEmptyComponent={inventoryError?null:inventoryLoading?<ActivityIndicator accessibilityLabel="Loading pantry" color="#10B981" />:inventory.length===0?
         <EmptyState icon="Refrigerator" title="A fresh start for your kitchen" description="Add a few ingredients and let’s see what’s cooking." actionLabel="Scan your first product" onAction={()=>router.push('/(app)/(tabs)/scan' as any)} secondaryLabel="Add food manually" onSecondary={()=>router.push('/(modal)/manual-add' as any)} />:
         <EmptyState icon="Search" title={group==='all'?'Nothing on this shelf':'Nothing in this expiry group'} description="Try another shelf, ingredient or expiry group." actionLabel="Clear filters" onAction={clear} />}

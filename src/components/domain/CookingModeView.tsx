@@ -81,7 +81,7 @@ export function CookingModeView({ recipe, onBack, onFinish }: CookingModeViewPro
 
   return (
     <SafeAreaView edges={["top", "bottom", "left", "right"]} className="flex-1 bg-ground-canvas">
-      <View className="flex-1 px-5 pt-3 pb-4">
+      <View className="flex-1 px-4 pt-3 pb-4">
         <View className="flex-row items-center gap-3 mb-5">
           <TouchableOpacity
             accessibilityRole="button"

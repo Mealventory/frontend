@@ -8,6 +8,7 @@ import { useAppTheme } from "@/src/context/ThemeContext";
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { isDark } = useAppTheme();
+  const bottomInset = Math.max(insets.bottom, 8);
 
   return (
     <Tabs
@@ -19,9 +20,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
           borderTopColor: isDark ? "#1E293B" : "#E2E8F0",
-          height: 64 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 8,
+          height: 52 + bottomInset,
+          paddingBottom: bottomInset,
+          paddingTop: 4,
         },
         tabBarLabelStyle: {
           fontSize: 11,
