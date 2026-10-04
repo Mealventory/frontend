@@ -17,19 +17,14 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Mealventory requires camera access to scan grocery receipts and barcodes.",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "icon": "./assets/branding/icon.png"
+      }
     },
     "android": {
       "package": "com.mealventory.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ],
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/branding/adaptive-icon.png",
-        "backgroundColor": "#F6F8F4"
-      }
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -62,7 +57,6 @@
       "eas": {
         "projectId": "aa13e851-d5f6-4179-a1e3-6571dad7d73f"
       }
-    },
-    "icon": "./assets/branding/icon.png"
+    }
   }
 }
