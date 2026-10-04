@@ -33,6 +33,8 @@ test("E2E sign-in prefills fixture credentials so Maestro only exercises the rea
   assert.ok(screen.includes("useState(e2eMode ? E2E_EMAIL : '')"));
   assert.ok(screen.includes("useState(e2eMode ? E2E_PASSWORD : '')"));
   assert.ok(screen.includes('testID="e2e-sign-in"'));
+  assert.ok(screen.includes("signInE2E(E2E_EMAIL, E2E_PASSWORD)"));
+  assert.ok(screen.includes("Continue as E2E tester"));
 });
 
 test("package exposes one Maestro smoke-suite command", () => {
@@ -65,7 +67,7 @@ test("critical Maestro journey covers sign-in, household, pantry mutation, and s
   assert.ok(!flow.includes("clearState: true"));
   assert.ok(!flow.includes('inputText: "e2e@mealventory.test"'));
   assert.ok(!flow.includes('inputText: "MealventoryE2E!"'));
-  assert.ok(flow.includes('id: "e2e-sign-in"'));
+  assert.ok(flow.includes("Continue as E2E tester"));
 });
 
 test("scanner Maestro flow is deterministic and camera-independent", () => {
@@ -79,7 +81,7 @@ test("scanner Maestro flow is deterministic and camera-independent", () => {
   assert.ok(!flow.includes("clearState: true"));
   assert.ok(!flow.includes('inputText: "e2e@mealventory.test"'));
   assert.ok(!flow.includes('inputText: "MealventoryE2E!"'));
-  assert.ok(flow.includes('id: "e2e-sign-in"'));
+  assert.ok(flow.includes("Continue as E2E tester"));
   assert.ok(scan.includes("if (e2eMode)"));
   assert.ok(scan.includes("E2E_PRODUCT_SCAN_ITEMS"));
   assert.ok(scan.includes("E2E_BARCODE_SCAN_ITEMS"));
