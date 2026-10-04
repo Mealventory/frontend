@@ -60,13 +60,15 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
    disabled={busy}
    containerClassName="rounded-[20px]"
    testIDPrefix={`pantry-swipe-${item.id}`}
-   actions={[
+   leadingActions={[
     {
      key:'consume',
      label:'Consumed',
      accessibilityLabel:`Mark ${item.name} as consumed`,
      onPress:()=>save(null,'consume'),
     },
+   ]}
+   actions={[
     {
      key:'discard',
      label:'Discarded',
