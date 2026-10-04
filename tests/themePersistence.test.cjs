@@ -8,7 +8,15 @@ function load(file, mocks = {}) {
   const mod = new Module(file, module);
   mod.paths = module.paths;
   const original = mod.require.bind(mod);
-  mod.require = (name) => (name === "@/src/context/NotificationContext" ? { NotificationProvider: "NotificationProvider" } : name in mocks ? mocks[name] : original(name));
+  mod.require = (name) => (
+    name === "@/src/context/NotificationContext"
+      ? { NotificationProvider: "NotificationProvider" }
+      : name === "@/src/lib/e2e"
+        ? { E2E_ENABLED: false }
+        : name in mocks
+          ? mocks[name]
+          : original(name)
+  );
   mod._compile(
     ts.transpileModule(fs.readFileSync(file, 'utf8'), {
       compilerOptions: {
