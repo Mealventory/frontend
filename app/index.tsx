@@ -14,14 +14,14 @@ import { resolveMemberProfile, formatRole } from '@/src/lib/memberProfiles';
 import { HouseholdInviteCard } from '@/src/components/domain/HouseholdInviteCard';
 import { isValidInviteCode, normalizeInviteCode } from '@/src/lib/householdInvites';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
-import { E2E_HOUSEHOLD, E2E_MEMBER, E2E_SESSION } from '@/src/lib/e2e';
+import { E2E_EMAIL, E2E_HOUSEHOLD, E2E_MEMBER, E2E_PASSWORD, E2E_SESSION } from '@/src/lib/e2e';
 
 const green = '#087F5B';
 type Page = 'home' | 'create' | 'join';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
 function Action({ title, onPress, disabled, secondary = false, testID }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean; testID?: string }) {
-  return <Pressable testID={testID} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
+  return <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
     style={[styles.button, secondary && styles.secondary, disabled && { opacity: .5 }]}>
     <Text style={[styles.buttonText, secondary && { color: green }]}>{title}</Text>
     {!secondary && <ArrowRight color="white" size={18} />}
@@ -45,8 +45,8 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   const generation = useRef(0);
   const memberRequest = useRef(0);
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(e2eMode ? E2E_EMAIL : '');
+  const [password, setPassword] = useState(e2eMode ? E2E_PASSWORD : '');
   const [signUp, setSignUp] = useState(initialSignUp);
   const [forgot, setForgot] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -205,7 +205,8 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
       else await signOutAccount(supabase);
       sessionRef.current = null;
       selectHousehold(null);
-      setPassword(''); setUsername('');
+      setEmail(e2eMode ? E2E_EMAIL : '');
+      setPassword(e2eMode ? E2E_PASSWORD : ''); setUsername('');
       setHouseholds([]);
       setSelected(null);
       setMembers([]);
