@@ -35,7 +35,7 @@ const AuthContext = createContext<{
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(E2E_ENABLED || !supabase);
-  const [recovery, setRecovery] = useState(initialRecovery);
+  const [recovery, setRecovery] = useState(E2E_ENABLED ? false : initialRecovery);
   const [recoveryError, setRecoveryError] = useState('');
   const [household, selectHousehold] = useState<Household | null>(null);
   useEffect(() => {
