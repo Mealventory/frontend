@@ -9,6 +9,8 @@ test("E2E mode is explicit and uses non-production fixtures", () => {
   assert.ok(e2e.includes('process.env.EXPO_PUBLIC_E2E_MODE === "1"'));
   assert.ok(e2e.includes('e2e@mealventory.test'));
   assert.ok(e2e.includes('E2E Test Kitchen'));
+  assert.ok(e2e.includes('E2E Apples'));
+  assert.ok(e2e.includes('E2E Apples Edited'));
   assert.ok(env.includes("EXPO_PUBLIC_E2E_MODE=0"));
   assert.ok(!e2e.includes("EXPO_PUBLIC_SUPABASE"));
 });
@@ -65,9 +67,12 @@ test("critical Maestro journey covers sign-in, household, pantry mutation, and s
   assert.ok(flow.includes("E2E Apples Edited"));
   assert.ok(flow.includes("assertNotVisible"));
   assert.ok(!flow.includes("clearState: true"));
-  assert.ok(!flow.includes('inputText: "e2e@mealventory.test"'));
-  assert.ok(!flow.includes('inputText: "MealventoryE2E!"'));
-  assert.ok(flow.includes("Continue as E2E tester"));
+  assert.ok(!flow.includes("inputText:"));
+  assert.ok(!flow.includes("hideKeyboard"));
+  assert.ok(!flow.includes("eraseText"));
+  assert.ok(flow.includes('id: "e2e-sign-in"'));
+  assert.ok(flow.includes('id: "e2e-enter-kitchen"'));
+  assert.ok(flow.includes('assertVisible: "Your household."'));
 });
 
 test("scanner Maestro flow is deterministic and camera-independent", () => {
@@ -79,9 +84,11 @@ test("scanner Maestro flow is deterministic and camera-independent", () => {
   assert.ok(flow.includes("E2E Greek Yogurt"));
   assert.ok(flow.includes("Item (012345678905)"));
   assert.ok(!flow.includes("clearState: true"));
-  assert.ok(!flow.includes('inputText: "e2e@mealventory.test"'));
-  assert.ok(!flow.includes('inputText: "MealventoryE2E!"'));
-  assert.ok(flow.includes("Continue as E2E tester"));
+  assert.ok(!flow.includes("inputText:"));
+  assert.ok(!flow.includes("hideKeyboard"));
+  assert.ok(flow.includes('id: "e2e-sign-in"'));
+  assert.ok(flow.includes('id: "e2e-enter-kitchen"'));
+  assert.ok(flow.includes('assertVisible: "Your household."'));
   assert.ok(scan.includes("if (e2eMode)"));
   assert.ok(scan.includes("E2E_PRODUCT_SCAN_ITEMS"));
   assert.ok(scan.includes("E2E_BARCODE_SCAN_ITEMS"));
@@ -92,4 +99,13 @@ test("E2E documentation warns against enabling fixture mode in normal builds", (
   assert.ok(doc.includes("npm run test:e2e"));
   assert.ok(doc.includes("Do not set `EXPO_PUBLIC_E2E_MODE=1`"));
   assert.ok(doc.includes("production Supabase credentials"));
+});
+
+
+test("manual and edit forms prefill deterministic fixture values only in E2E mode", () => {
+  const manual = fs.readFileSync("app/(modal)/manual-add.tsx", "utf8");
+  const edit = fs.readFileSync("app/(app)/inventory/edit.tsx", "utf8");
+  assert.ok(manual.includes("e2eMode ? E2E_MANUAL_ITEM_NAME"));
+  assert.ok(manual.includes("e2eMode ? E2E_MANUAL_ITEM_QUANTITY"));
+  assert.ok(edit.includes("e2eMode ? E2E_EDITED_ITEM_NAME"));
 });
