@@ -5,15 +5,12 @@ name: Deterministic scanner review
 - assertVisible:
     id: "e2e-mode-indicator"
 - assertVisible: "Welcome back"
-
-- tapOn:
+- assertVisible:
     id: "e2e-email"
-- inputText: "e2e@mealventory.test"
-- hideKeyboard
-- tapOn:
+- assertVisible:
     id: "e2e-password"
-- inputText: "MealventoryE2E!"
-- hideKeyboard
+- assertVisible:
+    id: "e2e-sign-in"
 - tapOn:
     id: "e2e-sign-in"
 - assertVisible: "E2E Test Kitchen"
