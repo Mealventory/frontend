@@ -27,6 +27,8 @@ test("MMKV storage uses the v4 API with a stable cache id", () => {
   assert.ok(storage.includes("mealventory-sync-cache"));
   assert.ok(storage.includes("getString"));
   assert.ok(storage.includes(".remove("));
+  assert.ok(storage.includes("Constants.appOwnership === 'expo'"));
+  assert.ok(storage.includes("memoryStorage"));
   assert.ok(!storage.includes("new MMKV"));
 });
 
