@@ -37,6 +37,8 @@ test("E2E sign-in prefills fixture credentials so Maestro only exercises the rea
   assert.ok(screen.includes('testID="e2e-sign-in"'));
   assert.ok(screen.includes("signInE2E(E2E_EMAIL, E2E_PASSWORD)"));
   assert.ok(screen.includes("Continue as E2E tester"));
+  assert.ok(screen.includes("accessible"));
+  assert.ok(screen.includes("accessible={false}"));
 });
 
 test("package exposes one Maestro smoke-suite command", () => {
@@ -70,7 +72,8 @@ test("critical Maestro journey covers sign-in, household, pantry mutation, and s
   assert.ok(!flow.includes("inputText:"));
   assert.ok(!flow.includes("hideKeyboard"));
   assert.ok(!flow.includes("eraseText"));
-  assert.ok(flow.includes('id: "e2e-sign-in"'));
+  assert.ok(flow.includes('text: "Continue as E2E tester"'));
+  assert.ok(flow.includes("retryTapIfNoChange: true"));
   assert.ok(flow.includes('id: "e2e-enter-kitchen"'));
   assert.ok(flow.includes('assertVisible: "Your household."'));
 });
@@ -86,7 +89,8 @@ test("scanner Maestro flow is deterministic and camera-independent", () => {
   assert.ok(!flow.includes("clearState: true"));
   assert.ok(!flow.includes("inputText:"));
   assert.ok(!flow.includes("hideKeyboard"));
-  assert.ok(flow.includes('id: "e2e-sign-in"'));
+  assert.ok(flow.includes('text: "Continue as E2E tester"'));
+  assert.ok(flow.includes("retryTapIfNoChange: true"));
   assert.ok(flow.includes('id: "e2e-enter-kitchen"'));
   assert.ok(flow.includes('assertVisible: "Your household."'));
   assert.ok(scan.includes("if (e2eMode)"));
