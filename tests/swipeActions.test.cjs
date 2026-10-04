@@ -15,14 +15,17 @@ const shopping = fs.readFileSync(
   "utf8"
 );
 
-test("swipe row requires deliberate horizontal intent and only reveals actions", () => {
+test("swipe row requires deliberate horizontal intent and supports both directions", () => {
   assert.match(swipe, /HORIZONTAL_INTENT_PX = 8/);
-  assert.match(swipe, /horizontal > vertical \* 1\.4/);
+  assert.match(swipe, /horizontal <= vertical \* 1\.4/);
   assert.match(swipe, /OPEN_THRESHOLD = 0\.32/);
   assert.match(swipe, /gesture\.vx < -0\.45/);
+  assert.match(swipe, /gesture\.vx > 0\.45/);
+  assert.match(swipe, /leadingActions/);
+  assert.match(swipe, /openTrailing/);
+  assert.match(swipe, /openLeading/);
 
-  // Releasing a swipe only opens/closes the row; actions run from explicit buttons.
-  assert.match(swipe, /if \(shouldOpen\) open\(\);/);
+  // Releasing a swipe only reveals an action; mutations require tapping it.
   assert.match(swipe, /onPress=\{\(\) => void invoke\(action\)\}/);
 });
 
@@ -41,11 +44,15 @@ test("pantry swipe wrapper clips hidden actions to the card radius", () => {
   assert.match(pantry, /containerClassName="rounded-\[20px\]"/);
 });
 
-test("pantry swipe actions map to existing consume and discard transitions", () => {
-  assert.match(pantry, /key:'consume'/);
-  assert.match(pantry, /onPress:\(\)=>save\(null,'consume'\)/);
-  assert.match(pantry, /key:'discard'/);
-  assert.match(pantry, /onPress:\(\)=>save\(null,'discard'\)/);
+test("pantry maps right swipe to consumed and left swipe to discarded", () => {
+  assert.match(
+    pantry,
+    /leadingActions=\{\[\s*\{\s*key:'consume'[\s\S]*?onPress:\(\)=>save\(null,'consume'\)/
+  );
+  assert.match(
+    pantry,
+    /actions=\{\[\s*\{\s*key:'discard'[\s\S]*?onPress:\(\)=>save\(null,'discard'\)/
+  );
 
   // Existing per-card lock remains in place in addition to the swipe-row lock.
   assert.match(pantry, /if\(locked\.current\)return/);
