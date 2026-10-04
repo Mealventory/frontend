@@ -8,6 +8,9 @@ export const E2E_EMAIL = "e2e@mealventory.test";
 export const E2E_PASSWORD = "MealventoryE2E!";
 export const E2E_USER_ID = "00000000-0000-4000-8000-000000000059";
 export const E2E_HOUSEHOLD_ID = "00000000-0000-4000-8000-000000000159";
+export const E2E_MANUAL_ITEM_NAME = "E2E Apples";
+export const E2E_EDITED_ITEM_NAME = "E2E Apples Edited";
+export const E2E_MANUAL_ITEM_QUANTITY = "2 bags";
 
 export const E2E_HOUSEHOLD: Household = {
   id: E2E_HOUSEHOLD_ID,
