@@ -28,6 +28,8 @@ export function RecipeCard({
 
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={`${recipe.name}, ${pct}% match, ${haveCount} of ${recipe.uses.length} ingredients in stock, ${recipe.time}. Open recipe`}
       activeOpacity={0.7}
       onPress={() => onPress(recipe)}
       className={`p-4 bg-ground-surface dark:bg-ground-card rounded-[22px] border border-border-default shadow-sm ${className}`}
@@ -56,7 +58,7 @@ export function RecipeCard({
                     event.stopPropagation?.();
                     void onToggleSaved(recipe);
                   }}
-                  className={`w-8 h-8 rounded-full border items-center justify-center ${
+                  className={`w-11 h-11 rounded-full border items-center justify-center ${
                     saved
                       ? "bg-brand-500 border-brand-500"
                       : "bg-ground-subtle dark:bg-ground-elevated border-border-default"
