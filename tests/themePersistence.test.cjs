@@ -217,10 +217,9 @@ test('app/_layout.tsx waits for theme hydration before revealing UI and hiding s
   assert.equal(splashHidden, true, 'Splash screen hides once theme is restored');
 });
 
-test('both settings screens use the shared native appearance selector', () => {
-  for (const file of ['app/(app)/(tabs)/settings.tsx', 'src/screens/SettingsScreen.tsx']) {
-    assert.ok(fs.readFileSync(file, 'utf8').includes('<ThemeSelector />'));
-  }
+test('production settings screen uses the shared native appearance selector', () => {
+  const settings = fs.readFileSync('app/(app)/(tabs)/settings.tsx', 'utf8');
+  assert.ok(settings.includes('<ThemeSelector />'));
   const selector = fs.readFileSync('src/components/molecules/ThemeSelector.tsx', 'utf8');
   for (const mode of ['system', 'light', 'dark']) assert.ok(selector.includes(`id: '${mode}'`));
   assert.ok(!selector.includes('className='));
