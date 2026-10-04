@@ -126,7 +126,6 @@ export function SwipeActionRow({
   return (
     <View className="overflow-hidden">
       <View
-        pointerEvents={currentX.current < 0 ? "auto" : "none"}
         style={{
           position: "absolute",
           top: 0,
