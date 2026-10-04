@@ -65,7 +65,7 @@ export function FoodItemCard({ item, onPress, className = "", today = localDay()
       {/* Item info */}
       <View className="flex-1 min-w-0 mr-3">
         <Text
-          numberOfLines={quantityControls ? 2 : 1}
+          numberOfLines={2}
           className="text-[15px] font-bold text-text-primary tracking-tight font-bold"
         >
           {item.name}
