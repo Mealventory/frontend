@@ -94,3 +94,5 @@ The `.test` domain is reserved for testing and these credentials are accepted on
 Do not set `EXPO_PUBLIC_E2E_MODE=1` in normal development, preview, or production builds. When the flag is absent, E2E sign-in is unavailable, inventory uses the real backend, and the real scanner UI is rendered.
 
 The E2E inventory is reset whenever the application process/state is cleared, so the suite can run repeatedly without cleanup against a server.
+
+On the current iOS simulator smoke-test screen, the fixture sign-in action is tapped by screen coordinate after its label is asserted visible. This is intentional: iOS can expose the React Native Pressable to Maestro and report a successful accessibility tap without delivering the touch to `onPress`. The coordinate is used only for this fixed E2E-only login screen; the rest of the journey continues to target stable IDs and visible controls.
