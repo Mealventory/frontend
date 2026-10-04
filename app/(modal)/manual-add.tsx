@@ -12,6 +12,7 @@ import { useInventory } from "@/src/context/InventoryContext";
 import { useAuth } from "@/src/context/AuthContext";
 import { ItemPhotoField, type SelectedItemPhoto } from "@/src/components/molecules/ItemPhotoField";
 import { deleteItemPhoto, uploadItemPhoto } from "@/src/lib/itemPhotoStorage";
+import { E2E_MANUAL_ITEM_NAME, E2E_MANUAL_ITEM_QUANTITY } from "@/src/lib/e2e";
 
 import type { StorageZone } from "@/src/types";
 
@@ -30,9 +31,9 @@ const categoryEmojis: Record<string, string> = {
 export default function ManualAddModal() {
   const router = useRouter();
   const { addItem } = useInventory();
-  const { household } = useAuth();
-  const [name, setName] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const { household, e2eMode } = useAuth();
+  const [name, setName] = useState(e2eMode ? E2E_MANUAL_ITEM_NAME : "");
+  const [quantity, setQuantity] = useState(e2eMode ? E2E_MANUAL_ITEM_QUANTITY : "");
   const [expDate, setExpDate] = useState("");
   const [selectedCat, setSelectedCat] = useState("Produce");
   const [storageZone, setStorageZone] = useState<StorageZone>("pantry");
@@ -116,6 +117,7 @@ export default function ManualAddModal() {
 
         <View className="gap-4 mb-6">
           <FormField
+            testID="e2e-item-name"
             label="Item Name"
             placeholder="e.g. Sourdough Bread"
             value={name}
@@ -158,6 +160,7 @@ export default function ManualAddModal() {
           </View>
 
           <FormField
+            testID="e2e-item-quantity"
             label="Quantity / Size"
             placeholder="e.g. 1 loaf or 500g"
             value={quantity}
@@ -170,6 +173,7 @@ export default function ManualAddModal() {
         </View>
 
         <Button
+          testID="e2e-add-to-kitchen"
           label={saving ? 'Saving…' : 'Add to Kitchen'}
           variant="primary"
           leadingIcon={<Icon name="Plus" size={18} color="#FFFFFF" />}

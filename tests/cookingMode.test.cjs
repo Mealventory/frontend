@@ -106,6 +106,7 @@ test("recipe detail exposes Start Cooking when a launch handler is provided", ()
       ActivityIndicator: "ActivityIndicator",
     },
     "@/src/types": {},
+    "@/src/lib/layout": { APP_GUTTER: 16, APP_PAGE_TOP: 20 },
     "../atoms/Icon": { Icon: "Icon" },
   }).RecipeDetailView;
   hooks.reset();

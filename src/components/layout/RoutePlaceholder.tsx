@@ -7,6 +7,7 @@ import { Typography } from "../atoms/Typography";
 import { Button } from "../atoms/Button";
 import { Badge } from "../atoms/Badge";
 import { Icon, IconName } from "../atoms/Icon";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 
 export interface RoutePlaceholderProps {
   title: string;

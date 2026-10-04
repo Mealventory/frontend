@@ -144,3 +144,16 @@ npm run start:tunnel
      npm start -- -c
      ```
 
+
+
+## Mobile end-to-end smoke tests
+
+Critical mobile journeys are covered with Maestro using an isolated in-memory test mode. The suite does not require production credentials or production data.
+
+See [Mobile E2E smoke tests](docs/e2e-mobile.md) for simulator/emulator setup, fixture credentials, and scanner test behavior.
+
+Run the suite with:
+
+```bash
+npm run test:e2e
+```

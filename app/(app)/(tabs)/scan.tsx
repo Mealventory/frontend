@@ -22,6 +22,10 @@ import { uploadScanImage, ScanMode, ScannerMode } from "@/src/lib/scanApi";
 import { compressImageForUpload } from "@/src/lib/imageOptimizer";
 import { fetchProductByBarcode } from "@/src/lib/barcodeApi";
 import { recordScanFailure } from "@/src/lib/scanHistory";
+import {
+  E2E_BARCODE_SCAN_ITEMS,
+  E2E_PRODUCT_SCAN_ITEMS,
+} from "@/src/lib/e2e";
 
 const MODES: { id: ScannerMode; label: string; icon: "Apple" | "Receipt" | "Barcode" | "Tag" | "Calendar"; instruction: string }[] = [
   { id: "food", label: "Product", icon: "Apple", instruction: "Center product or grocery items in frame" },
@@ -36,7 +40,7 @@ export default function ScanTabScreen() {
   const scanGeneration = useRef(0);
   const activeRef = useRef(false);
 
-  const { session, household } = useAuth();
+  const { session, household, e2eMode } = useAuth();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
 
@@ -355,6 +359,49 @@ export default function ScanTabScreen() {
     if (mode === "barcode") await processScannedImage(imageUri);
     else { setCapturedPhoto(imageUri); setFlashOn(false); setScanning(false); }
   };
+
+  if (e2eMode) {
+    return (
+      <SafeAreaView className="flex-1 bg-ground-canvas px-5 py-6">
+        <View className="flex-1 justify-center gap-4">
+          <Typography variant="h2" className="text-center">
+            Scanner E2E Fixtures
+          </Typography>
+          <Typography variant="body" color="muted" className="text-center mb-3">
+            Deterministic review flows for automated mobile smoke tests.
+          </Typography>
+          <Button
+            testID="e2e-product-review"
+            label="Open Product Review Fixture"
+            onPress={() =>
+              router.push({
+                pathname: "/(modal)/ai-review",
+                params: {
+                  items: JSON.stringify(E2E_PRODUCT_SCAN_ITEMS),
+                  mode: "food",
+                },
+              } as any)
+            }
+          />
+          <Button
+            testID="e2e-barcode-review"
+            label="Open Barcode Fallback Fixture"
+            variant="secondary"
+            onPress={() =>
+              router.push({
+                pathname: "/(modal)/ai-review",
+                params: {
+                  items: JSON.stringify(E2E_BARCODE_SCAN_ITEMS),
+                  mode: "barcode",
+                  barcode: "012345678905",
+                },
+              } as any)
+            }
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Permission: loading state
   if (!permission) {

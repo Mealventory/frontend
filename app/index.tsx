@@ -14,15 +14,24 @@ import { resolveMemberProfile, formatRole } from '@/src/lib/memberProfiles';
 import { HouseholdInviteCard } from '@/src/components/domain/HouseholdInviteCard';
 import { isValidInviteCode, normalizeInviteCode } from '@/src/lib/householdInvites';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
+import { E2E_EMAIL, E2E_HOUSEHOLD, E2E_MEMBER, E2E_PASSWORD, E2E_SESSION } from '@/src/lib/e2e';
 
 const green = '#087F5B';
 type Page = 'home' | 'create' | 'join';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
-function Action({ title, onPress, disabled, secondary = false }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean }) {
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
-    style={[styles.button, secondary && styles.secondary, disabled && { opacity: .5 }]}>
-    <Text style={[styles.buttonText, secondary && { color: green }]}>{title}</Text>
+function Action({ title, onPress, disabled, secondary = false, testID }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean; testID?: string }) {
+  return <Pressable
+    testID={testID}
+    accessible
+    accessibilityRole="button"
+    accessibilityLabel={title}
+    accessibilityState={{ disabled: !!disabled }}
+    disabled={disabled}
+    onPress={onPress}
+    style={[styles.button, secondary && styles.secondary, disabled && { opacity: .5 }]}
+  >
+    <Text accessible={false} style={[styles.buttonText, secondary && { color: green }]}>{title}</Text>
     {!secondary && <ArrowRight color="white" size={18} />}
   </Pressable>;
 }
@@ -33,13 +42,19 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   const inviteParam = normalizeInviteCode(
     Array.isArray(params.invite) ? params.invite[0] || '' : params.invite || ''
   );
-  const { session, selectHousehold } = useAuth();
+  const {
+    session,
+    selectHousehold,
+    e2eMode,
+    signInE2E,
+    signOutE2E,
+  } = useAuth();
   const sessionRef = useRef<Session | null>(null);
   const generation = useRef(0);
   const memberRequest = useRef(0);
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(e2eMode ? E2E_EMAIL : '');
+  const [password, setPassword] = useState(e2eMode ? E2E_PASSWORD : '');
   const [signUp, setSignUp] = useState(initialSignUp);
   const [forgot, setForgot] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -86,6 +101,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   }, [inviteParam, session?.user.id, router]);
 
   async function accessToken() {
+    if (e2eMode) return E2E_SESSION.access_token;
     if (!supabase) throw new Error('Sign-in is not configured yet.');
     const { data, error } = await supabase.auth.getSession();
     if (error || !data.session) throw new Error('Please sign in again.');
@@ -96,7 +112,9 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     const current = generation.current;
     setLoading(true); setError('');
     try {
-      const rows = await householdRequest<Household[]>('/me', await accessToken());
+      const rows = e2eMode
+        ? [E2E_HOUSEHOLD]
+        : await householdRequest<Household[]>('/me', await accessToken());
       if (current !== generation.current) return;
       setHouseholds(rows);
       setHouseholdsLoaded(true);
@@ -112,7 +130,9 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     const ownerGeneration = generation.current;
     setMemberLoading(true); setMemberError(''); setMembers([]);
     try {
-      const rows = await householdRequest<Member[]>(`/${selected.id}/members`, await accessToken());
+      const rows = e2eMode
+        ? [E2E_MEMBER]
+        : await householdRequest<Member[]>(`/${selected.id}/members`, await accessToken());
       if (current === memberRequest.current && ownerGeneration === generation.current) setMembers(rows);
     } catch (e) { if (current === memberRequest.current && ownerGeneration === generation.current) setMemberError(message(e)); }
     finally { if (current === memberRequest.current) setMemberLoading(false); }
@@ -120,9 +140,19 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   useEffect(() => { if (selected) void refreshMembers(); }, [selected?.id]);
 
   async function authenticate() {
-    if (!supabase || !backendConfigured || busy) return;
+    if (busy) return;
+    if (!e2eMode && (!supabase || !backendConfigured)) return;
     setBusy(true); setError(''); setNotice('');
     try {
+      if (e2eMode) {
+        if (!signInE2E(E2E_EMAIL, E2E_PASSWORD)) {
+          throw new Error('Could not start the isolated E2E session.');
+        }
+        setPassword(E2E_PASSWORD);
+        setUsername('');
+        return;
+      }
+      if (!supabase) throw new Error('Sign-in is not configured yet.');
       const defaultUsername = usernameFor(email, username);
       const credentials = {
         email: email.trim(),
@@ -179,10 +209,12 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   async function signOut() {
     setBusy(true);
     try {
-      await signOutAccount(supabase);
+      if (e2eMode) signOutE2E();
+      else await signOutAccount(supabase);
       sessionRef.current = null;
       selectHousehold(null);
-      setPassword(''); setUsername('');
+      setEmail(e2eMode ? E2E_EMAIL : '');
+      setPassword(e2eMode ? E2E_PASSWORD : ''); setUsername('');
       setHouseholds([]);
       setSelected(null);
       setMembers([]);
@@ -197,7 +229,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   }
 
   const openPage = (next: Page) => { setPage(next); setError(''); setNotice(''); };
-  const ready = !!supabase && backendConfigured;
+  const ready = e2eMode || (!!supabase && backendConfigured);
 
   return <SafeAreaView style={styles.safe}>
     <View style={styles.headerWrapper}>
@@ -224,6 +256,11 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
               <View style={styles.heroIllustration}><Home size={52} color={green} strokeWidth={1.5} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>Your people. Your pantry.</Text><Text style={styles.muted}>One household, all together.</Text></View></View>
             </View>
             <View style={styles.card}>
+              {e2eMode && (
+                <Text testID="e2e-mode-indicator" style={styles.e2eIndicator}>
+                  E2E Test Mode
+                </Text>
+              )}
               {forgot ? <>
                 <Text style={styles.heading}>Reset your password</Text>
                 <Text style={styles.muted}>Enter your email to receive a password recovery link.</Text>
@@ -239,16 +276,21 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                   <TextInput accessibilityLabel="Username" style={styles.input} value={username} onChangeText={setUsername} placeholder={`e.g. ${email.includes('@') ? email.split('@')[0] : 'chef_pablo'} (optional)`} placeholderTextColor="#84938C" autoCapitalize="none" autoCorrect={false} />
                 </>}
                 <Text style={styles.label}>Email address</Text>
-                <TextInput accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+                <TextInput testID="e2e-email" accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
                 <Text style={styles.label}>Password</Text>
-                <TextInput accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} placeholder="Your password" placeholderTextColor="#84938C" secureTextEntry autoCapitalize="none" autoComplete={signUp ? 'new-password' : 'current-password'} onSubmitEditing={authenticate} />
+                <TextInput testID="e2e-password" accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} placeholder="Your password" placeholderTextColor="#84938C" secureTextEntry autoCapitalize="none" autoComplete={signUp ? 'new-password' : 'current-password'} onSubmitEditing={authenticate} />
                 {!signUp && (
                   <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setForgot(true); setError(''); setNotice(''); }} style={{ alignSelf: 'flex-end', marginTop: 8 }}>
                     <Text style={[styles.link, { paddingVertical: 2, fontSize: 13 }]}>Forgot password?</Text>
                   </Pressable>
                 )}
                 {!ready && <Text style={styles.info}>App setup is needed before you can sign in. See the frontend connection guide.</Text>}
-                <Action title={busy ? 'Please wait…' : signUp ? 'Create account' : 'Sign in'} disabled={busy || !ready || !email.trim() || !password} onPress={authenticate} />
+                <Action
+                  testID="e2e-sign-in"
+                  title={busy ? 'Please wait…' : e2eMode ? 'Continue as E2E tester' : signUp ? 'Create account' : 'Sign in'}
+                  disabled={busy || !ready || (!e2eMode && (!email.trim() || !password))}
+                  onPress={authenticate}
+                />
                 <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setSignUp(!signUp); setForgot(false); setError(''); setNotice(''); }}><Text style={styles.link}>{signUp ? 'Already have an account? Sign in' : 'New here? Create an account'}</Text></Pressable>
               </>}
             </View>
@@ -280,6 +322,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                 )}
                 <Pressable
                   accessibilityRole="button"
+                  testID="e2e-enter-kitchen"
                   accessibilityLabel={`Enter ${selected.name} Kitchen`}
                   onPress={() => { selectHousehold(selected); router.push('/(app)/(tabs)' as any); }}
                   style={styles.cardEnterButton}
@@ -352,6 +395,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, lineHeight: 23, color: '#617168', marginBottom: 24, fontFamily: 'Inter_400Regular' }, heroIllustration: { backgroundColor: '#E8EFE3', borderRadius: 20, padding: 24, flexDirection: 'row', gap: 20, alignItems: 'center' },
   card: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 24, borderWidth: 1, borderColor: '#E4EAE2', marginBottom: 20, gap: 8 }, heading: { textAlign: "center", fontFamily: 'Inter_700Bold', fontSize: 21, color: '#183B2D', marginBottom: 4 },
   muted: { color: '#6B7C72', fontSize: 12, lineHeight: 19 }, label: { color: '#334C3E', fontFamily: 'Inter_600SemiBold', fontSize: 12, marginTop: 14, marginBottom: 2 },
+  e2eIndicator: { alignSelf: 'center', color: green, backgroundColor: '#E6F1E5', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, fontSize: 11, fontFamily: 'Inter_700Bold' },
   input: { minHeight: 52, borderWidth: 1, borderColor: '#DDE5DC', borderRadius: 12, paddingHorizontal: 15, color: '#183B2D', backgroundColor: '#FBFCFA', fontSize: 15 },
   button: { minHeight: 52, backgroundColor: green, paddingHorizontal: 20, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 14 }, buttonText: { textAlign: 'center', flexShrink: 1, color: 'white', fontFamily: 'Inter_600SemiBold', fontSize: 15 }, secondary: { backgroundColor: '#E7EFE4' },
   link: { color: green, fontSize: 13, textAlign: 'center', paddingVertical: 15, fontFamily: 'Inter_600SemiBold' }, error: { backgroundColor: '#FDECE7', color: '#9B3429', borderRadius: 12, padding: 15, lineHeight: 21, marginTop: 12 }, info: { backgroundColor: '#E6F1E5', color: '#2D6347', borderRadius: 12, padding: 15, lineHeight: 21, marginTop: 12 }, footer: { textAlign: 'center', color: '#819086', fontSize: 11, marginVertical: 20 },

@@ -24,7 +24,7 @@ const Context = createContext({status: '', busy: false, enable: async () => {}})
 export const useNotifications = () => useContext(Context);
 
 export function NotificationProvider({children}: {children: React.ReactNode}) {
-  const {session} = useAuth();
+  const {session, e2eMode} = useAuth();
   const current = useRef(session); current.current = session;
   const generation = useRef(0);
   const queue = useRef<Promise<unknown>>(Promise.resolve());
@@ -38,7 +38,7 @@ export function NotificationProvider({children}: {children: React.ReactNode}) {
   const sync = (ask = false) => {
     const expected = generation.current;
     const user = current.current;
-    if (unavailable || !user) return Promise.resolve();
+    if (e2eMode || unavailable || !user) return Promise.resolve();
     return enqueue(async () => {
       const valid = () => expected === generation.current && current.current?.user.id === user.user.id;
       if (!valid()) return;
@@ -75,6 +75,10 @@ export function NotificationProvider({children}: {children: React.ReactNode}) {
   };
   useEffect(() => {
     generation.current++;
+    if (e2eMode) {
+      setStatus('Notifications are disabled in E2E mode.');
+      return;
+    }
     if (unavailable) return;
     const previous = session;
     setStatus('Notifications have not been enabled.');
@@ -100,9 +104,9 @@ export function NotificationProvider({children}: {children: React.ReactNode}) {
         if (token) await updatePushDevice(previous.access_token, token);
       }).catch(() => {});
     };
-  }, [session?.user.id]);
+  }, [session?.user.id, e2eMode]);
   useEffect(() => {
-    if (unavailable) return;
+    if (e2eMode || unavailable) return;
     return setSignOutCleanup(async () => {
       const user = current.current;
       generation.current++;
@@ -114,6 +118,6 @@ export function NotificationProvider({children}: {children: React.ReactNode}) {
         }
       });
     });
-  }, []);
+  }, [e2eMode]);
   return <Context.Provider value={{status, busy, enable: () => sync(true)}}>{children}</Context.Provider>;
 }

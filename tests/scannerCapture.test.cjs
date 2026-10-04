@@ -34,6 +34,10 @@ function harness(file) {
     '@/src/lib/imageOptimizer': { compressImageForUpload: async uri => uri },
     '@/src/lib/barcodeApi': {},
     '@/src/lib/scanHistory': { recordScanFailure: async () => {} },
+    '@/src/lib/e2e': {
+      E2E_PRODUCT_SCAN_ITEMS: [],
+      E2E_BARCODE_SCAN_ITEMS: [],
+    },
   };
   const mod = new Module(file);
   mod.require = name => { if (!(name in mocks)) throw new Error(name); return mocks[name]; };

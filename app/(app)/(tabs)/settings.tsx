@@ -17,7 +17,7 @@ export default function SettingsTabScreen() {
   const router = useRouter();
   const rootNavigation = useNavigation("/");
   const { colorScheme, themePreference } = useAppTheme();
-  const { session } = useAuth();
+  const { session, e2eMode, signOutE2E } = useAuth();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -258,6 +258,7 @@ export default function SettingsTabScreen() {
           />
           {!!logoutError && <Typography color="critical">{logoutError}</Typography>}
           <Button
+            testID="e2e-log-out"
             label={loggingOut ? 'Signing out…' : 'Log Out'}
             disabled={loggingOut}
             variant="danger"
@@ -265,7 +266,8 @@ export default function SettingsTabScreen() {
             onPress={async () => {
               setLoggingOut(true); setLogoutError('');
               try {
-                await signOutAccount(supabase);
+                if (e2eMode) signOutE2E();
+                else await signOutAccount(supabase);
                 try {
                   rootNavigation.navigate("index" as never);
                 } catch {

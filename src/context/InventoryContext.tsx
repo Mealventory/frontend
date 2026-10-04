@@ -278,6 +278,36 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   };
 
   const updateItem = async (id: string, patch: Partial<NewItem>) => {
+    if (demo) {
+      const updateDemoItem = (item: FoodItem): FoodItem => {
+        if (item.id !== id) return item;
+        const existingQuantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+        const quantityValue = patch.quantity ?? Number(existingQuantity?.[1] || 1);
+        const quantityUnit = patch.unit ?? existingQuantity?.[2] ?? 'units';
+        const expiryDate = patch.expiry_date !== undefined ? patch.expiry_date : item.expiryDate;
+        const expiry = expiryDate ? new Date(`${expiryDate}T00:00:00`) : null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return {
+          ...item,
+          name: patch.name ?? item.name,
+          category: patch.category ?? item.category,
+          quantity: `${quantityValue} ${quantityUnit}`,
+          expiryDate,
+          expDate: expiry
+            ? expiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : 'Not set',
+          daysLeft: expiry
+            ? Math.round((expiry.getTime() - today.getTime()) / 86400000)
+            : 36500,
+          storageZone: patch.storage_zone ?? item.storageZone,
+          imageRef: patch.image_ref !== undefined ? patch.image_ref : item.imageRef,
+        };
+      };
+      setInventory(prev => prev.map(updateDemoItem));
+      setSelectedItem(prev => prev ? updateDemoItem(prev) : prev);
+      return;
+    }
     if (!household || !session) throw new Error('Choose a household first.');
     mutations.current++; revision.current++;
     try {

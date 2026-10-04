@@ -1,0 +1,47 @@
+appId: com.mealventory.app
+name: Deterministic scanner review
+---
+- launchApp
+- assertVisible:
+    id: "e2e-mode-indicator"
+- assertVisible: "Welcome back"
+- assertVisible:
+    id: "e2e-email"
+- assertVisible:
+    id: "e2e-password"
+# Accessibility can expose the button while it is clipped below the viewport.
+- scrollUntilVisible:
+    element:
+      id: "e2e-sign-in"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "e2e-sign-in"
+
+- assertVisible: "Your household."
+- scrollUntilVisible:
+    element:
+      id: "e2e-enter-kitchen"
+    direction: DOWN
+- tapOn:
+    id: "e2e-enter-kitchen"
+- assertVisible: "My Kitchen"
+
+- tapOn:
+    id: "tab-scan"
+- assertVisible: "Scanner E2E Fixtures"
+
+- tapOn:
+    id: "e2e-product-review"
+- assertVisible: "E2E Greek Yogurt"
+- assertVisible: "Product AI"
+- tapOn: "Cancel"
+
+- assertVisible: "Scanner E2E Fixtures"
+- tapOn:
+    id: "e2e-barcode-review"
+- assertVisible: "Item (012345678905)"
+- assertVisible: "Barcode scan"
+- tapOn: "Cancel"
+
+- assertVisible: "Scanner E2E Fixtures"

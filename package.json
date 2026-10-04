@@ -11,7 +11,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.cjs",
-    "postinstall": "node scripts/patch-nativewind-warning.cjs"
+    "postinstall": "node scripts/patch-nativewind-warning.cjs",
+    "test:e2e": "maestro test .maestro"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.2.3",

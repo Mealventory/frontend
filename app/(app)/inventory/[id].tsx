@@ -74,6 +74,7 @@ export default function ItemDetailScreen() {
         </Text>
 
         <TouchableOpacity
+          accessibilityRole="button"
           activeOpacity={0.7}
           onPress={() => handleAction("delete")}
           disabled={deleting}
@@ -134,14 +135,14 @@ export default function ItemDetailScreen() {
         )}
 
         <View className="gap-3 mb-4">
-          <TouchableOpacity disabled={deleting} accessibilityRole="button"
+          <TouchableOpacity testID="e2e-edit-item" disabled={deleting} accessibilityRole="button"
             accessibilityLabel={`Edit ${item.name}`}
             accessibilityState={{ disabled: deleting }}
             onPress={() => router.push({ pathname: '/(app)/inventory/edit', params: { id: item.id } })}
             className="p-4 rounded-xl bg-ground-subtle items-center">
             <Text className="text-brand-600 dark:text-brand-400 font-bold">Edit item</Text>
           </TouchableOpacity>
-          <TouchableOpacity disabled={deleting} onPress={() => handleAction('consume')}
+          <TouchableOpacity testID="e2e-consume-item" disabled={deleting} onPress={() => handleAction('consume')}
             className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button"
             accessibilityLabel={`Mark ${item.name} as consumed`}
             accessibilityState={{ disabled: deleting, busy: deleting }}>
