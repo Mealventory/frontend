@@ -16,9 +16,9 @@ The persister uses TanStack's current async-storage adapter with MMKV underneath
 
 ## Native build requirement
 
-MMKV v4 is a Nitro native module and requires `react-native-nitro-modules`. Expo Go does not contain that native module.
+MMKV v4 is a Nitro native module and requires `react-native-nitro-modules`. Mealventory keeps Expo Go usable by falling back to an in-memory query cache there, but Expo Go cannot provide cold-start inventory persistence.
 
-After installing dependencies, create a local development build:
+To verify or use persistent offline inventory, create a local development build after installing dependencies:
 
 ```bash
 npm install
