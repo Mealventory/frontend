@@ -1,0 +1,38 @@
+appId: com.mealventory.app
+name: Deterministic scanner review
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome back"
+
+- tapOn:
+    id: "e2e-email"
+- inputText: "e2e@mealventory.test"
+- tapOn:
+    id: "e2e-password"
+- inputText: "MealventoryE2E!"
+- tapOn:
+    id: "e2e-sign-in"
+- assertVisible: "E2E Test Kitchen"
+- tapOn:
+    id: "e2e-enter-kitchen"
+- assertVisible: "My Kitchen"
+
+- tapOn:
+    id: "tab-scan"
+- assertVisible: "Scanner E2E Fixtures"
+
+- tapOn:
+    id: "e2e-product-review"
+- assertVisible: "E2E Greek Yogurt"
+- assertVisible: "Product AI"
+- tapOn: "Cancel"
+
+- assertVisible: "Scanner E2E Fixtures"
+- tapOn:
+    id: "e2e-barcode-review"
+- assertVisible: "Item (012345678905)"
+- assertVisible: "Barcode scan"
+- tapOn: "Cancel"
+
+- assertVisible: "Scanner E2E Fixtures"
