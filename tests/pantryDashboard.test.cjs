@@ -67,3 +67,13 @@ test('low-stock items do not add percentage or alert cards to the dashboard',()=
   assert.equal(nodes.some(n=>n.type==='Button'&&n.props?.label==='Add to Shopping'),false);
  }finally{h.dispose();}
 });
+
+test('home keeps household activity behind a small header button',()=>{
+ const h=harness();try{
+  h.render();const nodes=h.render();
+  const activity=nodes.find(n=>n.props?.accessibilityLabel==='Open household activity');
+  assert.ok(activity);
+  activity.props.onPress();
+  assert.equal(h.pushes.at(-1),'/(app)/activity');
+ }finally{h.dispose();}
+});
