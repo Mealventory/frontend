@@ -11,6 +11,7 @@ import { useAuth } from "@/src/context/AuthContext";
 import { generateRecipes } from "@/src/lib/recipeApi";
 import { batchCreateInventoryItems } from "@/src/lib/inventoryApi";
 import { missingDevTestPantryItems } from "@/src/lib/devTestData";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import type { Recipe } from "@/src/types";
 
 type RecipeView = "recommended" | "saved";
@@ -175,7 +176,7 @@ export default function RecipesTabScreen() {
       edges={["top", "left", "right"]}
       className="flex-1 bg-ground-canvas"
     >
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}>
         <View style={{ marginBottom: 16 }}><BrandLogo /></View>
         {view === 'saved' && <View className="mb-4 gap-2">
           <Typography variant="caption" color="muted">Saved recipes are shared with everyone in this household.</Typography>
