@@ -1,0 +1,59 @@
+appId: com.mealventory.app
+name: Critical pantry journey
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Welcome back"
+
+- tapOn:
+    id: "e2e-email"
+- inputText: "e2e@mealventory.test"
+- tapOn:
+    id: "e2e-password"
+- inputText: "MealventoryE2E!"
+- tapOn:
+    id: "e2e-sign-in"
+
+- assertVisible: "E2E Test Kitchen"
+- tapOn:
+    id: "e2e-enter-kitchen"
+- assertVisible: "My Kitchen"
+
+- tapOn:
+    id: "e2e-add-manual"
+- assertVisible: "Manual Entry"
+- tapOn:
+    id: "e2e-item-name"
+- inputText: "E2E Apples"
+- tapOn:
+    id: "e2e-item-quantity"
+- inputText: "2 bags"
+- tapOn:
+    id: "e2e-add-to-kitchen"
+
+- assertVisible: "E2E Apples"
+- tapOn: "E2E Apples"
+- assertVisible: "Item Detail"
+
+- tapOn:
+    id: "e2e-edit-item"
+- assertVisible: "Edit item"
+- tapOn:
+    id: "e2e-edit-name"
+- eraseText: 40
+- inputText: "E2E Apples Edited"
+- tapOn:
+    id: "e2e-save-edit"
+
+- assertVisible: "E2E Apples Edited"
+- tapOn:
+    id: "e2e-consume-item"
+- assertVisible: "My Kitchen"
+- assertNotVisible: "E2E Apples Edited"
+
+- tapOn:
+    id: "tab-settings"
+- assertVisible: "Account & Session"
+- tapOn:
+    id: "e2e-log-out"
+- assertVisible: "Welcome back"
