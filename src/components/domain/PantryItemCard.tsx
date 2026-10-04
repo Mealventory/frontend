@@ -58,6 +58,7 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
  return <View className="gap-1">
   <SwipeActionRow
    disabled={busy}
+   containerClassName="rounded-[20px]"
    testIDPrefix={`pantry-swipe-${item.id}`}
    actions={[
     {
