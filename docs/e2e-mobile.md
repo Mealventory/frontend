@@ -67,7 +67,7 @@ EXPO_PUBLIC_E2E_MODE=1 npx expo start --dev-client -c
 
 Keep that Metro process running while executing the Maestro flows from another terminal.
 
-The local flows use `launchApp` without `clearState: true`. E2E auth and inventory are in-memory and reset with an app-process restart, while preserving the development client's Metro connection. The flows also hide the iOS keyboard before moving focus between text fields to avoid taps landing on the keyboard instead of the next input.
+The local flows use `launchApp` without `clearState: true`. E2E auth and inventory are in-memory and reset with an app-process restart, while preserving the development client's Metro connection. The fixture email and password are prefilled only in E2E mode; the flows then tap the real sign-in button directly, avoiding simulator keyboard/focus flakiness.
 
 ## Run the smoke suite
 
@@ -79,7 +79,7 @@ npm run test:e2e
 
 That command runs every flow in `.maestro/`.
 
-The fixture credentials used by the suite are intentionally non-production:
+The fixture credentials used by the suite are intentionally non-production and are prefilled only while E2E mode is active, so Maestro can exercise the real sign-in button without depending on simulator keyboard behavior:
 
 ```text
 Email: e2e@mealventory.test
