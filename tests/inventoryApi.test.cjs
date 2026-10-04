@@ -125,3 +125,19 @@ test('batchCreateInventoryItems returns empty array for empty items list without
   assert.equal(called, false);
   assert.deepEqual(res, []);
 });
+
+
+test('inventory image references survive API row mapping', () => {
+  const item = toFoodItem({
+    id: 'photo-item',
+    household_id: 'home',
+    name: 'Yogurt',
+    category: 'Dairy',
+    quantity: 1,
+    unit: 'tub',
+    expiry_date: null,
+    status: 'active',
+    image_ref: 'home/photo.jpg',
+  });
+  assert.equal(item.imageRef, 'home/photo.jpg');
+});

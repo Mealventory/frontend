@@ -12,6 +12,7 @@ export type InventoryRow = {
   expiry_date: string | null;
   status: string;
   storage_zone?: StorageZone | null;
+  image_ref?: string | null;
 };
 export type NewItem = {
   name: string;
@@ -20,6 +21,7 @@ export type NewItem = {
   unit: string;
   expiry_date: string | null;
   storage_zone?: StorageZone;
+  image_ref?: string | null;
 };
 
 export async function inventoryRequest<T>(token: string, household: string, method = 'GET', id?: string, body?: Partial<NewItem>, action?: 'consume' | 'discard'): Promise<T> {
@@ -112,7 +114,7 @@ export function toFoodItem(row: InventoryRow): FoodItem {
     remainingPercent: row.remaining_percent == null ? null : Number(row.remaining_percent),
     isLowStock: Boolean(row.is_low_stock),
     emoji: '🍽️',
-    expiryDate: row.expiry_date, storageZone: row.storage_zone || undefined,
+    expiryDate: row.expiry_date, storageZone: row.storage_zone || undefined, imageRef: row.image_ref ?? null,
     expDate: expiry ? expiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Not set',
     daysLeft: expiry ? Math.round((expiry.getTime() - today.getTime()) / 86400000) : 36500 };
 }

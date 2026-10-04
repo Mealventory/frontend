@@ -32,6 +32,7 @@ export function parseRawScanItems(rawParam?: string, rawBarcode?: string): Revie
           expiry_date: item.expiry_date || "",
           storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
           confidence: typeof item.confidence === "number" ? item.confidence : undefined,
+          imageRef: item.imageRef,
           confirmed: !(typeof item.confidence === "number" && item.confidence < 0.7),
           isEditing: !item.name || (typeof item.confidence === "number" && item.confidence < 0.7),
         }));
@@ -77,6 +78,7 @@ export async function saveReviewedItems(
         unit: item.unit.trim() || "units",
         expiry_date: normalizeExpiryDate(item.expiry_date),
         storage_zone: item.storageZone,
+        image_ref: item.imageRef ?? null,
       });
       savedIds.push(item.id);
     } catch (error) {
@@ -101,6 +103,7 @@ export async function batchSaveReviewedItems(
         name: item.name.trim(), category: item.category.trim() || "Pantry",
         quantity: item.quantity, unit: item.unit.trim() || "units",
         expiry_date: normalizeExpiryDate(item.expiry_date), storage_zone: item.storageZone,
+        image_ref: item.imageRef ?? null,
       };
     });
     await batchSave(payloads);
@@ -163,6 +166,7 @@ export default function AIReviewModal() {
       expiry_date: item.expiry_date || null,
       confidence: item.confidence,
       storageZone: item.storageZone,
+      imageRef: item.imageRef,
     }));
 
     void recordScanSuccess(

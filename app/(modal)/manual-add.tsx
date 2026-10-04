@@ -8,6 +8,9 @@ import { useRouter } from "expo-router";
 import { Typography, Button, Icon } from "@/src/components/atoms";
 import { FormField, TagChipGroup } from "@/src/components/molecules";
 import { useInventory } from "@/src/context/InventoryContext";
+import { useAuth } from "@/src/context/AuthContext";
+import { ItemPhotoField, type SelectedItemPhoto } from "@/src/components/molecules/ItemPhotoField";
+import { deleteItemPhoto, uploadItemPhoto } from "@/src/lib/itemPhotoStorage";
 
 import type { StorageZone } from "@/src/types";
 
@@ -26,6 +29,7 @@ const categoryEmojis: Record<string, string> = {
 export default function ManualAddModal() {
   const router = useRouter();
   const { addItem } = useInventory();
+  const { household } = useAuth();
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [expDate, setExpDate] = useState("");
@@ -33,6 +37,7 @@ export default function ManualAddModal() {
   const [storageZone, setStorageZone] = useState<StorageZone>("pantry");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
 
   const handleSave = async () => {
     if (saving) return;
@@ -45,7 +50,16 @@ export default function ManualAddModal() {
     let date: string | null;
     try { date = normalizeExpiryDate(expDate); } catch (e) { setError((e as Error).message); return; }
     setSaving(true); setError('');
+    let uploadedRef: string | null = null;
     try {
+    if (selectedPhoto) {
+      if (!household?.id) throw new Error("Choose a household before adding a photo.");
+      uploadedRef = await uploadItemPhoto(
+        household.id,
+        selectedPhoto.base64,
+        selectedPhoto.mimeType,
+      );
+    }
     await addItem({
       id: Date.now().toString(),
       name: trimmedName,
@@ -56,6 +70,7 @@ export default function ManualAddModal() {
       daysLeft: 0,
       quantity: quantity.trim() || "1 item",
       emoji: categoryEmojis[selectedCat] || "🍽️",
+      imageRef: uploadedRef,
     });
 
     if (router.canGoBack()) {
@@ -63,7 +78,12 @@ export default function ManualAddModal() {
     } else {
       router.replace("/(app)/(tabs)" as any);
     }
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save item.'); }
+    } catch (e) {
+      if (uploadedRef) {
+        await deleteItemPhoto(uploadedRef).catch(() => {});
+      }
+      setError(e instanceof Error ? e.message : 'Could not save item.');
+    }
     finally { setSaving(false); }
   };
 
@@ -101,6 +121,18 @@ export default function ManualAddModal() {
             required
             error={error}
             leadingIcon={<Icon name="Type" size={16} color="#94A3B8" />}
+          />
+
+          <ItemPhotoField
+            selected={selectedPhoto}
+            fallbackEmoji={categoryEmojis[selectedCat] || "🍽️"}
+            disabled={saving}
+            onChange={(photo) => {
+              setSelectedPhoto(photo);
+              setError("");
+            }}
+            onRemove={() => setSelectedPhoto(null)}
+            onError={setError}
           />
 
           <View>

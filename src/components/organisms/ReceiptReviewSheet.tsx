@@ -9,10 +9,11 @@ import {
   Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Typography, Button, Icon, Badge, Avatar, Checkbox } from "@/src/components/atoms";
+import { Typography, Button, Icon, Badge, Checkbox } from "@/src/components/atoms";
 import { FormField } from "@/src/components/molecules";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { StorageZone } from "@/src/types";
+import { ItemPhoto } from "@/src/components/domain/ItemPhoto";
 
 export interface ReviewItemState {
   id: string;
@@ -23,6 +24,7 @@ export interface ReviewItemState {
   expiry_date: string;
   storageZone: StorageZone;
   confidence?: number;
+  imageRef?: string;
   confirmed: boolean;
   isEditing?: boolean;
 }
@@ -253,7 +255,15 @@ export function ReceiptReviewSheet({
                     className="mr-3"
                   />}
 
-                  <Avatar emoji={emoji} size="md" className="mr-3" />
+                  <View className="mr-3">
+                    <ItemPhoto
+                      imageRef={item.imageRef}
+                      emoji={emoji}
+                      name={item.name}
+                      size={44}
+                      borderRadius={14}
+                    />
+                  </View>
 
                   <View className="flex-1 min-w-0 mr-2">
                     <Typography variant="h3" className="font-bold" numberOfLines={1}>

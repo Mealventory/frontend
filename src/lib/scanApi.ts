@@ -13,6 +13,7 @@ export interface ScannedItem {
   expiry_date: string | null;
   confidence?: number;
   storageZone?: StorageZone;
+  imageRef?: string;
 }
 
 export interface UploadScanParams {
@@ -142,6 +143,7 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
         expiry_date,
         confidence,
         storageZone,
+        imageRef: typeof item?.image_ref === 'string' ? item.image_ref : undefined,
       };
     });
   }
@@ -219,6 +221,7 @@ export function normalizeScanResponse(data: unknown): ScannedItem[] {
         expiry_date,
         confidence,
         storageZone,
+        imageRef: typeof item?.image_ref === 'string' ? item.image_ref : undefined,
       };
     });
   }
