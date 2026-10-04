@@ -9,10 +9,11 @@ name: Deterministic scanner review
     id: "e2e-email"
 - assertVisible:
     id: "e2e-password"
-- assertVisible:
-    id: "e2e-sign-in"
+- assertVisible: "Continue as E2E tester"
 - tapOn:
-    id: "e2e-sign-in"
+    text: "Continue as E2E tester"
+    point: "50%,50%"
+    retryTapIfNoChange: true
 - assertVisible: "Your household."
 - scrollUntilVisible:
     element:
