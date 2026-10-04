@@ -32,7 +32,7 @@ export function inventoryQueryKey(userId?: string | null, householdId?: string |
 
 export function shouldPersistQuery(query: {
   queryKey: readonly unknown[];
-  state: { status: string };
+  state: { data: unknown };
 }) {
-  return query.queryKey[0] === INVENTORY_QUERY_ROOT && query.state.status === 'success';
+  return query.queryKey[0] === INVENTORY_QUERY_ROOT && query.state.data !== undefined;
 }
