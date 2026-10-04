@@ -3,6 +3,8 @@ name: Deterministic scanner review
 ---
 - launchApp:
     clearState: true
+- assertVisible:
+    id: "e2e-mode-indicator"
 - assertVisible: "Welcome back"
 
 - tapOn:
