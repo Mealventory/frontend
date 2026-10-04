@@ -1,8 +1,7 @@
 appId: com.mealventory.app
 name: Critical pantry journey
 ---
-- launchApp:
-    clearState: true
+- launchApp
 - assertVisible:
     id: "e2e-mode-indicator"
 - assertVisible: "Welcome back"
@@ -10,6 +9,7 @@ name: Critical pantry journey
 - tapOn:
     id: "e2e-email"
 - inputText: "e2e@mealventory.test"
+- hideKeyboard
 - tapOn:
     id: "e2e-password"
 - inputText: "MealventoryE2E!"
@@ -28,6 +28,7 @@ name: Critical pantry journey
 - tapOn:
     id: "e2e-item-name"
 - inputText: "E2E Apples"
+- hideKeyboard
 - tapOn:
     id: "e2e-item-quantity"
 - inputText: "2 bags"
