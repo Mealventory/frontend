@@ -320,8 +320,8 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     const quantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
     if (!quantity || Number(quantity[1]) <= 0) throw new Error('Enter a quantity such as 2 items or 500 g.');
     mutations.current++;
-    await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, {
         storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null, image_ref: item.imageRef ?? null,
       });
@@ -367,8 +367,8 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     }
     if (!household || !session) throw new Error('Choose a household first.');
     mutations.current++;
-    await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'PATCH', id, patch);
       if (activeScope.current === scope) {
         const updated = toFoodItem(row);
@@ -384,8 +384,8 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     if (demo) { setDemoInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
     if (!household || !session) throw new Error('Choose a household first.');
     mutations.current++;
-    await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       await inventoryRequest<void>(await token(), household.id, 'DELETE', id);
       if (activeScope.current === scope) {
         queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
@@ -400,8 +400,8 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     if (demo) { setDemoInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
     if (!household || !session) throw new Error('Choose a household first.');
     mutations.current++;
-    await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', id, undefined, action);
       if (activeScope.current === scope) {
         queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
