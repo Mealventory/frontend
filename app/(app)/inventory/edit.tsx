@@ -115,8 +115,8 @@ function EditForm({ item }: { item: FoodItem }) {
           }}
           onError={setError}
         />
-        <FormField label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
-        <FormField label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
+        <FormField testID="e2e-edit-name" label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
+        <FormField testID="e2e-edit-quantity" label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
         <Typography variant="caption" color="muted">
           Low-stock tracking is automatic. Mealventory remembers the amount you originally added and warns at 10% remaining.
         </Typography>
@@ -128,7 +128,7 @@ function EditForm({ item }: { item: FoodItem }) {
           <TagChipGroup tags={['pantry', 'fridge', 'freezer', 'spicerack']} selectedTag={zone} onSelectTag={v => setZone(v as StorageZone)} />
         </View>
         {!!error && <Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>}
-        <Button label={saving ? 'Saving…' : 'Save changes'} disabled={saving} onPress={save} />
+        <Button testID="e2e-save-edit" label={saving ? 'Saving…' : 'Save changes'} disabled={saving} onPress={save} />
       </View>
     </ScrollView>
   </SafeAreaView>;
