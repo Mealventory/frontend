@@ -65,6 +65,24 @@ test("inventory cache is scoped by user and household and survives refresh error
   assert.ok(context.includes("inventory.length === 0 && inventoryQuery.error"));
   assert.ok(context.includes("previous !== current"));
   assert.ok(context.includes("queryClient.removeQueries"));
+  assert.ok(context.includes("You no longer have access to this household."));
+  assert.ok(context.includes("selectHousehold(null)"));
+});
+
+test("last selected household is persisted per user for a true offline cold start", () => {
+  const auth = fs.readFileSync("src/context/AuthContext.tsx", "utf8");
+  const home = fs.readFileSync("app/index.tsx", "utf8");
+  const settings = fs.readFileSync("app/(app)/(tabs)/settings.tsx", "utf8");
+
+  assert.ok(auth.includes("mealventory:selected-household:"));
+  assert.ok(auth.includes("appStorage.setItem(key, JSON.stringify(next))"));
+  assert.ok(auth.includes("appStorage.getItem(key)"));
+  assert.ok(auth.includes("appStorage.removeItem(householdSelectionKey(previousUserId))"));
+  assert.ok(home.includes("household: activeHousehold"));
+  assert.ok(home.includes("manageHouseholds"));
+  assert.ok(home.includes("router.replace('/(app)/(tabs)'"));
+  assert.ok(home.includes("activeHouseholdRef.current"));
+  assert.ok(settings.includes('params: { manage: "1" }'));
 });
 
 test("Expo native prebuild folders remain generated local artifacts", () => {
