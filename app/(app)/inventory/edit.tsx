@@ -2,6 +2,7 @@ import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
+import { E2E_EDITED_ITEM_NAME } from '@/src/lib/e2e';
 import React, { useRef, useState } from 'react';
 import { ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,8 +30,8 @@ export default function EditInventoryItemScreen() {
 function EditForm({ item }: { item: FoodItem }) {
   const router = useRouter();
   const { updateItem } = useInventory();
-  const { household } = useAuth();
-  const [name, setName] = useState(item.name);
+  const { household, e2eMode } = useAuth();
+  const [name, setName] = useState(e2eMode ? E2E_EDITED_ITEM_NAME : item.name);
   const [quantity, setQuantity] = useState(item.quantity);
   const [category, setCategory] = useState(item.category);
   const [date, setDate] = useState(item.expiryDate || '');
