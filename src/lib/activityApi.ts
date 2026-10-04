@@ -83,6 +83,8 @@ export function activityDescription(event: HouseholdActivityEvent): string {
       return `removed ${event.item_name}`;
     case "shopping_added":
       return `added ${event.item_name} to Shopping`;
+    default:
+      return event.item_name;
   }
 }
 
