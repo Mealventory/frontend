@@ -3,6 +3,8 @@ name: Critical pantry journey
 ---
 - launchApp:
     clearState: true
+- assertVisible:
+    id: "e2e-mode-indicator"
 - assertVisible: "Welcome back"
 
 - tapOn:
