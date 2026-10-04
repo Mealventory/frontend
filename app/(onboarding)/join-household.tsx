@@ -22,7 +22,7 @@ export default function JoinHouseholdScreen() {
   const [inviteCode, setInviteCode] = useState(incomingCode);
 
   // QR scans and shared Mealventory links land on this route first.
-  // The root HouseholdScreen owns the real authenticated join request.
+  // The root household route owns the real authenticated join request.
   useEffect(() => {
     if (!isValidInviteCode(incomingCode)) return;
     router.replace({
