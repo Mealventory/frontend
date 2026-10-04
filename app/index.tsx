@@ -137,10 +137,10 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     setBusy(true); setError(''); setNotice('');
     try {
       if (e2eMode) {
-        if (!signInE2E(email, password)) {
-          throw new Error('Use the documented E2E test credentials.');
+        if (!signInE2E(E2E_EMAIL, E2E_PASSWORD)) {
+          throw new Error('Could not start the isolated E2E session.');
         }
-        setPassword('');
+        setPassword(E2E_PASSWORD);
         setUsername('');
         return;
       }
@@ -277,7 +277,12 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                   </Pressable>
                 )}
                 {!ready && <Text style={styles.info}>App setup is needed before you can sign in. See the frontend connection guide.</Text>}
-                <Action testID="e2e-sign-in" title={busy ? 'Please wait…' : signUp ? 'Create account' : 'Sign in'} disabled={busy || !ready || !email.trim() || !password} onPress={authenticate} />
+                <Action
+                  testID="e2e-sign-in"
+                  title={busy ? 'Please wait…' : e2eMode ? 'Continue as E2E tester' : signUp ? 'Create account' : 'Sign in'}
+                  disabled={busy || !ready || (!e2eMode && (!email.trim() || !password))}
+                  onPress={authenticate}
+                />
                 <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setSignUp(!signUp); setForgot(false); setError(''); setNotice(''); }}><Text style={styles.link}>{signUp ? 'Already have an account? Sign in' : 'New here? Create an account'}</Text></Pressable>
               </>}
             </View>
