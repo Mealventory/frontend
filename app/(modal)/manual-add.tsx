@@ -116,6 +116,7 @@ export default function ManualAddModal() {
 
         <View className="gap-4 mb-6">
           <FormField
+            testID="e2e-item-name"
             label="Item Name"
             placeholder="e.g. Sourdough Bread"
             value={name}
@@ -158,6 +159,7 @@ export default function ManualAddModal() {
           </View>
 
           <FormField
+            testID="e2e-item-quantity"
             label="Quantity / Size"
             placeholder="e.g. 1 loaf or 500g"
             value={quantity}
@@ -170,6 +172,7 @@ export default function ManualAddModal() {
         </View>
 
         <Button
+          testID="e2e-add-to-kitchen"
           label={saving ? 'Saving…' : 'Add to Kitchen'}
           variant="primary"
           leadingIcon={<Icon name="Plus" size={18} color="#FFFFFF" />}
