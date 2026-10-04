@@ -11,6 +11,7 @@ pnpm-debug.log*
 *.log
 
 # Expo & Build outputs
+/ios/
 .expo/
 dist/
 web-build/
