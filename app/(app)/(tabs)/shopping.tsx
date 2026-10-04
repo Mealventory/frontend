@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
 import { Typography, Button, Icon, Checkbox } from "@/src/components/atoms";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
+import { SwipeActionRow } from "@/src/components/molecules/SwipeActionRow";
 import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
 import { batchCreateInventoryItems } from "@/src/lib/inventoryApi";
@@ -19,6 +20,7 @@ import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import {
   addShoppingItem,
   clearCheckedShoppingItems,
+  deleteShoppingItem,
   listConsumedShoppingSuggestions,
   listShoppingItems,
   updateShoppingItem,
@@ -273,6 +275,30 @@ export default function ShoppingTabScreen() {
       setItems(previous);
       setError(
         e instanceof Error ? e.message : "Could not update the shopping item."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const deleteItem = async (item: ShoppingItem) => {
+    if (!session || !household || busyId || moving) return;
+    setBusyId(item.id);
+    setError("");
+    setNotice("");
+    const previous = items;
+    setItems((current) => current.filter((row) => row.id !== item.id));
+    try {
+      await deleteShoppingItem(
+        session.access_token,
+        household.id,
+        item.id
+      );
+      setNotice(`${item.name} removed from Shopping.`);
+    } catch (e) {
+      setItems(previous);
+      setError(
+        e instanceof Error ? e.message : "Could not remove the shopping item."
       );
     } finally {
       setBusyId(null);
@@ -721,18 +747,39 @@ export default function ShoppingTabScreen() {
                 </Typography>
               ) : (
                 toBuy.map((item) => (
-                  <View
+                  <SwipeActionRow
                     key={item.id}
-                    style={{ opacity: busyId === item.id ? 0.55 : 1 }}
+                    disabled={moving || Boolean(busyId)}
+                    testIDPrefix={`shopping-swipe-${item.id}`}
+                    actions={[
+                      {
+                        key: "purchased",
+                        label: "Purchased",
+                        accessibilityLabel: `Mark ${item.name} as purchased`,
+                        onPress: () => toggleItem(item),
+                      },
+                      {
+                        key: "delete",
+                        label: "Delete",
+                        accessibilityLabel: `Delete ${item.name} from Shopping`,
+                        tone: "danger",
+                        onPress: () => deleteItem(item),
+                      },
+                    ]}
                   >
-                    <Checkbox
-                      checked={false}
-                      label={quantityLabel(item)}
-                      disabled={moving}
-                      onToggle={() => void toggleItem(item)}
-                      className="py-1"
-                    />
-                  </View>
+                    <View
+                      className="bg-ground-card"
+                      style={{ opacity: busyId === item.id ? 0.55 : 1 }}
+                    >
+                      <Checkbox
+                        checked={false}
+                        label={quantityLabel(item)}
+                        disabled={moving || Boolean(busyId)}
+                        onToggle={() => void toggleItem(item)}
+                        className="py-1"
+                      />
+                    </View>
+                  </SwipeActionRow>
                 ))
               )}
             </View>
@@ -746,18 +793,40 @@ export default function ShoppingTabScreen() {
                   </Typography>
                 </View>
                 {purchased.map((item) => (
-                  <View
+                  <SwipeActionRow
                     key={item.id}
-                    style={{ opacity: busyId === item.id ? 0.55 : 1 }}
+                    disabled={moving || Boolean(busyId)}
+                    testIDPrefix={`shopping-swipe-${item.id}`}
+                    actions={[
+                      {
+                        key: "to-buy",
+                        label: "To Buy",
+                        accessibilityLabel: `Move ${item.name} back to To Buy`,
+                        onPress: () => toggleItem(item),
+                        tone: "neutral",
+                      },
+                      {
+                        key: "delete",
+                        label: "Delete",
+                        accessibilityLabel: `Delete ${item.name} from Shopping`,
+                        tone: "danger",
+                        onPress: () => deleteItem(item),
+                      },
+                    ]}
                   >
-                    <Checkbox
-                      checked
-                      label={quantityLabel(item)}
-                      disabled={moving}
-                      onToggle={() => void toggleItem(item)}
-                      className="py-1"
-                    />
-                  </View>
+                    <View
+                      className="bg-ground-card"
+                      style={{ opacity: busyId === item.id ? 0.55 : 1 }}
+                    >
+                      <Checkbox
+                        checked
+                        label={quantityLabel(item)}
+                        disabled={moving || Boolean(busyId)}
+                        onToggle={() => void toggleItem(item)}
+                        className="py-1"
+                      />
+                    </View>
+                  </SwipeActionRow>
                 ))}
               </View>
             )}
