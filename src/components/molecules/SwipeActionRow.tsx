@@ -23,6 +23,7 @@ interface SwipeActionRowProps {
   actions: SwipeAction[];
   disabled?: boolean;
   testIDPrefix?: string;
+  containerClassName?: string;
 }
 
 const ACTION_WIDTH = 88;
@@ -44,6 +45,7 @@ export function SwipeActionRow({
   actions,
   disabled = false,
   testIDPrefix = "swipe",
+  containerClassName = "",
 }: SwipeActionRowProps) {
   const revealWidth = Math.max(1, actions.length) * ACTION_WIDTH;
   const translateX = useRef(new Animated.Value(0)).current;
@@ -124,7 +126,7 @@ export function SwipeActionRow({
   };
 
   return (
-    <View className="overflow-hidden">
+    <View className={`overflow-hidden ${containerClassName}`}>
       <View
         style={{
           position: "absolute",
