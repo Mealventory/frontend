@@ -28,6 +28,13 @@ test("normal providers only use the in-memory path under the E2E flag", () => {
   assert.ok(inventory.includes("const updateDemoItem"));
 });
 
+test("E2E sign-in prefills fixture credentials so Maestro only exercises the real submit action", () => {
+  const screen = fs.readFileSync("app/index.tsx", "utf8");
+  assert.ok(screen.includes("useState(e2eMode ? E2E_EMAIL : '')"));
+  assert.ok(screen.includes("useState(e2eMode ? E2E_PASSWORD : '')"));
+  assert.ok(screen.includes('testID="e2e-sign-in"'));
+});
+
 test("package exposes one Maestro smoke-suite command", () => {
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
   assert.equal(pkg.scripts["test:e2e"], "maestro test .maestro");
@@ -56,10 +63,9 @@ test("critical Maestro journey covers sign-in, household, pantry mutation, and s
   assert.ok(flow.includes("E2E Apples Edited"));
   assert.ok(flow.includes("assertNotVisible"));
   assert.ok(!flow.includes("clearState: true"));
-  assert.match(
-    flow,
-    /inputText: "e2e@mealventory\.test"\n- hideKeyboard\n- tapOn:\n    id: "e2e-password"/
-  );
+  assert.ok(!flow.includes('inputText: "e2e@mealventory.test"'));
+  assert.ok(!flow.includes('inputText: "MealventoryE2E!"'));
+  assert.ok(flow.includes('id: "e2e-sign-in"'));
 });
 
 test("scanner Maestro flow is deterministic and camera-independent", () => {
@@ -71,10 +77,9 @@ test("scanner Maestro flow is deterministic and camera-independent", () => {
   assert.ok(flow.includes("E2E Greek Yogurt"));
   assert.ok(flow.includes("Item (012345678905)"));
   assert.ok(!flow.includes("clearState: true"));
-  assert.match(
-    flow,
-    /inputText: "e2e@mealventory\.test"\n- hideKeyboard\n- tapOn:\n    id: "e2e-password"/
-  );
+  assert.ok(!flow.includes('inputText: "e2e@mealventory.test"'));
+  assert.ok(!flow.includes('inputText: "MealventoryE2E!"'));
+  assert.ok(flow.includes('id: "e2e-sign-in"'));
   assert.ok(scan.includes("if (e2eMode)"));
   assert.ok(scan.includes("E2E_PRODUCT_SCAN_ITEMS"));
   assert.ok(scan.includes("E2E_BARCODE_SCAN_ITEMS"));
