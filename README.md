@@ -66,8 +66,8 @@ The application adheres to an **Executive Consumer-Grade Aesthetic**—blending 
 - **Navigation**: Expo Router v57 (Strict TypeScript file-based routing with route groups `(auth)`, `(onboarding)`, `(app)`, `(modal)`).
 - **Styling**: NativeWind v4 (Tailwind CSS engine with application-wide CSS variables in `global.css`).
 - **State Management**:
-  - **Server Cache State**: TanStack React Query v5 with `persistQueryClient` and `createSyncStoragePersister`.
-  - **Local Persistence Storage**: `react-native-mmkv` (synchronous, C++ backed, sub-millisecond I/O).
+  - **Server Cache State**: TanStack React Query v5 with `PersistQueryClientProvider` and the current async-storage persister adapter.
+  - **Local Persistence Storage**: `react-native-mmkv` v4 (synchronous, C++ backed) in development/release builds; Expo Go falls back to memory-only caching.
   - **Ephemeral Client State**: Zustand (active filter toggles, camera flash, scanner draft state).
 - **Network Layer**: OpenAPI-generated TypeScript client (`openapi-fetch`) synced to FastAPI backend `/openapi.json`.
 - **Sensors & Hardware**: `expo-camera`, `expo-haptics`, `expo-notifications`, `react-native-svg`.
@@ -145,6 +145,14 @@ npm run start:tunnel
      ```
 
 
+
+## Offline inventory cache
+
+Successful household inventory is persisted for up to seven days and restored before the app UI mounts. Cache keys include both user and household identity, and a failed background refresh does not replace a valid cached pantry with a connection error.
+
+Expo Go remains usable with an in-memory fallback, but persistent cold-start offline behavior requires a native development or release build because MMKV is a Nitro module.
+
+See [Offline inventory cache](docs/offline-cache.md) for architecture, setup, and the airplane-mode verification flow.
 
 ## Mobile end-to-end smoke tests
 

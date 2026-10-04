@@ -1,6 +1,8 @@
 import { NotificationProvider } from "@/src/context/NotificationContext";
 import "../global.css";
 import { useEffect } from "react";
+import { useIsRestoring } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { Stack, useRouter, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -14,6 +16,13 @@ import { ThemeProvider, useAppTheme } from "@/src/context/ThemeContext";
 import { InventoryProvider } from "@/src/context/InventoryContext";
 import { AuthProvider, useAuth } from "@/src/context/AuthContext";
 import { E2E_ENABLED } from "@/src/lib/e2e";
+import {
+  QUERY_CACHE_BUSTER,
+  QUERY_CACHE_MAX_AGE,
+  queryClient,
+  queryPersister,
+  shouldPersistQuery,
+} from "@/src/lib/queryClient";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -63,6 +72,26 @@ export function RootLayoutContent() {
   );
 }
 
+function RestoredAppProviders() {
+  const isRestoring = useIsRestoring();
+
+  if (isRestoring) {
+    return null;
+  }
+
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <InventoryProvider demo={E2E_ENABLED}>
+            <RootLayoutContent />
+          </InventoryProvider>
+        </NotificationProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -83,12 +112,18 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-      <NotificationProvider><InventoryProvider demo={E2E_ENABLED}>
-        <RootLayoutContent />
-      </InventoryProvider></NotificationProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: queryPersister,
+        maxAge: QUERY_CACHE_MAX_AGE,
+        buster: QUERY_CACHE_BUSTER,
+        dehydrateOptions: {
+          shouldDehydrateQuery: shouldPersistQuery,
+        },
+      }}
+    >
+      <RestoredAppProviders />
+    </PersistQueryClientProvider>
   );
 }

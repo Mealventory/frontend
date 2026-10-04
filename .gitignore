@@ -24,6 +24,10 @@ App template/.cache/
 App template/.vite/
 App template/vite.config.*.timestamp-*
 
+# Native prebuild output (generated locally by Expo)
+ios/
+android/
+
 # Native & Signing credentials
 *.jks
 *.p8

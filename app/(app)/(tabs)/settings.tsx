@@ -4,7 +4,7 @@ import { useNotifications } from "@/src/context/NotificationContext";
 import React, { useEffect, useState } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
 import { Typography, Button, Icon, Badge, Input } from "@/src/components/atoms";
 import { useAppTheme } from "@/src/context/ThemeContext";
 import { supabase } from "@/src/lib/supabase";
@@ -15,7 +15,6 @@ import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 export default function SettingsTabScreen() {
   const notifications = useNotifications();
   const router = useRouter();
-  const rootNavigation = useNavigation("/");
   const { colorScheme, themePreference } = useAppTheme();
   const { session, e2eMode, signOutE2E } = useAuth();
   const [logoutError, setLogoutError] = useState('');
@@ -244,17 +243,12 @@ export default function SettingsTabScreen() {
             label="Switch / Manage Households"
             variant="outline"
             leadingIcon={<Icon name="Home" size={16} />}
-            onPress={() => {
-              if (router.canDismiss()) {
-                router.dismissAll();
-              } else {
-                try {
-                  rootNavigation.navigate("index" as never);
-                } catch {
-                  router.replace("/" as any);
-                }
-              }
-            }}
+            onPress={() =>
+              router.replace({
+                pathname: "/",
+                params: { manage: "1" },
+              } as any)
+            }
           />
           {!!logoutError && <Typography color="critical">{logoutError}</Typography>}
           <Button
@@ -268,11 +262,7 @@ export default function SettingsTabScreen() {
               try {
                 if (e2eMode) signOutE2E();
                 else await signOutAccount(supabase);
-                try {
-                  rootNavigation.navigate("index" as never);
-                } catch {
-                  router.replace("/" as any);
-                }
+                router.replace("/" as any);
               } catch (e) {
                 setLogoutError(e instanceof Error ? e.message : 'Could not sign out. Please try again.');
               } finally { setLoggingOut(false); }
