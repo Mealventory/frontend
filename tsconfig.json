@@ -33,7 +33,6 @@
     "nativewind-env.d.ts"
   ],
   "exclude": [
-    "App template",
     "node_modules"
   ]
 }
