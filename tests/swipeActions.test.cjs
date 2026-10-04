@@ -36,6 +36,11 @@ test("swipe actions have an internal duplicate-action lock", () => {
   assert.match(swipe, /actionLocked\.current = false/);
 });
 
+test("pantry swipe wrapper clips hidden actions to the card radius", () => {
+  assert.match(swipe, /containerClassName/);
+  assert.match(pantry, /containerClassName="rounded-\[20px\]"/);
+});
+
 test("pantry swipe actions map to existing consume and discard transitions", () => {
   assert.match(pantry, /key:'consume'/);
   assert.match(pantry, /onPress:\(\)=>save\(null,'consume'\)/);
