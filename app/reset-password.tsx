@@ -31,7 +31,15 @@ export default function ResetPasswordScreen() {
       <TextInput style={styles.input} accessibilityLabel="New password" placeholder="New password" secureTextEntry autoCapitalize="none" autoComplete="new-password" value={password} onChangeText={setPassword} />
       <TextInput style={styles.input} accessibilityLabel="Confirm new password" placeholder="Confirm new password" secureTextEntry autoCapitalize="none" value={confirmation} onChangeText={setConfirmation} />
       <Pressable accessibilityRole="button" disabled={busy || !session || !!recoveryError} onPress={save}><Text style={styles.link}>{busy ? 'Saving…' : 'Save new password'}</Text></Pressable>
-      <Pressable disabled={busy} onPress={() => { finishRecovery(); router.replace('/(auth)/forgot-password' as any); }}><Text style={styles.link}>Request another recovery email</Text></Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Request another recovery email"
+        accessibilityState={{ disabled: busy }}
+        disabled={busy}
+        onPress={() => { finishRecovery(); router.replace('/(auth)/forgot-password' as any); }}
+      >
+        <Text style={styles.link}>Request another recovery email</Text>
+      </Pressable>
     </>}
   </View></SafeAreaView>;
 }
