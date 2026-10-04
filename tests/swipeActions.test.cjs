@@ -14,6 +14,7 @@ const shopping = fs.readFileSync(
   "app/(app)/(tabs)/shopping.tsx",
   "utf8"
 );
+const rootLayout = fs.readFileSync("app/_layout.tsx", "utf8");
 
 test("swipe row requires deliberate horizontal intent and supports both directions", () => {
   assert.match(swipe, /HORIZONTAL_INTENT_PX = 8/);
@@ -24,9 +25,17 @@ test("swipe row requires deliberate horizontal intent and supports both directio
   assert.match(swipe, /leadingActions/);
   assert.match(swipe, /openTrailing/);
   assert.match(swipe, /openLeading/);
+  assert.match(swipe, /onMoveShouldSetPanResponderCapture/);
 
   // Releasing a swipe only reveals an action; mutations require tapping it.
   assert.match(swipe, /onPress=\{\(\) => void invoke\(action\)\}/);
+});
+
+test("main app disables the root iOS back-swipe that conflicts with pantry gestures", () => {
+  assert.match(
+    rootLayout,
+    /<Stack\.Screen name="\(app\)" options=\{\{ gestureEnabled: false \}\} \/>/
+  );
 });
 
 test("swipe actions have an internal duplicate-action lock", () => {
