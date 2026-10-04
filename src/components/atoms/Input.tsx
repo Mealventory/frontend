@@ -25,6 +25,9 @@ export function Input({
   style,
   onFocus,
   onBlur,
+  accessibilityLabel,
+  accessibilityHint,
+  editable,
   ...props
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -42,17 +45,29 @@ export function Input({
       >
         {leadingIcon && <View style={styles.leadingIcon}>{leadingIcon}</View>}
         <TextInput
+          accessibilityLabel={accessibilityLabel || label}
+          accessibilityHint={
+            error
+              ? `Error: ${error}`
+              : accessibilityHint
+          }
+          accessibilityState={{ disabled: editable === false }}
           placeholderTextColor="#94A3B8"
           onFocus={(event) => { setIsFocused(true); onFocus?.(event); }}
           onBlur={(event) => { setIsFocused(false); onBlur?.(event); }}
           className={`flex-1 text-[15px] font-regular text-text-primary ${className}`}
           style={[{ paddingVertical: 0 }, style]}
+          editable={editable}
           {...props}
         />
         {trailingIcon && <View style={styles.trailingIcon}>{trailingIcon}</View>}
       </View>
       {error && (
-        <Text className="text-[12px] font-medium text-urgency-critical mt-1 ml-1">
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="assertive"
+          className="text-[12px] font-medium text-urgency-critical mt-1 ml-1"
+        >
           {error}
         </Text>
       )}

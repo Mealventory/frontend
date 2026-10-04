@@ -25,7 +25,10 @@ export function CameraOverlayControls({
     <View className={`flex-row items-center gap-3 px-5 pb-6 ${className}`}>
       {onToggleFlash && (
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ selected: flashOn, disabled: scanning }}
           activeOpacity={0.7}
+          disabled={scanning}
           onPress={onToggleFlash}
           accessibilityLabel={flashOn ? "Turn flash off" : "Turn flash on"}
           className={`w-12 h-12 rounded-2xl items-center justify-center border ${
@@ -44,10 +47,12 @@ export function CameraOverlayControls({
 
       {isBarcodeMode ? (
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ disabled: scanning, busy: scanning }}
           activeOpacity={0.8}
           disabled={scanning}
           onPress={onScan}
-          accessibilityLabel="Auto-scanning barcode"
+          accessibilityLabel={scanning ? "Reading barcode" : "Scan barcode now"}
           className="flex-1 h-12 bg-white/15 border border-white/25 rounded-2xl flex-row items-center justify-center px-4"
         >
           <View className="w-2.5 h-2.5 rounded-full bg-brand-500 mr-2 animate-pulse" />
@@ -58,6 +63,8 @@ export function CameraOverlayControls({
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ disabled: scanning, busy: scanning }}
           activeOpacity={0.8}
           disabled={scanning}
           onPress={onScan}

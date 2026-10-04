@@ -27,11 +27,23 @@ export default function ResetPasswordScreen() {
     <Text style={styles.title}>Choose a new password</Text>
     {saved ? <><Text>Password updated successfully.</Text><Pressable onPress={() => router.replace('/')}><Text style={styles.link}>Continue to your households</Text></Pressable></> : <>
       {ready && !session && <Text>Open the latest recovery link from your email to continue.</Text>}
-      {!!(error || recoveryError) && <Text accessibilityRole="alert" style={{ color: '#B42318' }}>{error || recoveryError}</Text>}
+      {!!(error || recoveryError) && (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ color: '#B42318' }}>
+          {error || recoveryError}
+        </Text>
+      )}
       <TextInput style={styles.input} accessibilityLabel="New password" placeholder="New password" secureTextEntry autoCapitalize="none" autoComplete="new-password" value={password} onChangeText={setPassword} />
       <TextInput style={styles.input} accessibilityLabel="Confirm new password" placeholder="Confirm new password" secureTextEntry autoCapitalize="none" value={confirmation} onChangeText={setConfirmation} />
       <Pressable accessibilityRole="button" disabled={busy || !session || !!recoveryError} onPress={save}><Text style={styles.link}>{busy ? 'Saving…' : 'Save new password'}</Text></Pressable>
-      <Pressable disabled={busy} onPress={() => { finishRecovery(); router.replace('/(auth)/forgot-password' as any); }}><Text style={styles.link}>Request another recovery email</Text></Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Request another recovery email"
+        accessibilityState={{ disabled: busy }}
+        disabled={busy}
+        onPress={() => { finishRecovery(); router.replace('/(auth)/forgot-password' as any); }}
+      >
+        <Text style={styles.link}>Request another recovery email</Text>
+      </Pressable>
     </>}
   </View></SafeAreaView>;
 }

@@ -76,6 +76,8 @@ export default function ScanHistoryDetailScreen() {
       <SafeAreaView className="flex-1 bg-ground-canvas">
         <View className="px-5 pt-2">
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to Recent Scans"
             onPress={() => router.back()}
             className="w-11 h-11 rounded-2xl bg-ground-surface border border-border-default items-center justify-center"
           >

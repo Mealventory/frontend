@@ -14,6 +14,8 @@ export interface ItemCardProps {
 export function ItemCard({ item, onPress, className = "" }: ItemCardProps) {
   return (
     <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={`${item.name}, ${item.quantity}, ${item.category}. Open item`}
       activeOpacity={0.7}
       onPress={() => onPress?.(item)}
       className={`flex-row items-center p-3.5 bg-ground-card rounded-2xl border border-border-default shadow-sm ${className}`}
@@ -24,7 +26,7 @@ export function ItemCard({ item, onPress, className = "" }: ItemCardProps) {
         <Typography
           variant="body"
           className="font-bold text-[15px] truncate"
-          numberOfLines={1}
+          numberOfLines={2}
         >
           {item.name}
         </Typography>
