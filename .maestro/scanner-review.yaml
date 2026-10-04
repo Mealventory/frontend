@@ -9,10 +9,8 @@ name: Deterministic scanner review
     id: "e2e-email"
 - assertVisible:
     id: "e2e-password"
-- assertVisible:
-    id: "e2e-sign-in"
-- tapOn:
-    id: "e2e-sign-in"
+- assertVisible: "Continue as E2E tester"
+- tapOn: "Continue as E2E tester"
 - assertVisible: "E2E Test Kitchen"
 - tapOn:
     id: "e2e-enter-kitchen"
