@@ -9,12 +9,15 @@ name: Deterministic scanner review
     id: "e2e-email"
 - assertVisible:
     id: "e2e-password"
-- assertVisible: "Continue as E2E tester"
-# iOS 18 simulator can report a successful accessibility tap on this RN Pressable
-# without delivering onPress. The E2E login screen is fixed, so tap its center directly.
+# Accessibility can expose the button while it is clipped below the viewport.
+- scrollUntilVisible:
+    element:
+      id: "e2e-sign-in"
+    direction: DOWN
+    centerElement: true
 - tapOn:
-    point: "50%,72%"
-    retryTapIfNoChange: true
+    id: "e2e-sign-in"
+
 - assertVisible: "Your household."
 - scrollUntilVisible:
     element:

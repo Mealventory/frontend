@@ -79,6 +79,23 @@ npm run test:e2e
 
 That command runs every flow in `.maestro/`.
 
+On Daniel's Mac, use Java 21 only in the terminal running Maestro, leaving the Java 8 setup for database coursework unchanged:
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+export PATH="$JAVA_HOME/bin:$HOME/.maestro/bin:$PATH"
+```
+
+For Expo iOS development builds, disable the floating Tools button before testing. It can overlap the kitchen's Add button and intercept Maestro taps. With the simulator booted, stop the app and set its simulator-only preference:
+
+```bash
+xcrun simctl terminate booted com.mealventory.app
+xcrun simctl spawn booted defaults write com.mealventory.app EXDevMenuShowFloatingActionButton -bool false
+```
+
+The next Maestro launch uses this preference; Metro can stay running. Set the same preference to `true` and restart the app to restore the floating button after testing. The keyboard shortcut still opens the dev menu.
+
+
 The fixture credentials used by the suite are intentionally non-production and are prefilled only while E2E mode is active. The E2E-only submit button signs in with these fixed fixture values directly, and the manual-add/edit forms also prefill deterministic fixture values only in E2E mode. Maestro still exercises the real Sign in, Add, Save, Consume, and Sign out actions without depending on simulator keyboard or autofill behavior:
 
 ```text
@@ -95,4 +112,4 @@ Do not set `EXPO_PUBLIC_E2E_MODE=1` in normal development, preview, or productio
 
 The E2E inventory is reset whenever the application process/state is cleared, so the suite can run repeatedly without cleanup against a server.
 
-On the current iOS simulator smoke-test screen, the fixture sign-in action is tapped by screen coordinate after its label is asserted visible. This is intentional: iOS can expose the React Native Pressable to Maestro and report a successful accessibility tap without delivering the touch to `onPress`. The coordinate is used only for this fixed E2E-only login screen; the rest of the journey continues to target stable IDs and visible controls.
+The login flows scroll the fixture sign-in button fully into view before tapping its stable `e2e-sign-in` ID. iOS accessibility can expose the button even when it is clipped below the scroll viewport, so asserting its label alone does not ensure that a tap can reach it. Avoid fixed screen coordinates, which vary with device size and layout.
