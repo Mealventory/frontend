@@ -12,6 +12,7 @@ import { Icon, Typography } from "@/src/components/atoms";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
+import { APP_GUTTER } from "@/src/lib/layout";
 import {
   activityDescription,
   fetchHouseholdActivity,
@@ -89,7 +90,7 @@ export default function HouseholdActivityScreen() {
       edges={["top", "left", "right"]}
       className="flex-1 bg-ground-canvas"
     >
-      <View className="flex-row items-center px-5 pt-2 pb-4">
+      <View className="flex-row items-center px-4 pt-2 pb-4">
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Back to kitchen"
@@ -114,7 +115,7 @@ export default function HouseholdActivityScreen() {
           </Typography>
         </View>
       ) : error ? (
-        <View className="px-5">
+        <View className="px-4">
           <EmptyState
             icon="WifiOff"
             title="Could not load activity"
@@ -128,7 +129,7 @@ export default function HouseholdActivityScreen() {
           data={events}
           keyExtractor={(event) => event.id}
           contentContainerStyle={{
-            paddingHorizontal: 20,
+            paddingHorizontal: APP_GUTTER,
             paddingBottom: 36,
             flexGrow: events.length === 0 ? 1 : undefined,
           }}
