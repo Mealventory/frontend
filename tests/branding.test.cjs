@@ -41,13 +41,9 @@ test("all configured branding files are committed", () => {
   }
 });
 
-test("active in-app brand placeholders use the Mealventory image", () => {
-  const household = fs.readFileSync("src/screens/HouseholdScreen.tsx", "utf8");
-  const login = fs.readFileSync("src/screens/LoginScreen.tsx", "utf8");
+test("production root route uses the Mealventory brand image", () => {
+  const root = fs.readFileSync("app/index.tsx", "utf8");
 
-  assert.match(household, /<BrandLogo/);
-  assert.doesNotMatch(household, /<Leaf\b/);
-
-  assert.match(login, /<BrandLogo/);
-  assert.doesNotMatch(login, /🥦/);
+  assert.match(root, /<BrandLogo/);
+  assert.doesNotMatch(root, /<Leaf\b/);
 });
