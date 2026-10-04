@@ -1,0 +1,78 @@
+# Mobile E2E smoke tests
+
+Mealventory uses [Maestro](https://maestro.mobile.dev/) for lightweight end-to-end mobile smoke tests.
+
+The suite runs the real Expo Router screens against an isolated in-memory fixture mode. It does **not** require production Supabase credentials, a production backend, camera hardware, or production data.
+
+## What the suite covers
+
+`.maestro/critical-journey.yaml` validates:
+
+1. Sign in with a deterministic test identity.
+2. Select the fixture household.
+3. Enter the kitchen.
+4. Manually add a pantry item.
+5. Open and edit the item.
+6. Mark the item consumed.
+7. Sign out.
+
+`.maestro/scanner-review.yaml` validates:
+
+1. Product scan -> AI Review using deterministic product data.
+2. Barcode fallback -> AI Review using deterministic fallback data.
+
+The scanner fixture launcher is only rendered when `EXPO_PUBLIC_E2E_MODE=1`. Normal app builds continue to use the real camera and APIs.
+
+## Prerequisites
+
+Install Maestro on the development machine and use a simulator/emulator with a local development build of Mealventory installed.
+
+The app id used by the flows is:
+
+```text
+com.mealventory.app
+```
+
+For iOS Simulator, a paid Apple Developer account is not required for a local simulator build.
+
+## Start an isolated E2E build
+
+Run the app with the explicit E2E flag:
+
+```bash
+EXPO_PUBLIC_E2E_MODE=1 npx expo run:ios
+```
+
+For Android:
+
+```bash
+EXPO_PUBLIC_E2E_MODE=1 npx expo run:android
+```
+
+Keep Metro running while executing the Maestro flows.
+
+## Run the smoke suite
+
+From the frontend repository:
+
+```bash
+npm run test:e2e
+```
+
+That command runs every flow in `.maestro/`.
+
+The fixture credentials used by the suite are intentionally non-production:
+
+```text
+Email: e2e@mealventory.test
+Password: MealventoryE2E!
+Household: E2E Test Kitchen
+```
+
+The `.test` domain is reserved for testing and these credentials are accepted only by the in-memory E2E auth path.
+
+## Safety
+
+Do not set `EXPO_PUBLIC_E2E_MODE=1` in normal development, preview, or production builds. When the flag is absent, E2E sign-in is unavailable, inventory uses the real backend, and the real scanner UI is rendered.
+
+The E2E inventory is reset whenever the application process/state is cleared, so the suite can run repeatedly without cleanup against a server.
