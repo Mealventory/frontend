@@ -82,7 +82,7 @@ export function RecipeDetailView({
           accessibilityRole="button"
           accessibilityLabel="Back to recipes"
           onPress={onBack}
-          className="w-10 h-10 rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
+          className="w-11 h-11 rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
         >
           <Icon name="ArrowLeft" size={18} />
         </TouchableOpacity>
@@ -96,7 +96,7 @@ export function RecipeDetailView({
             accessibilityState={{ selected: saved }}
             accessibilityLabel={saved ? "Remove from household saved recipes" : "Save recipe for household"}
             onPress={() => void onToggleSaved()}
-            className={`w-10 h-10 rounded-[14px] border items-center justify-center ${
+            className={`w-11 h-11 rounded-[14px] border items-center justify-center ${
               saved
                 ? "bg-brand-500 border-brand-500"
                 : "bg-ground-subtle dark:bg-ground-elevated border-border-default"
