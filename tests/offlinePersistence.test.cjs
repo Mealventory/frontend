@@ -38,7 +38,8 @@ test("query persistence keeps inventory for seven days only", () => {
   assert.ok(source.includes("createAsyncStoragePersister"));
   assert.ok(source.includes("INVENTORY_QUERY_ROOT"));
   assert.ok(source.includes("query.queryKey[0] === INVENTORY_QUERY_ROOT"));
-  assert.ok(source.includes("query.state.status === 'success'"));
+  assert.ok(source.includes("query.state.data !== undefined"));
+  assert.ok(!source.includes("query.state.status === 'success'"));
 });
 
 test("persisted provider restores before the app providers mount", () => {
