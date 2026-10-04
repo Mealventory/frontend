@@ -75,34 +75,41 @@ export function SwipeActionRow({
     if (disabled) close();
   }, [disabled, leadingWidth, trailingWidth]);
 
-  const responder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) => {
-          if (
-            disabled ||
-            (actions.length === 0 && leadingActions.length === 0)
-          ) {
-            return false;
-          }
+  const responder = useMemo(() => {
+    const wantsHorizontalSwipe = (gesture: {
+      dx: number;
+      dy: number;
+    }) => {
+      if (
+        disabled ||
+        (actions.length === 0 && leadingActions.length === 0)
+      ) {
+        return false;
+      }
 
-          const horizontal = Math.abs(gesture.dx);
-          const vertical = Math.abs(gesture.dy);
-          if (
-            horizontal <= HORIZONTAL_INTENT_PX ||
-            horizontal <= vertical * 1.4
-          ) {
-            return false;
-          }
+      const horizontal = Math.abs(gesture.dx);
+      const vertical = Math.abs(gesture.dy);
+      if (
+        horizontal <= HORIZONTAL_INTENT_PX ||
+        horizontal <= vertical * 1.4
+      ) {
+        return false;
+      }
 
-          if (gesture.dx < 0) {
-            return actions.length > 0 || currentX.current > 0;
-          }
-          if (gesture.dx > 0) {
-            return leadingActions.length > 0 || currentX.current < 0;
-          }
-          return false;
-        },
+      if (gesture.dx < 0) {
+        return actions.length > 0 || currentX.current > 0;
+      }
+      if (gesture.dx > 0) {
+        return leadingActions.length > 0 || currentX.current < 0;
+      }
+      return false;
+    };
+
+    return PanResponder.create({
+        onMoveShouldSetPanResponderCapture: (_, gesture) =>
+          wantsHorizontalSwipe(gesture),
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          wantsHorizontalSwipe(gesture),
         onPanResponderGrant: () => {
           gestureStartX.current = currentX.current;
           translateX.stopAnimation((value) => {
@@ -134,15 +141,14 @@ export function SwipeActionRow({
         },
         onPanResponderTerminate: close,
         onShouldBlockNativeResponder: () => false,
-      }),
-    [
-      actions.length,
-      disabled,
-      leadingActions.length,
-      leadingWidth,
-      trailingWidth,
-    ]
-  );
+      });
+  }, [
+    actions.length,
+    disabled,
+    leadingActions.length,
+    leadingWidth,
+    trailingWidth,
+  ]);
 
   const invoke = async (action: SwipeAction) => {
     if (disabled || action.disabled || actionLocked.current) return;
