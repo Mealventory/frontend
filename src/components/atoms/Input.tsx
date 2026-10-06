@@ -33,11 +33,11 @@ export function Input({
 
   return (
     <View className={`w-full ${containerClassName}`}>
-      {label && (
+      {label ? (
         <Text className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5 ml-1">
           {label}
         </Text>
-      )}
+      ) : null}
       <View
         style={[
           styles.inputContainer,
@@ -64,11 +64,11 @@ export function Input({
         />
         {trailingIcon && <View style={styles.trailingIcon}>{trailingIcon}</View>}
       </View>
-      {error && (
+      {error ? (
         <Text className="text-[12px] font-medium text-urgency-critical mt-1 ml-1">
           {error}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 }

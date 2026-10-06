@@ -162,11 +162,12 @@ test('both scan response shapes use category defaults and preserve overrides', (
   }
 });
 
-test('uploadScanImage reports "{element} could not be detected" across all modes (product, receipt, barcode)', async () => {
+test('uploadScanImage reports "{element} could not be detected" across all modes (item, receipt, barcode, tag)', async () => {
   const modes = [
-    { mode: 'food', expected: 'Product could not be detected' },
+    { mode: 'food', expected: 'Item could not be detected' },
     { mode: 'receipt', expected: 'Receipt could not be detected' },
     { mode: 'barcode', expected: 'Barcode could not be detected' },
+    { mode: 'tag', expected: 'Tag could not be detected' },
   ];
 
   for (const { mode, expected } of modes) {

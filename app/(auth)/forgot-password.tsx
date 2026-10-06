@@ -49,20 +49,20 @@ export default function ForgotPasswordScreen() {
       iconName="Key"
     >
       <View className="gap-4">
-        {notice && (
+        {notice ? (
           <View className="p-4 rounded-xl bg-urgency-fresh-bg border border-urgency-fresh/30">
             <Typography variant="caption" color="fresh" className="font-semibold">
               {notice}
             </Typography>
           </View>
-        )}
-        {error && (
+        ) : null}
+        {error ? (
           <View className="p-4 rounded-xl bg-urgency-critical-bg border border-urgency-critical/30">
             <Typography variant="caption" color="critical" className="font-semibold">
               {error}
             </Typography>
           </View>
-        )}
+        ) : null}
         <FormField
           label="Email Address"
           placeholder="name@example.com"

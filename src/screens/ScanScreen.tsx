@@ -166,10 +166,13 @@ export function ScanScreen({ onNavigate }: ScanScreenProps) {
                 </View>
               </View>
 
-              <Text>Storage zone</Text>
-              <TagChipGroup tags={["pantry", "fridge", "freezer", "spicerack"]}
+              <Text className="text-[12px] font-bold text-text-subtle uppercase tracking-wider mb-2">Storage Zone</Text>
+              <TagChipGroup
+                tags={["pantry", "fridge", "freezer", "spicerack"]}
+                formatLabel={(zone) => (zone === "spicerack" ? "Spices" : zone.charAt(0).toUpperCase() + zone.slice(1))}
                 selectedTag={detected.storageZone || "pantry"}
-                onSelectTag={(zone) => setDetected({ ...detected, storageZone: zone as StorageZone })} />
+                onSelectTag={(zone) => setDetected({ ...detected, storageZone: zone as StorageZone })}
+              />
               {error ? <Text accessibilityRole="alert">{error}</Text> : null}
 
               {/* Expiration Date Input */}

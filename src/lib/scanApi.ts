@@ -328,7 +328,7 @@ export async function uploadScanImage({
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 35000);
-  const elementName = mode === 'receipt' ? 'Receipt' : mode === 'barcode' ? 'Barcode' : mode === 'tag' ? 'Tag' : 'Product';
+  const elementName = mode === 'receipt' ? 'Receipt' : mode === 'barcode' ? 'Barcode' : mode === 'tag' ? 'Tag' : 'Item';
 
   try {
     const response = await fetchFn(`${backendUrl}/api/v1/scan/preview`, {

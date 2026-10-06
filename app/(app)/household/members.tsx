@@ -218,7 +218,7 @@ export default function HouseholdMembersScreen() {
         }
       >
         {/* Notice Banner */}
-        {notice && (
+        {notice ? (
           <View
             accessibilityLiveRegion="polite"
             className="p-3.5 mb-4 rounded-xl bg-urgency-fresh-bg border border-urgency-fresh/30 flex-row items-center gap-2"
@@ -231,10 +231,10 @@ export default function HouseholdMembersScreen() {
               <Icon name="X" size={14} color="#059669" />
             </Pressable>
           </View>
-        )}
+        ) : null}
 
         {/* Error Banner */}
-        {error && (
+        {error ? (
           <View
             accessibilityRole="alert"
             className="p-4 mb-5 rounded-2xl bg-urgency-critical-bg border border-urgency-critical/30 gap-2"
@@ -256,7 +256,7 @@ export default function HouseholdMembersScreen() {
               className="mt-1 self-start"
             />
           </View>
-        )}
+        ) : null}
 
         {/* Household Overview & Invite Code Card */}
         {household && (

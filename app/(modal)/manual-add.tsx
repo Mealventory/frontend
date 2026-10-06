@@ -115,9 +115,15 @@ export default function ManualAddModal() {
           </View>
 
           <View>
-            <Typography variant="caption">Storage zone</Typography>
-            <TagChipGroup tags={["pantry", "fridge", "freezer", "spicerack"]}
-              selectedTag={storageZone} onSelectTag={(zone) => setStorageZone(zone as StorageZone)} />
+            <Typography variant="caption" className="font-semibold text-text-secondary uppercase tracking-wider mb-2 ml-1">
+              Storage Zone
+            </Typography>
+            <TagChipGroup
+              tags={["pantry", "fridge", "freezer", "spicerack"]}
+              formatLabel={(zone) => (zone === "spicerack" ? "Spices" : zone.charAt(0).toUpperCase() + zone.slice(1))}
+              selectedTag={storageZone}
+              onSelectTag={(zone) => setStorageZone(zone as StorageZone)}
+            />
           </View>
 
           <FormField

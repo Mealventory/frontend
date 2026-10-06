@@ -6,6 +6,7 @@ export interface TagChipGroupProps {
   selectedTag: string;
   onSelectTag: (tag: string) => void;
   className?: string;
+  formatLabel?: (tag: string) => string;
 }
 
 export function TagChipGroup({
@@ -13,6 +14,7 @@ export function TagChipGroup({
   selectedTag,
   onSelectTag,
   className = "",
+  formatLabel,
 }: TagChipGroupProps) {
   return (
     <View className={className}>
@@ -24,12 +26,18 @@ export function TagChipGroup({
       >
         {tags.map((tag) => {
           const isSelected = selectedTag === tag;
+          const displayLabel = formatLabel
+            ? formatLabel(tag)
+            : tag.length > 0
+            ? tag.charAt(0).toUpperCase() + tag.slice(1)
+            : tag;
+
           return (
             <TouchableOpacity
               key={tag}
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
-              accessibilityLabel={tag}
+              accessibilityLabel={displayLabel}
               activeOpacity={0.7}
               onPress={() => onSelectTag(tag)}
               className={`mr-2 min-h-[44px] items-center justify-center px-4 py-2 rounded-full border ${
@@ -43,7 +51,7 @@ export function TagChipGroup({
                   isSelected ? "text-white" : "text-text-secondary"
                 }`}
               >
-                {tag}
+                {displayLabel}
               </Text>
             </TouchableOpacity>
           );

@@ -28,11 +28,11 @@ export function FormField({
         )}
       </View>
       <Input accessibilityLabel={label} error={error} {...props} />
-      {helperText && !error && (
+      {helperText && !error ? (
         <Typography variant="caption" color="muted" className="mt-2 ml-1">
           {helperText}
         </Typography>
-      )}
+      ) : null}
     </View>
   );
 }

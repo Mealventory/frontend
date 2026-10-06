@@ -55,14 +55,19 @@ function EditForm({ item }: { item: FoodItem }) {
         <View style={{ width: 80 }} />
       </View>
       <View className="gap-5">
-        <FormField label="Item name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
-        <FormField label="Quantity / size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
+        <FormField label="Item Name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
+        <FormField label="Quantity / Size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
         <FormField label="Category" value={category} onChangeText={setCategory} editable={!saving} maxLength={80} />
         <ExpiryPrediction name={name} zone={zone} value={date} onApply={setDate} itemId={item.id} disabled={saving} />
         <ExpiryDateField value={date} onChangeText={setDate} editable={!saving} />
         <View pointerEvents={saving ? 'none' : 'auto'}>
-          <Typography variant="caption" className="mb-2">Storage location</Typography>
-          <TagChipGroup tags={['pantry', 'fridge', 'freezer', 'spicerack']} selectedTag={zone} onSelectTag={v => setZone(v as StorageZone)} />
+          <Typography variant="caption" className="mb-2">Storage Location</Typography>
+          <TagChipGroup
+            tags={['pantry', 'fridge', 'freezer', 'spicerack']}
+            formatLabel={(z) => (z === 'spicerack' ? 'Spices' : z.charAt(0).toUpperCase() + z.slice(1))}
+            selectedTag={zone}
+            onSelectTag={v => setZone(v as StorageZone)}
+          />
         </View>
         {!!error && <Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>}
         <Button label={saving ? 'Saving…' : 'Save changes'} disabled={saving} onPress={save} />
