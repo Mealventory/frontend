@@ -94,7 +94,14 @@ export async function batchCreateInventoryItems<T = InventoryRow[]>(
       if (response.status === 401) throw new Error('Please sign in again.');
       if (response.status === 403) throw new Error('You no longer have access to this household.');
       const problem = await response.json().catch(() => null);
-      throw new Error(problem?.detail || 'Could not batch save items to inventory. Please try again.');
+      const detailMsg = Array.isArray(problem?.detail)
+        ? problem.detail.map((d: any) => d?.msg || JSON.stringify(d)).join(', ')
+        : typeof problem?.detail === 'string'
+        ? problem.detail
+        : problem?.detail
+        ? JSON.stringify(problem.detail)
+        : 'Could not batch save items to inventory. Please try again.';
+      throw new Error(detailMsg);
     }
 
     return await response.json();
