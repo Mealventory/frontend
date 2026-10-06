@@ -291,33 +291,46 @@ export default function RecipesTabScreen() {
               </Typography>
             ) : null}
 
-            <View className="gap-4">
-              {generatedRecipes.map((recipe) => (
-                <View key={recipe.id}>
-                  <RecipeCard
-                    recipe={recipe}
-                    inventoryItemNames={inventoryNames}
-                    saved={isRecipeSaved(recipe)}
-                    onToggleSaved={toggleSaved}
-                    onPress={open}
-                  />
-                  <Typography variant="caption" className="mt-2">
-                    Use soon:{" "}
-                    {recipe.priorityIngredients?.join(", ") ||
-                      "No dated items due soon"}
-                  </Typography>
-                  <Typography variant="caption" color="muted">
-                    Extras to check:{" "}
-                    {recipe.uses
-                      .filter(
-                        (ingredient) =>
-                          !inventoryNames.has(ingredient.toLowerCase())
-                      )
-                      .join(", ") || "None"}
-                  </Typography>
-                </View>
-              ))}
-            </View>
+                      <View className="gap-4">
+                          {generatedRecipes.map((recipe) => (
+                              <View key={recipe.id}>
+                                  {recipe.priorityIngredients?.length ? (
+                                      <View className="self-start mb-2 px-3 py-1.5 rounded-full bg-urgency-critical-bg border border-urgency-critical/30">
+                                          <Typography
+                                              variant="caption"
+                                              className="font-bold text-urgency-critical"
+                                          >
+                                              Urgent Waste Prevention
+                                          </Typography>
+                                      </View>
+                                  ) : null}
+
+                                  <RecipeCard
+                                      recipe={recipe}
+                                      inventoryItemNames={inventoryNames}
+                                      saved={isRecipeSaved(recipe)}
+                                      onToggleSaved={toggleSaved}
+                                      onPress={open}
+                                  />
+
+                                  <Typography variant="caption" className="mt-2">
+                                      Use soon:{" "}
+                                      {recipe.priorityIngredients?.join(", ") ||
+                                          "No dated items due soon"}
+                                  </Typography>
+
+                                  <Typography variant="caption" color="muted">
+                                      Extras to check:{" "}
+                                      {recipe.uses
+                                          .filter(
+                                              (ingredient) =>
+                                                  !inventoryNames.has(ingredient.toLowerCase())
+                                          )
+                                          .join(", ") || "None"}
+                                  </Typography>
+                              </View>
+                          ))}
+                      </View>
           </>
         ) : savedRecipesError ? (
           <EmptyState icon="WifiOff" title="Could not sync saved recipes" description={savedRecipesError} actionLabel="Retry" onAction={() => void refreshSavedRecipes()} />
