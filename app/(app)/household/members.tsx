@@ -6,12 +6,12 @@ import {
   RefreshControl,
   Pressable,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Typography, Badge, Avatar, Button, Icon } from "@/src/components/atoms";
 import { MemberDetailSheet } from "@/src/components/domain/MemberDetailSheet";
+import { HouseholdInviteCard } from "@/src/components/domain/HouseholdInviteCard";
 import { useAuth } from "@/src/context/AuthContext";
 import { supabase } from "@/src/lib/supabase";
 import {
@@ -40,7 +40,6 @@ export default function HouseholdMembersScreen() {
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedMember, setSelectedMember] = useState<MemberProfile | null>(null);
   const [activeFilter, setActiveFilter] = useState<RoleFilter>("all");
-  const [copiedCode, setCopiedCode] = useState(false);
 
   const getAccessToken = useCallback(async (): Promise<string> => {
     if (session?.access_token) return session.access_token;
@@ -147,16 +146,6 @@ export default function HouseholdMembersScreen() {
     setSelectedMember(null);
     if (router.canGoBack()) router.back();
     else router.replace("/(app)/household" as any);
-  };
-
-  // Quick invite code copy helper
-  const handleCopyInviteCode = () => {
-    if (!household?.invite_code) return;
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(household.invite_code).catch(() => {});
-    }
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2500);
   };
 
   return (
@@ -283,38 +272,22 @@ export default function HouseholdMembersScreen() {
               />
             </View>
 
-            {/* Invite code block */}
-            <View className="p-3.5 bg-ground-subtle dark:bg-ground-elevated rounded-xl border border-border-default flex-row items-center justify-between">
-              <View>
-                <Typography variant="tiny" color="muted">
-                  HOUSEHOLD INVITE CODE
-                </Typography>
-                <Text
-                  selectable
-                  className="text-lg font-bold tracking-widest text-text-primary mt-0.5 font-mono"
-                >
-                  {household.invite_code || "------"}
-                </Text>
+            {/* QR, copy, and native share invite actions */}
+            {household.invite_code ? (
+              <View className="mt-1">
+                <HouseholdInviteCard
+                  householdName={household.name}
+                  inviteCode={household.invite_code}
+                  compact
+                />
               </View>
-
-              {household.invite_code && (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Copy household invite code"
-                  onPress={handleCopyInviteCode}
-                  className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-50 dark:bg-brand-500/20 border border-brand-500/30"
-                >
-                  <Icon
-                    name={copiedCode ? "Check" : "Copy"}
-                    size={14}
-                    color="#10B981"
-                  />
-                  <Text className="text-xs font-semibold text-brand-500">
-                    {copiedCode ? "Copied!" : "Copy"}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
+            ) : (
+              <View className="p-3.5 bg-ground-subtle dark:bg-ground-elevated rounded-xl border border-border-default">
+                <Typography variant="caption" color="muted">
+                  This household does not currently have an invite code.
+                </Typography>
+              </View>
+            )}
           </View>
         )}
 

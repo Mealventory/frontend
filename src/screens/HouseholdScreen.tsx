@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight, Home, Leaf, LogOut, RefreshCw, Users } from 'lucide-react-native';
 import * as Linking from 'expo-linking';
@@ -10,6 +10,8 @@ import { useAuth } from '../context/AuthContext';
 import { signOutAccount, usernameFor } from '../lib/account';
 import { backendConfigured, Household, householdRequest, Member } from '../lib/householdApi';
 import { resolveMemberProfile, formatRole } from '../lib/memberProfiles';
+import { HouseholdInviteCard } from '../components/domain/HouseholdInviteCard';
+import { isValidInviteCode, normalizeInviteCode } from '../lib/householdInvites';
 
 const green = '#087F5B';
 type Page = 'home' | 'create' | 'join';
@@ -25,6 +27,10 @@ function Action({ title, onPress, disabled, secondary = false }: { title: string
 
 export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boolean }) {
   const router = useRouter();
+  const params = useLocalSearchParams<{ invite?: string | string[] }>();
+  const inviteParam = normalizeInviteCode(
+    Array.isArray(params.invite) ? params.invite[0] || '' : params.invite || ''
+  );
   const { session, selectHousehold } = useAuth();
   const sessionRef = useRef<Session | null>(null);
   const generation = useRef(0);
@@ -61,6 +67,21 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
     }
   }, [session]);
   useEffect(() => () => { generation.current++; memberRequest.current++; }, []);
+
+  // QR/shared invites arrive here after the /join-household deep-link bridge.
+  // Keep the code in the URL while signed out so signing in can resume the invite.
+  useEffect(() => {
+    if (!isValidInviteCode(inviteParam)) return;
+    setCode(inviteParam);
+    if (session?.user.id) {
+      setPage('join');
+      setError('');
+      setNotice('Invite code loaded. Review it, then join the household.');
+      router.setParams({ invite: undefined } as any);
+    } else {
+      setNotice('Sign in or create an account to accept this household invite.');
+    }
+  }, [inviteParam, session?.user.id, router]);
 
   async function accessToken() {
     if (!supabase) throw new Error('Sign-in is not configured yet.');
@@ -144,7 +165,7 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
     setBusy(true); setError(''); setNotice('');
     try {
       const result = await householdRequest<Household>(page === 'create' ? '' : '/join', await accessToken(),
-        page === 'create' ? { name: name.trim() } : { invite_code: code.trim().toUpperCase() });
+        page === 'create' ? { name: name.trim() } : { invite_code: normalizeInviteCode(code) });
       if (current !== generation.current) return;
       setHouseholds(previous => [...previous.filter(item => item.id !== result.id), result]);
       setSelected(result); setPage('home'); setName(''); setCode('');
@@ -237,8 +258,8 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
             <Text style={styles.subtitle}>{page === 'create' ? 'Give your household a name. We’ll make a code you can share with your people.' : 'Enter the six-character invite code shared by someone in your household.'}</Text>
             <View style={styles.card}>
               <Text style={styles.label}>{page === 'create' ? 'Household name' : 'Invite code'}</Text>
-              {page === 'create' ? <TextInput accessibilityLabel="Household name" style={styles.input} placeholder="e.g. Smith Family" value={name} onChangeText={setName} maxLength={120} /> : <TextInput accessibilityLabel="Invite code" style={[styles.input, styles.codeInput]} placeholder="ABC123" value={code} onChangeText={value => setCode(value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,6))} autoCapitalize="characters" autoCorrect={false} maxLength={6} />}
-              <Action title={busy ? 'Saving…' : page === 'create' ? 'Create household' : 'Join household'} disabled={busy || (page === 'create' ? !name.trim() : !/^[A-Z0-9]{6}$/.test(code))} onPress={saveHousehold} />
+              {page === 'create' ? <TextInput accessibilityLabel="Household name" style={styles.input} placeholder="e.g. Smith Family" value={name} onChangeText={setName} maxLength={120} /> : <TextInput accessibilityLabel="Invite code" style={[styles.input, styles.codeInput]} placeholder="ABC123" value={code} onChangeText={value => setCode(normalizeInviteCode(value))} autoCapitalize="characters" autoCorrect={false} maxLength={6} />}
+              <Action title={busy ? 'Saving…' : page === 'create' ? 'Create household' : 'Join household'} disabled={busy || (page === 'create' ? !name.trim() : !isValidInviteCode(code))} onPress={saveHousehold} />
             </View>
           </> : <>
             <Text style={styles.eyebrow}>BETTER TOGETHER</Text><Text style={styles.title}>Your household.</Text>
@@ -248,9 +269,14 @@ export function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boo
               <View style={styles.householdCard}>
                 <View style={styles.row}><Home size={25} color={green} /><Text style={styles.badge}>{selected.role}</Text></View>
                 <Text style={styles.householdName}>{selected.name}</Text>
-                <Text style={styles.muted}>YOUR HOUSEHOLD INVITE CODE</Text>
-                <Text selectable style={styles.invite}>{selected.invite_code || 'No invite code'}</Text>
-                <Text style={styles.muted}>Share this code with someone you’d like to join.</Text>
+                {selected.invite_code ? (
+                  <HouseholdInviteCard
+                    householdName={selected.name}
+                    inviteCode={selected.invite_code}
+                  />
+                ) : (
+                  <Text style={styles.muted}>This household does not currently have an invite code.</Text>
+                )}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`Enter ${selected.name} Kitchen`}

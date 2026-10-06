@@ -4,6 +4,12 @@ import { supabase } from '../lib/supabase';
 import { inventoryRequest, toFoodItem, InventoryRow, NewItem } from '../lib/inventoryApi';
 import { useAuth } from './AuthContext';
 import { FoodItem, Recipe } from "../types";
+import {
+  loadSavedRecipes,
+  recipeSaveKey,
+  removeSavedRecipe,
+  saveRecipe,
+} from "../lib/savedRecipes";
 
 export const initialInventory: FoodItem[] = [
   { id: "1", name: "Whole Milk", category: "Dairy", expDate: "Sep 16", daysLeft: 2, quantity: "1 gallon", emoji: "🥛" },
@@ -118,6 +124,10 @@ export interface UserProfile {
 interface InventoryContextType {
   inventory: FoodItem[];
   recipes: Recipe[];
+  savedRecipes: Recipe[];
+  savedRecipesLoading: boolean;
+  isRecipeSaved: (recipe: Recipe) => boolean;
+  toggleSavedRecipe: (recipe: Recipe) => Promise<boolean>;
   currentScreen: FigmaScreen;
   selectedItem: FoodItem | null;
   selectedRecipe: Recipe | null;
@@ -180,6 +190,10 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   const [currentScreen, setCurrentScreen] = useState<FigmaScreen>("home");
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(initialInventory[0]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
+  const savedRecipesRef = useRef<Recipe[]>([]);
+  savedRecipesRef.current = savedRecipes;
+  const [savedRecipesLoading, setSavedRecipesLoading] = useState(false);
   const [user, setUser] = useState<UserProfile>(defaultUser);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   useEffect(() => {
@@ -194,6 +208,35 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshInventory(); });
     return () => { clearInterval(timer); listener.remove(); revision.current++; };
   }, [scope, demo, refreshInventory]);
+
+  useEffect(() => {
+    let active = true;
+    setSavedRecipes([]);
+    savedRecipesRef.current = [];
+
+    if (demo || !session?.user.id || !household?.id) {
+      setSavedRecipesLoading(false);
+      return () => { active = false; };
+    }
+
+    setSavedRecipesLoading(true);
+    void loadSavedRecipes(session.user.id, household.id)
+      .then((recipes) => {
+        if (!active || activeScope.current !== scope) return;
+        setSavedRecipes(recipes);
+        savedRecipesRef.current = recipes;
+      })
+      .catch(() => {
+        if (!active || activeScope.current !== scope) return;
+        setSavedRecipes([]);
+        savedRecipesRef.current = [];
+      })
+      .finally(() => {
+        if (active && activeScope.current === scope) setSavedRecipesLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [demo, scope, session?.user.id, household?.id]);
   const accountName = session?.user.user_metadata?.username || session?.user.user_metadata?.display_name || session?.user.email?.split('@')[0] || '';
   const accountUser = session ? {
     name: accountName, email: session.user.email || '',
@@ -280,6 +323,45 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     setCurrentScreen("recipes");
   };
 
+  const isRecipeSaved = useCallback((recipe: Recipe) => {
+    const key = recipeSaveKey(recipe);
+    return savedRecipes.some((saved) => recipeSaveKey(saved) === key);
+  }, [savedRecipes]);
+
+  const toggleSavedRecipe = useCallback(async (recipe: Recipe) => {
+    const key = recipeSaveKey(recipe);
+    const previous = savedRecipesRef.current;
+    const wasSaved = previous.some((saved) => recipeSaveKey(saved) === key);
+    const next = wasSaved
+      ? previous.filter((saved) => recipeSaveKey(saved) !== key)
+      : [recipe, ...previous.filter((saved) => recipeSaveKey(saved) !== key)].slice(0, 50);
+
+    setSavedRecipes(next);
+    savedRecipesRef.current = next;
+
+    if (demo) return !wasSaved;
+    if (!session?.user.id || !household?.id) {
+      setSavedRecipes(previous);
+      savedRecipesRef.current = previous;
+      throw new Error("Choose a household before saving recipes.");
+    }
+
+    try {
+      if (wasSaved) {
+        await removeSavedRecipe(session.user.id, household.id, recipe);
+      } else {
+        await saveRecipe(session.user.id, household.id, recipe);
+      }
+      return !wasSaved;
+    } catch (error) {
+      if (activeScope.current === scope) {
+        setSavedRecipes(previous);
+        savedRecipesRef.current = previous;
+      }
+      throw error;
+    }
+  }, [demo, household?.id, scope, session?.user.id]);
+
   const login = (email?: string) => {
     if (email) {
       setUser((prev) => ({
@@ -306,6 +388,10 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         inventoryLoading,
         inventoryError,
         recipes: dynamicRecipes,
+        savedRecipes,
+        savedRecipesLoading,
+        isRecipeSaved,
+        toggleSavedRecipe,
         currentScreen,
         selectedItem,
         selectedRecipe,
