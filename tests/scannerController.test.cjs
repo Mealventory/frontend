@@ -117,6 +117,9 @@ function createControllerHarness(initialMode = 'food') {
         };
       },
     },
+    '@/src/lib/scanHistory': {
+      recordScanFailure: async () => {},
+    },
   };
 
   const hookMod = new Module('useScannerCapture');
