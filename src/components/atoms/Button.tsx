@@ -81,6 +81,8 @@ export function Button({
   labelClassName = "",
   disabled,
   style,
+  accessibilityLabel,
+  accessibilityState,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -88,7 +90,12 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: Boolean(isDisabled), busy: loading }}
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityState={{
+        ...accessibilityState,
+        disabled: Boolean(isDisabled),
+        busy: loading,
+      }}
       disabled={isDisabled}
       style={state => [typeof style === "function" ? style(state) : style, { opacity: isDisabled ? 0.5 : state.pressed ? 0.8 : 1 }, ["primary", "danger", "social"].includes(variant) ? selectedShadow : noShadow]}
       className={`flex-row items-center justify-center ${sizeButtonStyles[size]} ${variantButtonStyles[variant]} ${className}`}

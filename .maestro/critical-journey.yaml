@@ -1,0 +1,88 @@
+appId: com.mealventory.app
+name: Critical pantry journey
+---
+- launchApp
+- assertVisible:
+    id: "e2e-mode-indicator"
+- assertVisible: "Welcome back"
+- assertVisible:
+    id: "e2e-email"
+- assertVisible:
+    id: "e2e-password"
+# Accessibility can expose the button while it is clipped below the viewport.
+- scrollUntilVisible:
+    element:
+      id: "e2e-sign-in"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "e2e-sign-in"
+
+- assertVisible: "Your household."
+- scrollUntilVisible:
+    element:
+      id: "e2e-enter-kitchen"
+    direction: DOWN
+- tapOn:
+    id: "e2e-enter-kitchen"
+- assertVisible: "My Kitchen"
+
+- tapOn:
+    id: "e2e-add-manual"
+- assertVisible: "Manual Entry"
+- assertVisible:
+    id: "e2e-item-name"
+- assertVisible:
+    id: "e2e-item-quantity"
+- scrollUntilVisible:
+    element:
+      id: "e2e-add-to-kitchen"
+    direction: DOWN
+- tapOn:
+    id: "e2e-add-to-kitchen"
+
+# Scroll to the item and target its full accessible card label.
+- scrollUntilVisible:
+    element:
+      text: "E2E Apples, .*Open item details"
+    direction: DOWN
+    centerElement: true
+- assertVisible: "E2E Apples, .*Open item details"
+- tapOn: "E2E Apples, .*Open item details"
+- assertVisible: "Item Detail"
+
+- tapOn:
+    id: "e2e-edit-item"
+- assertVisible: "Edit item"
+- assertVisible:
+    id: "e2e-edit-name"
+- scrollUntilVisible:
+    element:
+      id: "e2e-save-edit"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "e2e-save-edit"
+
+- assertVisible: "E2E Apples Edited"
+- tapOn:
+    id: "e2e-consume-item"
+- assertNotVisible: ".*E2E Apples Edited.*"
+# Returning from details preserves the pantry scroll position.
+- scrollUntilVisible:
+    element:
+      text: "My Kitchen"
+    direction: UP
+- assertVisible: "My Kitchen"
+
+- tapOn:
+    id: "tab-settings"
+- scrollUntilVisible:
+    element:
+      id: "e2e-log-out"
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Account & Session"
+- tapOn:
+    id: "e2e-log-out"
+- assertVisible: "Welcome back"

@@ -196,7 +196,7 @@ export function MemberDetailSheet({
               accessibilityRole="button"
               accessibilityLabel="Close sheet"
               onPress={onClose}
-              className="w-8 h-8 rounded-full bg-ground-subtle items-center justify-center absolute right-0"
+              className="w-11 h-11 rounded-full bg-ground-subtle items-center justify-center absolute right-0"
             >
               <Icon name="X" size={18} />
             </Pressable>

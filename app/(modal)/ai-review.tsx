@@ -1,5 +1,5 @@
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/src/context/AuthContext";
@@ -9,6 +9,7 @@ import { inventoryRequest, batchCreateInventoryItems, NewItem } from "@/src/lib/
 import { ScannedItem } from "@/src/lib/scanApi";
 import { resolveScanZone } from "@/src/lib/storageZones";
 import { StorageZone } from "@/src/types";
+import { isScannerMode, recordScanSuccess } from "@/src/lib/scanHistory";
 import {
   ReceiptReviewSheet,
   ReviewItemState,
@@ -31,6 +32,7 @@ export function parseRawScanItems(rawParam?: string, rawBarcode?: string): Revie
           expiry_date: item.expiry_date || "",
           storageZone: resolveScanZone(item.storageZone, item.category || "Pantry"),
           confidence: typeof item.confidence === "number" ? item.confidence : undefined,
+          imageRef: item.imageRef,
           confirmed: !(typeof item.confidence === "number" && item.confidence < 0.7),
           isEditing: !item.name || (typeof item.confidence === "number" && item.confidence < 0.7),
         }));
@@ -76,6 +78,7 @@ export async function saveReviewedItems(
         unit: item.unit.trim() || "units",
         expiry_date: normalizeExpiryDate(item.expiry_date),
         storage_zone: item.storageZone,
+        image_ref: item.imageRef ?? null,
       });
       savedIds.push(item.id);
     } catch (error) {
@@ -100,6 +103,7 @@ export async function batchSaveReviewedItems(
         name: item.name.trim(), category: item.category.trim() || "Pantry",
         quantity: item.quantity, unit: item.unit.trim() || "units",
         expiry_date: normalizeExpiryDate(item.expiry_date), storage_zone: item.storageZone,
+        image_ref: item.imageRef ?? null,
       };
     });
     await batchSave(payloads);
@@ -124,6 +128,7 @@ export default function AIReviewModal() {
     mode?: string;
     barcode?: string;
     barcodeType?: string;
+    historyReplay?: string;
   }>();
 
   // Parse items from scanner navigation route params
@@ -133,10 +138,51 @@ export default function AIReviewModal() {
   );
 
   const [items, setItems] = useState<ReviewItemState[]>(initialItems);
+  const historyRecorded = useRef(false);
   const savingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successCount, setSuccessCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (
+      historyRecorded.current ||
+      params.historyReplay === "1" ||
+      !session?.user.id ||
+      !household?.id ||
+      initialItems.length === 0
+    ) {
+      return;
+    }
+
+    historyRecorded.current = true;
+    const mode = isScannerMode(params.mode) ? params.mode : "food";
+    const historyItems: ScannedItem[] = initialItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
+      expiry_date: item.expiry_date || null,
+      confidence: item.confidence,
+      storageZone: item.storageZone,
+      imageRef: item.imageRef,
+    }));
+
+    void recordScanSuccess(
+      { userId: session.user.id, householdId: household.id },
+      mode,
+      historyItems,
+      params.barcode,
+    );
+  }, [
+    household?.id,
+    initialItems,
+    params.barcode,
+    params.historyReplay,
+    params.mode,
+    session?.user.id,
+  ]);
 
   const confirmedItems = items.filter((i) => i.confirmed);
 

@@ -14,6 +14,7 @@ import { MemberDetailSheet } from "@/src/components/domain/MemberDetailSheet";
 import { HouseholdInviteCard } from "@/src/components/domain/HouseholdInviteCard";
 import { useAuth } from "@/src/context/AuthContext";
 import { supabase } from "@/src/lib/supabase";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import {
   getHouseholdMembers,
   updateHouseholdMemberRole,
@@ -151,7 +152,7 @@ export default function HouseholdMembersScreen() {
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
       {/* Top Header */}
-      <View className="flex-row items-center justify-between px-5 py-3 border-b border-border-default bg-ground-canvas">
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border-default bg-ground-canvas">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Back"
@@ -190,12 +191,11 @@ export default function HouseholdMembersScreen() {
 
       <ScrollView
         keyboardShouldPersistTaps="handled"
+        style={{ width: "100%", maxWidth: 580, alignSelf: "center" }}
         contentContainerStyle={{
-          padding: 20,
+          paddingHorizontal: APP_GUTTER,
+          paddingTop: APP_PAGE_TOP,
           paddingBottom: 60,
-          width: "100%",
-          maxWidth: 580,
-          alignSelf: "center",
         }}
         refreshControl={
           <RefreshControl
@@ -216,7 +216,7 @@ export default function HouseholdMembersScreen() {
             <Typography variant="caption" className="text-urgency-fresh flex-1">
               {notice}
             </Typography>
-            <Pressable onPress={() => setNotice(null)}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Dismiss notice" onPress={() => setNotice(null)}>
               <Icon name="X" size={14} color="#059669" />
             </Pressable>
           </View>

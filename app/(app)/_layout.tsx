@@ -18,7 +18,12 @@ export default function AppGroupLayout() {
       <Stack.Screen name="inventory/[id]" />
       <Stack.Screen name="inventory/edit" />
       <Stack.Screen name="expiry-calendar" />
+      <Stack.Screen name="activity" />
+      <Stack.Screen name="meal-plan" />
+      <Stack.Screen name="scan-history/index" />
+      <Stack.Screen name="scan-history/[id]" />
       <Stack.Screen name="recipes/[id]" />
+      <Stack.Screen name="recipes/[id]/cook" />
       <Stack.Screen name="household/members" />
       <Stack.Screen name="household/storage-zones" />
     </Stack>

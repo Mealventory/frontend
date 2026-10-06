@@ -1,6 +1,8 @@
 import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
+import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
+import { E2E_EDITED_ITEM_NAME } from '@/src/lib/e2e';
 import React, { useRef, useState } from 'react';
 import { ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +10,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FormField, TagChipGroup } from '@/src/components/molecules';
 import { Button, Typography } from '@/src/components/atoms';
 import { useInventory } from '@/src/context/InventoryContext';
+import { useAuth } from '@/src/context/AuthContext';
+import { ItemPhotoField, type SelectedItemPhoto } from '@/src/components/molecules/ItemPhotoField';
+import { deleteItemPhoto, uploadItemPhoto } from '@/src/lib/itemPhotoStorage';
 import type { FoodItem, StorageZone } from '@/src/types';
 
 export default function EditInventoryItemScreen() {
@@ -25,7 +30,8 @@ export default function EditInventoryItemScreen() {
 function EditForm({ item }: { item: FoodItem }) {
   const router = useRouter();
   const { updateItem } = useInventory();
-  const [name, setName] = useState(item.name);
+  const { household, e2eMode } = useAuth();
+  const [name, setName] = useState(e2eMode ? E2E_EDITED_ITEM_NAME : item.name);
   const [quantity, setQuantity] = useState(item.quantity);
   const [category, setCategory] = useState(item.category);
   const [date, setDate] = useState(item.expiryDate || '');
@@ -33,30 +39,88 @@ function EditForm({ item }: { item: FoodItem }) {
   const [saving, setSaving] = useState(false);
   const lock = useRef(false);
   const [error, setError] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const liveQuantity = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
   const save = async () => {
     if (lock.current) return;
-    const amount = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    const amount = liveQuantity;
     let expiry: string | null;
     try { expiry = normalizeExpiryDate(date); } catch (e) { setError((e as Error).message); return; }
     if (!name.trim() || !category.trim()) { setError('Enter an item name and category.'); return; }
     if (!amount || !Number.isFinite(Number(amount[1])) || Number(amount[1]) <= 0) { setError('Enter a positive quantity, such as 2 tubs or 500 g.'); return; }
     lock.current = true; setSaving(true); setError('');
+    let uploadedRef: string | null = null;
     try {
-      await updateItem(item.id, { name: name.trim(), category: category.trim(), quantity: Number(amount[1]), unit: amount[2] || 'units', expiry_date: expiry || null, storage_zone: zone });
+      if (selectedPhoto) {
+        if (!household?.id) throw new Error('Choose a household before adding a photo.');
+        uploadedRef = await uploadItemPhoto(
+          household.id,
+          selectedPhoto.base64,
+          selectedPhoto.mimeType,
+        );
+      }
+
+      await updateItem(item.id, {
+        name: name.trim(),
+        category: category.trim(),
+        quantity: Number(amount[1]),
+        unit: amount[2] || 'units',
+        expiry_date: expiry || null,
+        storage_zone: zone,
+        ...(selectedPhoto
+          ? { image_ref: uploadedRef }
+          : removePhoto
+          ? { image_ref: null }
+          : {}),
+      });
+
+      if ((selectedPhoto || removePhoto) && item.imageRef) {
+        void deleteItemPhoto(item.imageRef).catch(() => {});
+      }
       router.back();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save changes.'); }
+    } catch (e) {
+      if (uploadedRef) {
+        await deleteItemPhoto(uploadedRef).catch(() => {});
+      }
+      setError(e instanceof Error ? e.message : 'Could not save changes.');
+    }
     finally { lock.current = false; setSaving(false); }
   };
   return <SafeAreaView className="flex-1 bg-ground-canvas">
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 48, width: '100%', maxWidth: 560, alignSelf: 'center' }}>
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      style={{ width: '100%', maxWidth: 560, alignSelf: 'center' }}
+      contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 48 }}
+    >
       <View className="flex-row items-center mb-6">
         <Button label="Cancel" variant="ghost" disabled={saving} onPress={() => router.back()} />
         <Typography variant="h3" className="flex-1 text-center">Edit item</Typography>
         <View style={{ width: 80 }} />
       </View>
       <View className="gap-5">
-        <FormField label="Item Name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
-        <FormField label="Quantity / Size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
+        <ItemPhotoField
+          existingRef={item.imageRef}
+          selected={selectedPhoto}
+          removed={removePhoto}
+          fallbackEmoji={item.emoji}
+          disabled={saving}
+          onChange={(photo) => {
+            setSelectedPhoto(photo);
+            setRemovePhoto(false);
+            setError('');
+          }}
+          onRemove={() => {
+            setSelectedPhoto(null);
+            setRemovePhoto(true);
+          }}
+          onError={setError}
+        />
+        <FormField testID="e2e-edit-name" label="Item Name" value={name} onChangeText={setName} editable={!saving} maxLength={200} />
+        <FormField testID="e2e-edit-quantity" label="Quantity / Size" value={quantity} onChangeText={setQuantity} editable={!saving} placeholder="e.g. 2 tubs or 500 g" />
+        <Typography variant="caption" color="muted">
+          Low-stock tracking is automatic. Mealventory remembers the amount you originally added and warns at 10% remaining.
+        </Typography>
         <FormField label="Category" value={category} onChangeText={setCategory} editable={!saving} maxLength={80} />
         <ExpiryPrediction name={name} zone={zone} value={date} onApply={setDate} itemId={item.id} disabled={saving} />
         <ExpiryDateField value={date} onChangeText={setDate} editable={!saving} />
@@ -70,7 +134,7 @@ function EditForm({ item }: { item: FoodItem }) {
           />
         </View>
         {!!error && <Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>}
-        <Button label={saving ? 'Saving…' : 'Save changes'} disabled={saving} onPress={save} />
+        <Button testID="e2e-save-edit" label={saving ? 'Saving…' : 'Save changes'} disabled={saving} onPress={save} />
       </View>
     </ScrollView>
   </SafeAreaView>;

@@ -8,7 +8,15 @@ function load(file, mocks = {}) {
   const mod = new Module(file, module);
   mod.paths = module.paths;
   const original = mod.require.bind(mod);
-  mod.require = (name) => (name in mocks ? mocks[name] : original(name));
+  mod.require = (name) => (
+    name === "@/src/context/NotificationContext"
+      ? { NotificationProvider: "NotificationProvider" }
+      : name === "@/src/lib/e2e"
+        ? { E2E_ENABLED: false }
+        : name in mocks
+          ? mocks[name]
+          : original(name)
+  );
   mod._compile(
     ts.transpileModule(fs.readFileSync(file, 'utf8'), {
       compilerOptions: {
@@ -93,6 +101,19 @@ test('app/_layout.tsx coordinates splash screen with auth hydration to prevent s
       Stack: Object.assign(() => ({ type: 'Stack' }), { Screen: () => null }),
     },
     'expo-status-bar': { StatusBar: () => null },
+    '@tanstack/react-query': {
+      useIsRestoring: () => false,
+    },
+    '@tanstack/react-query-persist-client': {
+      PersistQueryClientProvider: ({ children }) => children,
+    },
+    '@/src/lib/queryClient': {
+      QUERY_CACHE_BUSTER: 'test-cache',
+      QUERY_CACHE_MAX_AGE: 0,
+      queryClient: {},
+      queryPersister: {},
+      shouldPersistQuery: () => true,
+    },
     '@expo-google-fonts/inter': {
       useFonts: () => [true, null],
       Inter_400Regular: {},

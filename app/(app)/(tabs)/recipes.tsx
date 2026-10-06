@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useState, useEffect, useRef } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -10,14 +11,15 @@ import { useAuth } from "@/src/context/AuthContext";
 import { generateRecipes } from "@/src/lib/recipeApi";
 import { batchCreateInventoryItems } from "@/src/lib/inventoryApi";
 import { missingDevTestPantryItems } from "@/src/lib/devTestData";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import type { Recipe } from "@/src/types";
 
 type RecipeView = "recommended" | "saved";
 
 const TEST_RECIPE: Recipe = {
   id: "dev-creamy-chicken-pasta",
-  name: "Creamy Chicken Pasta",
-  time: "30 min",
+  name: "Cooking Mode Test Pasta",
+  time: "1 min",
   difficulty: "Easy",
   match: 0,
   uses: [
@@ -28,17 +30,18 @@ const TEST_RECIPE: Recipe = {
     "Garlic",
   ],
   emoji: "🍝",
-  tag: "Test recipe",
+  tag: "Cooking test",
   description:
-    "A simple creamy chicken pasta used to test saved recipes, pantry matching, and shopping-list integration.",
+    "A dev-only recipe with short steps and timers so every Cooking Mode interaction can be tested quickly.",
   priorityIngredients: ["Chicken Breast"],
   missingIngredients: ["Garlic"],
   steps: [
-    "Cook the penne until al dente and reserve a little pasta water.",
-    "Cook the chicken in a skillet until fully cooked, then slice it.",
-    "Add garlic, milk, and cheddar to the skillet and stir into a creamy sauce.",
-    "Add the pasta and chicken, toss together, and loosen with pasta water if needed.",
-    "Season to taste and serve warm.",
+    "Gather the ingredients and get ready to test Cooking Mode.",
+    "Warm the skillet for 5 seconds.",
+    "Stir the sauce for 10 seconds.",
+    "Add the pasta and chicken, then toss until evenly coated.",
+    "Let the pasta rest for 5 seconds before serving.",
+    "Plate the pasta and finish the meal.",
   ],
 };
 
@@ -49,6 +52,7 @@ export default function RecipesTabScreen() {
     openRecipe,
     savedRecipes,
     savedRecipesLoading,
+    savedRecipesError, refreshSavedRecipes, shareLocalRecipes,
     isRecipeSaved,
     toggleSavedRecipe,
     refreshInventory,
@@ -172,8 +176,23 @@ export default function RecipesTabScreen() {
       edges={["top", "left", "right"]}
       className="flex-1 bg-ground-canvas"
     >
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <Typography variant="h1">Recipes</Typography>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}>
+        <View style={{ marginBottom: 16 }}><BrandLogo /></View>
+        {view === 'saved' && <View className="mb-4 gap-2">
+          <Typography variant="caption" color="muted">Saved recipes are shared with everyone in this household.</Typography>
+          <Button label="Share recipes saved on this phone" variant="secondary" onPress={() => { setSaveError(''); void shareLocalRecipes().catch(e => setSaveError(e instanceof Error ? e.message : 'Could not share recipes.')); }} />
+        </View>}
+
+        <View className="flex-row items-center justify-between gap-3">
+          <Typography variant="h1">Recipes</Typography>
+          <Button
+            label="Meal Plan"
+            variant="outline"
+            size="sm"
+            leadingIcon={<Icon name="CalendarDays" size={15} />}
+            onPress={() => router.push("/(app)/meal-plan" as any)}
+          />
+        </View>
 
         <View className="flex-row mt-4 mb-5 p-1 rounded-xl bg-ground-subtle dark:bg-ground-elevated">
           {(["recommended", "saved"] as RecipeView[]).map((tab) => {
@@ -240,7 +259,7 @@ export default function RecipesTabScreen() {
               {__DEV__ && (
                 <View className="gap-2 mt-3">
                   <Button
-                    label="Load test recipe"
+                    label="Load cooking-mode test recipe"
                     variant="secondary"
                     onPress={() => {
                       setError("");
@@ -300,6 +319,8 @@ export default function RecipesTabScreen() {
               ))}
             </View>
           </>
+        ) : savedRecipesError ? (
+          <EmptyState icon="WifiOff" title="Could not sync saved recipes" description={savedRecipesError} actionLabel="Retry" onAction={() => void refreshSavedRecipes()} />
         ) : savedRecipesLoading ? (
           <View className="items-center py-16 gap-3">
             <ActivityIndicator size="large" color="#10B981" />
@@ -321,7 +342,7 @@ export default function RecipesTabScreen() {
               <View className="flex-row items-center gap-2">
                 <Icon name="Heart" size={18} color="#10B981" />
                 <Typography variant="body" className="font-bold">
-                  Your saved collection
+                  Household saved collection
                 </Typography>
               </View>
               <Typography variant="caption" color="muted" className="mt-1">

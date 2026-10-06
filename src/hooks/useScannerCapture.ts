@@ -42,6 +42,21 @@ export const BARCODE_TYPES = [
 
 export const MODES = SCANNER_MODES;
 
+let recordScanFailureFn:
+  | ((
+      scope: { userId: string; householdId: string },
+      mode: ScannerMode,
+      error: string
+    ) => Promise<void>)
+  | undefined;
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  recordScanFailureFn = require("@/src/lib/scanHistory").recordScanFailure;
+} catch {
+  // Optional in environments or tests where scanHistory is not provided
+}
+
 export interface UseScannerCaptureOptions {
   initialMode?: ScannerMode;
 }
@@ -64,6 +79,20 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isProcessingBarcode = useRef(false);
+
+  const showScanFailure = useCallback(
+    (message: string) => {
+      setErrorMessage(message);
+      if (session?.user?.id && household?.id && recordScanFailureFn) {
+        void recordScanFailureFn(
+          { userId: session.user.id, householdId: household.id },
+          mode,
+          message
+        );
+      }
+    },
+    [session?.user?.id, household?.id, mode]
+  );
 
   useLayoutEffect(() => {
     scanGeneration.current++;
@@ -293,7 +322,7 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
       } else {
         msg = rawMsg || `${elementName} could not be detected. Please adjust camera framing and retry.`;
       }
-      setErrorMessage(msg);
+      showScanFailure(msg);
     } finally {
       if (activeRef.current && generation === scanGeneration.current) {
         captureLock.current = false;
@@ -342,7 +371,7 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
           : mode === "tag"
           ? "Tag"
           : "Item";
-      setErrorMessage(`${elementName} could not be detected. Please adjust camera framing and retry.`);
+      showScanFailure(`${elementName} could not be detected. Please adjust camera framing and retry.`);
     }
   };
 
@@ -380,7 +409,7 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
     captureLock.current = false;
     if (!imageUri) {
       setScanning(false);
-      setErrorMessage("Unable to capture camera frame. Please try again.");
+      showScanFailure("Unable to capture camera frame. Please try again.");
       return;
     }
 
@@ -424,6 +453,7 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
     toggleFlash,
     errorMessage,
     setErrorMessage,
+    showScanFailure,
     activeModeConfig,
     modes: SCANNER_MODES,
     barcodeTypes: BARCODE_TYPES,

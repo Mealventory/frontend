@@ -2,6 +2,12 @@
 
 Real sign-in, household creation/joining, invite codes and members are available on the home route. Follow [the live household guide](docs/live-households.md) to connect your backend and run in Expo Go. The rest of this document describes the target product.
 
+## Production source layout
+
+Expo Router under `app/` is the authoritative navigation and screen implementation for Mealventory. Shared production components, contexts, types, and API helpers live under `src/`.
+
+The old Figma/Vite web prototype and duplicate `src/screens/` implementations have been removed from production source. There is no separate legacy screen tree to edit or keep in sync.
+
 # Mealventory Mobile Client: Target Final State & Purpose
 
 ## 1. Purpose of the Repository
@@ -60,8 +66,8 @@ The application adheres to an **Executive Consumer-Grade Aesthetic**—blending 
 - **Navigation**: Expo Router v57 (Strict TypeScript file-based routing with route groups `(auth)`, `(onboarding)`, `(app)`, `(modal)`).
 - **Styling**: NativeWind v4 (Tailwind CSS engine with application-wide CSS variables in `global.css`).
 - **State Management**:
-  - **Server Cache State**: TanStack React Query v5 with `persistQueryClient` and `createSyncStoragePersister`.
-  - **Local Persistence Storage**: `react-native-mmkv` (synchronous, C++ backed, sub-millisecond I/O).
+  - **Server Cache State**: TanStack React Query v5 with `PersistQueryClientProvider` and the current async-storage persister adapter.
+  - **Local Persistence Storage**: `react-native-mmkv` v4 (synchronous, C++ backed) in development/release builds; Expo Go falls back to memory-only caching.
   - **Ephemeral Client State**: Zustand (active filter toggles, camera flash, scanner draft state).
 - **Network Layer**: OpenAPI-generated TypeScript client (`openapi-fetch`) synced to FastAPI backend `/openapi.json`.
 - **Sensors & Hardware**: `expo-camera`, `expo-haptics`, `expo-notifications`, `react-native-svg`.
@@ -138,3 +144,24 @@ npm run start:tunnel
      npm start -- -c
      ```
 
+
+
+## Offline inventory cache
+
+Successful household inventory is persisted for up to seven days and restored before the app UI mounts. Cache keys include both user and household identity, and a failed background refresh does not replace a valid cached pantry with a connection error.
+
+Expo Go remains usable with an in-memory fallback, but persistent cold-start offline behavior requires a native development or release build because MMKV is a Nitro module.
+
+See [Offline inventory cache](docs/offline-cache.md) for architecture, setup, and the airplane-mode verification flow.
+
+## Mobile end-to-end smoke tests
+
+Critical mobile journeys are covered with Maestro using an isolated in-memory test mode. The suite does not require production credentials or production data.
+
+See [Mobile E2E smoke tests](docs/e2e-mobile.md) for simulator/emulator setup, fixture credentials, and scanner test behavior.
+
+Run the suite with:
+
+```bash
+npm run test:e2e
+```

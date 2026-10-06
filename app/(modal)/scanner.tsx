@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { CameraView } from "expo-camera";
 import { Typography, Icon, Button } from "@/src/components/atoms";
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { BarcodeScannerFrame, CameraOverlayControls } from "@/src/components/molecules";
 import {
   useScannerCapture,
@@ -20,7 +21,7 @@ import {
 } from "@/src/hooks/useScannerCapture";
 
 // Supported modes configuration:
-// - Item: id: "food"
+// - Product: id: "food"
 // - Tag: id: "tag"
 // - Receipt: id: "receipt"
 // - Barcode: id: "barcode"
@@ -69,16 +70,18 @@ export default function FullscreenScannerModal() {
       <SafeAreaView className="flex-1 bg-black justify-between p-6">
         <View className="flex-row items-center justify-between pt-2">
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Close scanner"
             activeOpacity={0.7}
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-2xl bg-white/10 items-center justify-center border border-white/10"
+            className="w-11 h-11 rounded-2xl bg-white/10 items-center justify-center border border-white/10"
           >
             <Icon name="X" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <Typography variant="h3" className="text-white font-bold">
             Camera Permission
           </Typography>
-          <View className="w-10" />
+          <View className="w-11" />
         </View>
 
         <View className="items-center px-4">
@@ -89,7 +92,7 @@ export default function FullscreenScannerModal() {
             Camera Access Required
           </Typography>
           <Typography variant="body" className="text-white/70 text-center mb-6 leading-6">
-            Mealventory needs camera access to scan barcodes for instant item lookup, read receipts, and detect food items with AI Vision.
+            Mealventory needs camera access to scan barcodes for instant product lookup, read receipts, and detect produce with AI Vision.
           </Typography>
           <Button
             label="Grant Camera Permission"
@@ -159,14 +162,17 @@ export default function FullscreenScannerModal() {
         {/* Top Header */}
         <View className="flex-row items-center justify-between px-5 pt-3">
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Close scanner"
             activeOpacity={0.7}
             onPress={() => router.back()}
-            className="w-10 h-10 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
+            className="w-11 h-11 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
           >
             <Icon name="X" size={20} color="#FFFFFF" />
           </TouchableOpacity>
 
           <View className="items-center">
+            <BrandLogo width={112} />
             <Typography variant="h3" className="text-white font-bold">
               AI Scanner
             </Typography>
@@ -176,11 +182,13 @@ export default function FullscreenScannerModal() {
           </View>
 
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ disabled: scanning, busy: scanning }}
             activeOpacity={0.7}
             disabled={scanning}
             onPress={handlePickImage}
             accessibilityLabel="Choose photo from gallery"
-            className="w-10 h-10 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
+            className="w-11 h-11 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
           >
             <Icon name="Image" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -199,7 +207,11 @@ export default function FullscreenScannerModal() {
         <View className="px-5 pb-4">
           {/* Error Notice Banner */}
           {errorMessage && (
-            <View className="mb-4 p-3.5 rounded-2xl bg-danger-500/95 border border-danger-400 flex-row items-center justify-between shadow-lg">
+            <View
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+              className="mb-4 p-3.5 rounded-2xl bg-danger-500/95 border border-danger-400 flex-row items-center justify-between shadow-lg"
+            >
               <View className="flex-row items-center flex-1 mr-2">
                 <Icon name="AlertCircle" size={18} color="#FFFFFF" />
                 <Text className="text-white text-[13px] font-medium ml-2 flex-1">
@@ -207,6 +219,9 @@ export default function FullscreenScannerModal() {
                 </Text>
               </View>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss scan error"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 onPress={() => setErrorMessage(null)}
                 className="p-1"
               >
@@ -216,19 +231,19 @@ export default function FullscreenScannerModal() {
           )}
 
           {/* Mode Switcher Segmented Control */}
-          <View className="w-full max-w-[360px] self-center flex-row items-center justify-between mb-4 bg-black/60 p-1 rounded-full border border-white/20">
+          <View className="w-full max-w-[340px] self-center flex-row items-center justify-between mb-4 bg-black/60 p-1 rounded-full border border-white/20">
             {modes.map((m) => {
               const isSelected = mode === m.id;
-              const displayLabel = m.label
-                ? m.label.charAt(0).toUpperCase() + m.label.slice(1)
-                : m.id.charAt(0).toUpperCase() + m.id.slice(1);
               return (
                 <TouchableOpacity
                   key={`${m.id}-${m.label}`}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${m.label} scan mode`}
+                  accessibilityState={{ checked: isSelected, disabled: scanning }}
                   activeOpacity={0.75}
                   disabled={scanning}
                   onPress={() => selectMode(m.id)}
-                  className={`flex-1 flex-row items-center justify-center py-2 px-1.5 rounded-full ${
+                  className={`flex-1 min-h-[44px] flex-row items-center justify-center py-2 px-2 rounded-full ${
                     isSelected ? "bg-brand-500" : "bg-transparent"
                   }`}
                 >
@@ -239,11 +254,11 @@ export default function FullscreenScannerModal() {
                   />
                   <Text
                     numberOfLines={1}
-                    className={`ml-1 text-[12px] font-semibold ${
+                    className={`ml-1.5 text-[12.5px] font-semibold ${
                       isSelected ? "text-white" : "text-white/70"
                     }`}
                   >
-                    {displayLabel}
+                    {m.label}
                   </Text>
                 </TouchableOpacity>
               );

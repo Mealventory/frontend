@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -6,6 +7,7 @@ import { Typography } from "../atoms/Typography";
 import { Button } from "../atoms/Button";
 import { Badge } from "../atoms/Badge";
 import { Icon, IconName } from "../atoms/Icon";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 
 export interface RoutePlaceholderProps {
   title: string;
@@ -30,7 +32,11 @@ export function RoutePlaceholder({
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 40, width: "100%", maxWidth: 560, alignSelf: "center" }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        style={{ width: "100%", maxWidth: 560, alignSelf: "center" }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}
+      >
         {/* Header navigation */}
         <View className="flex-row items-center justify-between mb-6">
           <Button
@@ -48,6 +54,8 @@ export function RoutePlaceholder({
           />
           <Badge label={category} variant="brand" size="sm" />
         </View>
+
+        <View style={{ alignItems: "center", marginBottom: 20 }}><BrandLogo width={category === "Auth" || category === "Onboarding" ? 180 : 132} hero={category === "Auth" || category === "Onboarding"} /></View>
 
         {/* Hero Info */}
         <View className="items-center p-7 bg-ground-card rounded-[28px] border border-border-default shadow-sm mb-6">

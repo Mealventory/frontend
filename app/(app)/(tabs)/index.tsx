@@ -1,7 +1,8 @@
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, FlatList, ScrollView, TextInput, TouchableOpacity, RefreshControl, AppState, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Typography, Button } from '@/src/components/atoms';
 import { Icon } from '@/src/components/atoms/Icon';
 import { PantryItemCard } from '@/src/components/domain/PantryItemCard';
@@ -10,6 +11,7 @@ import { EmptyState } from '@/src/components/molecules/EmptyState';
 import { useInventory } from '@/src/context/InventoryContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { localDay, pantryView, ExpiryGroup } from '@/src/lib/pantryExpiry';
+import { APP_GUTTER } from '@/src/lib/layout';
 
 const categories = ['All', 'Produce', 'Dairy', 'Meat', 'Bakery', 'Pantry', 'Beverage', 'Snacks'];
 const zones: Record<string,string> = { 'All zones':'all', Fridge:'fridge', Freezer:'freezer', Pantry:'pantry', Spices:'spicerack' };
@@ -20,10 +22,15 @@ const buckets = [
 ];
 export default function PantryDashboardScreen() {
   const router = useRouter();
+  const routeParams = useLocalSearchParams<{ zone?: string | string[] }>();
+  const routeZone = Array.isArray(routeParams.zone) ? routeParams.zone[0] : routeParams.zone;
+  const requestedZone = routeZone
+    ? Object.keys(zones).find((label) => zones[label] === routeZone)
+    : undefined;
   const { household, session } = useAuth();
   const { inventory, openItem, refreshInventory, inventoryLoading, inventoryError } = useInventory();
   const [selectedCat,setSelectedCat] = useState('All');
-  const [zone,setZone] = useState('All zones');
+  const [zone,setZone] = useState(requestedZone ?? 'All zones');
   const [group,setGroup] = useState<ExpiryGroup>('all');
   const [filterOpen,setFilterOpen] = useState(false);
   const [search,setSearch] = useState('');
@@ -37,14 +44,38 @@ export default function PantryDashboardScreen() {
     return()=>{clearInterval(timer);listener.remove();};
   },[]);
   const clear=()=>{setSearch('');setQuery('');setSelectedCat('All');setZone('All zones');setGroup('all');setFilterOpen(false);};
-  useEffect(clear,[household?.id,session?.user.id]);
+  useEffect(()=>{
+    setSearch('');
+    setQuery('');
+    setSelectedCat('All');
+    setZone(requestedZone ?? 'All zones');
+    setGroup('all');
+    setFilterOpen(false);
+  },[household?.id,session?.user.id,requestedZone]);
   const activeFilterCount=(zone==='All zones'?0:1)+(selectedCat==='All'?0:1);
   const view=useMemo(()=>pantryView(inventory,today,zones[zone],selectedCat,query,group),[inventory,today,zone,selectedCat,query,group]);
   const header=<View className="gap-3 pb-4">
+    <BrandLogo />
     <View className="flex-row items-center justify-between gap-3 pt-3">
       <View className="flex-1"><Typography variant="h1">My Kitchen</Typography>
         <Typography variant="caption" color="muted">{inventory.length} items in your household</Typography></View>
       <View className="flex-row items-center gap-2">
+        <TouchableOpacity
+          onPress={()=>router.push('/(app)/activity' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Open household activity"
+          className="w-11 h-11 items-center justify-center rounded-xl border bg-ground-surface border-border-default"
+        >
+          <Icon name="History" size={21} color="#64748B" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={()=>router.push('/(app)/expiry-calendar' as any)}
+          accessibilityRole="button"
+          accessibilityLabel="Open expiry calendar"
+          className="w-11 h-11 items-center justify-center rounded-xl border bg-ground-surface border-border-default"
+        >
+          <Icon name="CalendarDays" size={21} color="#64748B" />
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={()=>setFilterOpen(true)}
           accessibilityRole="button"
@@ -56,7 +87,7 @@ export default function PantryDashboardScreen() {
             <Typography variant="tiny" className="text-white font-bold">{activeFilterCount}</Typography>
           </View>}
         </TouchableOpacity>
-        <TouchableOpacity onPress={()=>router.push('/(modal)/manual-add' as any)} accessibilityRole="button" accessibilityLabel="Add food item manually" className="w-11 h-11 items-center justify-center bg-brand-500 rounded-xl">
+        <TouchableOpacity testID="e2e-add-manual" onPress={()=>router.push('/(modal)/manual-add' as any)} accessibilityRole="button" accessibilityLabel="Add food item manually" className="w-11 h-11 items-center justify-center bg-brand-500 rounded-xl">
           <Icon name="Plus" size={22} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -75,9 +106,7 @@ export default function PantryDashboardScreen() {
           <Typography variant="caption" color="muted">{bucket.hint}</Typography>
         </TouchableOpacity>)}
       </ScrollView>
-      <Button label="Open expiry calendar" variant="outline" onPress={()=>router.push('/(app)/expiry-calendar' as any)} />
       {group!=='all'&&<Button label="Show all expiry dates" variant="ghost" onPress={()=>setGroup('all')} />}
-      {view.counts.today+view.counts.soon>0&&<Button label="Find recipes for expiring food" variant="secondary" onPress={()=>router.push('/(app)/(tabs)/recipes' as any)} />}
       <Typography variant="caption" color="muted">{view.items.length} items · Nearest expiry first · Undated items last</Typography>
     </View>}
     {!!inventoryError&&<EmptyState icon="WifiOff" title="A little connection hiccup" description={inventoryError} actionLabel="Try again" onAction={()=>void refreshInventory()} />}
@@ -87,7 +116,7 @@ export default function PantryDashboardScreen() {
       renderItem={({item})=><PantryItemCard key={`${session?.user.id}:${household?.id}:${item.id}`} item={item} today={today} onPress={selected=>{openItem(selected);router.push(`/(app)/inventory/${selected.id}` as any);}} />}
       ItemSeparatorComponent={()=><View className="h-2.5" />}
       refreshControl={<RefreshControl refreshing={inventoryLoading} onRefresh={()=>void refreshInventory()} />}
-      keyboardShouldPersistTaps="handled" contentContainerStyle={{paddingHorizontal:20,paddingBottom:28}} showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingBottom: 32 }} showsVerticalScrollIndicator={false}
       ListEmptyComponent={inventoryError?null:inventoryLoading?<ActivityIndicator accessibilityLabel="Loading pantry" color="#10B981" />:inventory.length===0?
         <EmptyState icon="Refrigerator" title="A fresh start for your kitchen" description="Add a few ingredients and let’s see what’s cooking." actionLabel="Scan your first item" onAction={()=>router.push('/(app)/(tabs)/scan' as any)} secondaryLabel="Add food manually" onSecondary={()=>router.push('/(modal)/manual-add' as any)} />:
         <EmptyState icon="Search" title={group==='all'?'Nothing on this shelf':'Nothing in this expiry group'} description="Try another shelf, ingredient or expiry group." actionLabel="Clear filters" onAction={clear} />}

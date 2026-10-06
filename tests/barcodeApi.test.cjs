@@ -43,6 +43,7 @@ test('fetchProductByBarcode resolves product name, brand, category, and storageZ
           product_name: 'Greek Whole Milk Yogurt',
           brands: 'Chobani',
           categories_tags: ['en:dairies', 'en:fermented-foods', 'en:yogurts'],
+          image_front_url: 'http://images.openfoodfacts.org/yogurt.jpg',
         },
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
@@ -56,6 +57,7 @@ test('fetchProductByBarcode resolves product name, brand, category, and storageZ
   assert.equal(item.quantity, 1);
   assert.equal(item.unit, 'units');
   assert.equal(item.confidence, 0.95);
+  assert.equal(item.imageRef, 'https://images.openfoodfacts.org/yogurt.jpg');
 });
 
 test('fetchProductByBarcode returns fallback item when product is not found', async () => {

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Recipe } from "@/src/types";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import { Icon } from "../atoms/Icon";
 
 export interface RecipeDetailViewProps {
@@ -9,6 +10,8 @@ export interface RecipeDetailViewProps {
   onBack: () => void;
   saved?: boolean;
   onToggleSaved?: () => void | Promise<void>;
+  onStartCooking?: () => void;
+  onPlanMeal?: () => void;
   onAddMissingIngredients?: (
     ingredients: string[]
   ) => Promise<{ added: number; skipped: number }>;
@@ -20,6 +23,8 @@ export function RecipeDetailView({
   onBack,
   saved = false,
   onToggleSaved,
+  onStartCooking,
+  onPlanMeal,
   onAddMissingIngredients,
 }: RecipeDetailViewProps) {
   const [shoppingBusy, setShoppingBusy] = useState(false);
@@ -68,7 +73,7 @@ export function RecipeDetailView({
 
   return (
     <ScrollView
-      contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+      contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 100 }}
       showsVerticalScrollIndicator={false}
       className="flex-1"
     >
@@ -78,7 +83,7 @@ export function RecipeDetailView({
           accessibilityRole="button"
           accessibilityLabel="Back to recipes"
           onPress={onBack}
-          className="w-10 h-10 rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
+          className="w-11 h-11 rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
         >
           <Icon name="ArrowLeft" size={18} />
         </TouchableOpacity>
@@ -90,9 +95,9 @@ export function RecipeDetailView({
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityState={{ selected: saved }}
-            accessibilityLabel={saved ? "Remove from saved recipes" : "Save recipe"}
+            accessibilityLabel={saved ? "Remove from household saved recipes" : "Save recipe for household"}
             onPress={() => void onToggleSaved()}
-            className={`w-10 h-10 rounded-[14px] border items-center justify-center ${
+            className={`w-11 h-11 rounded-[14px] border items-center justify-center ${
               saved
                 ? "bg-brand-500 border-brand-500"
                 : "bg-ground-subtle dark:bg-ground-elevated border-border-default"
@@ -146,6 +151,35 @@ export function RecipeDetailView({
           Use soon: {recipe.priorityIngredients.join(", ")}
         </Text>
       ) : null}
+
+      {(onStartCooking || onPlanMeal) && (
+        <View className="gap-2 mb-6">
+          {onStartCooking && (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={`Start cooking ${recipe.name}`}
+              onPress={onStartCooking}
+              className="min-h-[56px] px-5 rounded-2xl bg-brand-500 flex-row items-center justify-center gap-2"
+            >
+              <Icon name="ChefHat" size={19} color="#FFFFFF" />
+              <Text className="text-[16px] font-bold text-white">Start Cooking</Text>
+            </TouchableOpacity>
+          )}
+          {onPlanMeal && (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={`Plan ${recipe.name}`}
+              onPress={onPlanMeal}
+              className="min-h-[50px] px-5 rounded-2xl border border-border-default bg-ground-surface dark:bg-ground-card flex-row items-center justify-center gap-2"
+            >
+              <Icon name="CalendarPlus" size={18} color="#10B981" />
+              <Text className="text-[15px] font-bold text-text-primary">Add to Meal Plan</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       <View className="mb-6">
         <View className="flex-row items-end justify-between gap-3 mb-3">

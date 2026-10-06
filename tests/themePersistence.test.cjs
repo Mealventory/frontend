@@ -8,7 +8,15 @@ function load(file, mocks = {}) {
   const mod = new Module(file, module);
   mod.paths = module.paths;
   const original = mod.require.bind(mod);
-  mod.require = (name) => (name in mocks ? mocks[name] : original(name));
+  mod.require = (name) => (
+    name === "@/src/context/NotificationContext"
+      ? { NotificationProvider: "NotificationProvider" }
+      : name === "@/src/lib/e2e"
+        ? { E2E_ENABLED: false }
+        : name in mocks
+          ? mocks[name]
+          : original(name)
+  );
   mod._compile(
     ts.transpileModule(fs.readFileSync(file, 'utf8'), {
       compilerOptions: {
@@ -155,7 +163,7 @@ test('ThemeContext exposes distinction between system, light, and dark preferenc
   assert.ok(source.includes('ThemePreference = "system" | "light" | "dark"'));
   assert.ok(source.includes('themePreference: ThemePreference'));
   assert.ok(source.includes('setThemePreference: (pref: ThemePreference)'));
-  assert.ok(source.includes('Appearance.addChangeListener'));
+  assert.ok(source.includes('colorScheme: nativeScheme'));
 });
 
 test('app/_layout.tsx waits for theme hydration before revealing UI and hiding splash screen', () => {
@@ -180,6 +188,19 @@ test('app/_layout.tsx waits for theme hydration before revealing UI and hiding s
       Stack: Object.assign(() => ({ type: 'Stack' }), { Screen: () => null }),
     },
     'expo-status-bar': { StatusBar: () => null },
+    '@tanstack/react-query': {
+      useIsRestoring: () => false,
+    },
+    '@tanstack/react-query-persist-client': {
+      PersistQueryClientProvider: ({ children }) => children,
+    },
+    '@/src/lib/queryClient': {
+      QUERY_CACHE_BUSTER: 'test-cache',
+      QUERY_CACHE_MAX_AGE: 0,
+      queryClient: {},
+      queryPersister: {},
+      shouldPersistQuery: () => true,
+    },
     '@expo-google-fonts/inter': {
       useFonts: () => [true, null],
       Inter_400Regular: {},
@@ -217,26 +238,34 @@ test('app/_layout.tsx waits for theme hydration before revealing UI and hiding s
   assert.equal(splashHidden, true, 'Splash screen hides once theme is restored');
 });
 
-test('Settings screen offers System, Light, and Dark appearance selector', () => {
-  const settingsTabSource = fs.readFileSync('app/(app)/(tabs)/settings.tsx', 'utf8');
-  assert.ok(settingsTabSource.includes('themePreference'));
-  assert.ok(settingsTabSource.includes('setThemePreference'));
-  assert.ok(settingsTabSource.includes('"system"'));
-  assert.ok(settingsTabSource.includes('"light"'));
-  assert.ok(settingsTabSource.includes('"dark"'));
-
-  const settingsScreenSource = fs.readFileSync('src/screens/SettingsScreen.tsx', 'utf8');
-  assert.ok(settingsScreenSource.includes('themePreference'));
-  assert.ok(settingsScreenSource.includes('setThemePreference'));
-  assert.ok(settingsScreenSource.includes('"system"'));
-  assert.ok(settingsScreenSource.includes('"light"'));
-  assert.ok(settingsScreenSource.includes('"dark"'));
+test('production settings screen uses the shared native appearance selector', () => {
+  const settings = fs.readFileSync('app/(app)/(tabs)/settings.tsx', 'utf8');
+  assert.ok(settings.includes('<ThemeSelector />'));
+  const selector = fs.readFileSync('src/components/molecules/ThemeSelector.tsx', 'utf8');
+  for (const mode of ['system', 'light', 'dark']) assert.ok(selector.includes(`id: '${mode}'`));
+  assert.ok(!selector.includes('className='));
 });
 
-test('global.css defines both media query and class-based dark mode tokens', () => {
+test('Expo and NativeWind configuration support app-controlled system appearance', () => {
+  const appConfig = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+  assert.equal(appConfig.expo.userInterfaceStyle, 'automatic');
+
+  const tailwind = fs.readFileSync('tailwind.config.js', 'utf8');
+  assert.ok(tailwind.includes('darkMode: "class"'));
+  assert.ok(tailwind.includes('input: "var(--color-ground-input)"'));
+
+  const input = fs.readFileSync('src/components/atoms/Input.tsx', 'utf8');
+  assert.ok(input.includes('bg-ground-input'));
+  assert.ok(input.includes('text-text-primary'));
+  assert.ok(!input.includes('useAppTheme'));
+});
+
+test('global.css uses the selected theme class without an OS media override', () => {
   const globalCss = fs.readFileSync('global.css', 'utf8');
   assert.ok(globalCss.includes(':root[class~="dark"]'));
-  assert.ok(globalCss.includes('@media (prefers-color-scheme: dark)'));
+  assert.ok(!globalCss.includes('@media (prefers-color-scheme: dark)')); 
   assert.ok(globalCss.includes('--color-ground-canvas'));
+  assert.ok(globalCss.includes('--color-ground-input: #F8FAFC'));
+  assert.ok(globalCss.includes('--color-ground-input: #0F172A'));
   assert.ok(globalCss.includes('--color-brand-500'));
 });

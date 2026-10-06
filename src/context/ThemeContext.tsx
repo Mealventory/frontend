@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { Appearance } from "react-native";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { useColorScheme } from "nativewind";
 import {
   themeStorage,
@@ -32,28 +31,21 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { setColorScheme: setNativeWindScheme } = useColorScheme();
+  const { colorScheme: nativeScheme, setColorScheme: setNativeWindScheme } = useColorScheme();
+
+  // NativeWind returns a new setter each render. Keep hydration independent
+  // of that identity so toggling cannot reload the previous saved preference.
+  const nativeWindSetter = useRef(setNativeWindScheme);
+  nativeWindSetter.current = setNativeWindScheme;
+  const preferenceChanged = useRef(false);
 
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => {
     const webPref = getWebInitialPreference();
     return webPref ?? "system";
   });
 
-  const [systemScheme, setSystemScheme] = useState<ThemeMode>(() => {
-    return Appearance.getColorScheme() === "dark" ? "dark" : "light";
-  });
-
   const [ready, setReady] = useState<boolean>(false);
-
-  // Synchronize OS appearance changes when following system theme
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      if (colorScheme === "dark" || colorScheme === "light") {
-        setSystemScheme(colorScheme);
-      }
-    });
-    return () => subscription.remove();
-  }, []);
+  const persistence = useRef(Promise.resolve());
 
   // Hydrate preference from local storage on mount
   useEffect(() => {
@@ -62,11 +54,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     async function loadPreference() {
       try {
         const stored = await themeStorage.getPreference();
-        if (isMounted) {
+        if (isMounted && !preferenceChanged.current) {
           const activePref = stored || "system";
           setThemePreferenceState(activePref);
           try {
-            setNativeWindScheme(activePref);
+            nativeWindSetter.current(activePref);
           } catch {}
         }
       } catch {
@@ -83,21 +75,23 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [setNativeWindScheme]);
+  }, []);
 
   const setThemePreference = useCallback(
     async (pref: ThemePreference) => {
+      preferenceChanged.current = true;
+      nativeWindSetter.current(pref);
       setThemePreferenceState(pref);
-      try {
-        setNativeWindScheme(pref);
-      } catch {}
-      await themeStorage.setPreference(pref);
+      // Keep rapid selections in order even when storage is slow.
+      persistence.current = persistence.current.catch(() => {}).then(() => themeStorage.setPreference(pref));
+      await persistence.current;
     },
-    [setNativeWindScheme]
+    []
   );
 
-  const resolvedScheme: ThemeMode =
-    themePreference === "system" ? systemScheme : themePreference;
+  // Use the same resolved appearance as NativeWind's CSS variables. React
+  // preference state must not repaint native inputs ahead of the stylesheet.
+  const resolvedScheme: ThemeMode = nativeScheme === "dark" ? "dark" : "light";
   const isDark = resolvedScheme === "dark";
 
   const toggleTheme = useCallback(() => {

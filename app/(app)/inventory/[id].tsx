@@ -6,6 +6,8 @@ import { Icon } from "@/src/components/atoms/Icon";
 import { FreshnessHero } from "@/src/components/domain/FreshnessHero";
 import { FreshnessMeter } from "@/src/components/domain/FreshnessMeter";
 import { useInventory } from "@/src/context/InventoryContext";
+import { deleteItemPhoto } from "@/src/lib/itemPhotoStorage";
+import { APP_GUTTER } from "@/src/lib/layout";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,8 +25,10 @@ export default function ItemDetailScreen() {
           Item not found
         </Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Return to Kitchen"
           onPress={() => router.back()}
-          className="px-5 py-2.5 rounded-xl bg-brand-500"
+          className="min-h-[44px] px-5 py-2.5 rounded-xl bg-brand-500 items-center justify-center"
         >
           <Text className="text-white font-bold">Return to Kitchen</Text>
         </TouchableOpacity>
@@ -36,8 +40,10 @@ export default function ItemDetailScreen() {
     if (deleting) return;
     setDeleting(true); setError('');
     try {
-      if (action === 'delete') await removeItem(item.id);
-      else await transitionItem(item.id, action);
+      if (action === 'delete') {
+        await removeItem(item.id);
+        if (item.imageRef) void deleteItemPhoto(item.imageRef).catch(() => {});
+      } else await transitionItem(item.id, action);
       router.back();
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not update item.'); }
     finally { setDeleting(false); }
@@ -52,11 +58,13 @@ export default function ItemDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
       {/* Top Header */}
-      <View className="flex-row items-center justify-between px-5 pt-3 pb-3">
+      <View className="flex-row items-center justify-between px-4 pt-3 pb-3">
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Back to Kitchen"
           activeOpacity={0.7}
           onPress={() => router.back()}
-          className="w-[38px] h-[38px] rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
+          className="w-11 h-11 rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
         >
           <Icon name="ArrowLeft" size={18} />
         </TouchableOpacity>
@@ -66,19 +74,21 @@ export default function ItemDetailScreen() {
         </Text>
 
         <TouchableOpacity
+          accessibilityRole="button"
           activeOpacity={0.7}
           onPress={() => handleAction("delete")}
           disabled={deleting}
-          accessibilityLabel={deleting ? 'Deleting item' : 'Delete item'}
-          className="w-[38px] h-[38px] rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
+          accessibilityLabel={deleting ? 'Deleting item' : `Delete ${item.name}`}
+          accessibilityState={{ disabled: deleting, busy: deleting }}
+          className="w-11 h-11 rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
         >
           <Icon name="Trash2" size={16} color="#F43F5E" />
         </TouchableOpacity>
       </View>
 
-      {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', padding: 20 }}>{error}</Text>}
+      {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', paddingHorizontal: APP_GUTTER, paddingVertical: 12 }}>{error}</Text>}
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 60 }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
         className="flex-1"
       >
@@ -107,18 +117,41 @@ export default function ItemDetailScreen() {
           ))}
         </View>
 
+        {item.remainingPercent != null && (
+          <View className={`p-4 rounded-[22px] border mb-4 ${item.isLowStock ? 'bg-urgency-soon-bg border-urgency-soon/30' : 'bg-ground-surface border-border-default'}`}>
+            <View className="flex-row items-center gap-2 mb-2">
+              <Icon name="Gauge" size={18} color={item.isLowStock ? '#F59E0B' : '#10B981'} />
+              <Text className={`text-[15px] font-bold ${item.isLowStock ? 'text-urgency-soon' : 'text-text-primary'}`}>
+                {item.isLowStock ? 'Low stock' : 'Quantity remaining'}
+              </Text>
+            </View>
+            <Text className="text-[14px] text-text-secondary">
+              {item.quantity} remaining · {item.remainingPercent}% left
+            </Text>
+            <Text className="text-[12px] text-text-muted mt-1">
+              Mealventory warns automatically at 10% remaining.
+            </Text>
+          </View>
+        )}
+
         <View className="gap-3 mb-4">
-          <TouchableOpacity disabled={deleting} accessibilityRole="button"
+          <TouchableOpacity testID="e2e-edit-item" disabled={deleting} accessibilityRole="button"
+            accessibilityLabel={`Edit ${item.name}`}
+            accessibilityState={{ disabled: deleting }}
             onPress={() => router.push({ pathname: '/(app)/inventory/edit', params: { id: item.id } })}
             className="p-4 rounded-xl bg-ground-subtle items-center">
             <Text className="text-brand-600 dark:text-brand-400 font-bold">Edit item</Text>
           </TouchableOpacity>
-          <TouchableOpacity disabled={deleting} onPress={() => handleAction('consume')}
-            className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button">
+          <TouchableOpacity testID="e2e-consume-item" disabled={deleting} onPress={() => handleAction('consume')}
+            className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button"
+            accessibilityLabel={`Mark ${item.name} as consumed`}
+            accessibilityState={{ disabled: deleting, busy: deleting }}>
             <Text className="text-white font-bold">{deleting ? 'Saving…' : 'Mark as consumed'}</Text>
           </TouchableOpacity>
           <TouchableOpacity disabled={deleting} onPress={() => handleAction('discard')}
-            className="p-4 rounded-xl bg-ground-subtle items-center" accessibilityRole="button">
+            className="p-4 rounded-xl bg-ground-subtle items-center" accessibilityRole="button"
+            accessibilityLabel={`Mark ${item.name} as discarded`}
+            accessibilityState={{ disabled: deleting, busy: deleting }}>
             <Text className="text-text-primary font-bold">Mark as discarded</Text>
           </TouchableOpacity>
           <Text className="text-text-muted">These actions apply to the entire item quantity and keep its history.</Text>
@@ -137,6 +170,8 @@ export default function ItemDetailScreen() {
           </Text>
 
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Find recipes using ${item.name}`}
             activeOpacity={0.8}
             onPress={() => router.push("/(app)/(tabs)/recipes" as any)}
             className="w-full h-[44px] rounded-[14px] bg-brand-500 items-center justify-center shadow-sm shadow-brand-500/30"

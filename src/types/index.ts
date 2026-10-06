@@ -20,9 +20,12 @@ export interface FoodItem {
   expDate: string;
   daysLeft: number;
   quantity: string;
+  remainingPercent?: number | null;
+  isLowStock?: boolean;
   emoji: string;
   storageZone?: StorageZone;
   barcode?: string;
+  imageRef?: string | null;
 }
 
 export interface Recipe {

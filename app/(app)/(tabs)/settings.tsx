@@ -1,18 +1,22 @@
+import { ThemeSelector } from "@/src/components/molecules/ThemeSelector";
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
+import { useNotifications } from "@/src/context/NotificationContext";
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, TouchableOpacity } from "react-native";
+import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter, useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
 import { Typography, Button, Icon, Badge, Input } from "@/src/components/atoms";
 import { useAppTheme } from "@/src/context/ThemeContext";
 import { supabase } from "@/src/lib/supabase";
 import { accountClient, signOutAccount, changePassword } from "@/src/lib/account";
 import { useAuth } from "@/src/context/AuthContext";
+import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 
 export default function SettingsTabScreen() {
+  const notifications = useNotifications();
   const router = useRouter();
-  const rootNavigation = useNavigation("/");
-  const { colorScheme, isDark, themePreference, setThemePreference, toggleTheme } = useAppTheme();
-  const { session, household } = useAuth();
+  const { colorScheme, themePreference } = useAppTheme();
+  const { session, e2eMode, signOutE2E } = useAuth();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -84,7 +88,8 @@ export default function SettingsTabScreen() {
 
   return (
     <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-ground-canvas">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 28 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 32 }}>
+        <View style={{ marginBottom: 16 }}><BrandLogo /></View>
         <View className="mb-6">
           <Typography variant="h1">Settings</Typography>
           <Typography variant="caption" color="muted">
@@ -115,40 +120,7 @@ export default function SettingsTabScreen() {
               : `Explicitly set to ${themePreference} mode`}
           </Typography>
 
-          {/* 3-way Option Selector */}
-          <View className="flex-row p-1 bg-ground-subtle rounded-xl border border-border-default gap-1">
-            {[
-              { id: "system" as const, label: "System", icon: "Smartphone" as const },
-              { id: "light" as const, label: "Light", icon: "Sun" as const },
-              { id: "dark" as const, label: "Dark", icon: "Moon" as const },
-            ].map((option) => {
-              const isActive = themePreference === option.id;
-              return (
-                <TouchableOpacity
-                  key={option.id}
-                  activeOpacity={0.7}
-                  onPress={() => void setThemePreference(option.id)}
-                  className={`flex-1 flex-row items-center justify-center py-2.5 px-3 rounded-lg gap-1.5 ${
-                    isActive ? "bg-brand-500 shadow-sm" : "bg-transparent"
-                  }`}
-                >
-                  <Icon
-                    name={option.icon}
-                    size={16}
-                    color={isActive ? "#FFFFFF" : isDark ? "#94A3B8" : "#64748B"}
-                  />
-                  <Typography
-                    variant="caption"
-                    className={`font-semibold ${
-                      isActive ? "text-white" : "text-text-secondary"
-                    }`}
-                  >
-                    {option.label}
-                  </Typography>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <ThemeSelector />
         </View>
 
         {/* Profile & Security Section */}
@@ -237,6 +209,12 @@ export default function SettingsTabScreen() {
           </View>
         </View>
 
+        <View className="p-5 bg-ground-card rounded-2xl border border-border-default mb-6 gap-3">
+          <Typography variant="h3">Notifications</Typography>
+          <Typography variant="caption" color="muted">{notifications.status}</Typography>
+          <Button label="Enable / retry notifications" variant="secondary" disabled={notifications.busy} loading={notifications.busy} onPress={() => void notifications.enable()} />
+        </View>
+
         {/* Household Section */}
         <View className="p-5 bg-ground-card rounded-2xl border border-border-default shadow-sm mb-6 gap-3">
           <Typography variant="h3" className="font-bold mb-1">
@@ -265,20 +243,16 @@ export default function SettingsTabScreen() {
             label="Switch / Manage Households"
             variant="outline"
             leadingIcon={<Icon name="Home" size={16} />}
-            onPress={() => {
-              if (router.canDismiss()) {
-                router.dismissAll();
-              } else {
-                try {
-                  rootNavigation.navigate("index" as never);
-                } catch {
-                  router.replace("/" as any);
-                }
-              }
-            }}
+            onPress={() =>
+              router.replace({
+                pathname: "/",
+                params: { manage: "1" },
+              } as any)
+            }
           />
           {!!logoutError && <Typography color="critical">{logoutError}</Typography>}
           <Button
+            testID="e2e-log-out"
             label={loggingOut ? 'Signing out…' : 'Log Out'}
             disabled={loggingOut}
             variant="danger"
@@ -286,12 +260,9 @@ export default function SettingsTabScreen() {
             onPress={async () => {
               setLoggingOut(true); setLogoutError('');
               try {
-                await signOutAccount(supabase);
-                try {
-                  rootNavigation.navigate("index" as never);
-                } catch {
-                  router.replace("/" as any);
-                }
+                if (e2eMode) signOutE2E();
+                else await signOutAccount(supabase);
+                router.replace("/" as any);
               } catch (e) {
                 setLogoutError(e instanceof Error ? e.message : 'Could not sign out. Please try again.');
               } finally { setLoggingOut(false); }

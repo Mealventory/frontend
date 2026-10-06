@@ -11,6 +11,7 @@ pnpm-debug.log*
 *.log
 
 # Expo & Build outputs
+/ios/
 .expo/
 dist/
 web-build/
@@ -22,6 +23,10 @@ App template/dist/
 App template/.cache/
 App template/.vite/
 App template/vite.config.*.timestamp-*
+
+# Native prebuild output (generated locally by Expo)
+ios/
+android/
 
 # Native & Signing credentials
 *.jks

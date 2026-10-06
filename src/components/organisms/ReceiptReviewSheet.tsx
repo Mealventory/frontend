@@ -9,10 +9,11 @@ import {
   Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Typography, Button, Icon, Badge, Avatar, Checkbox } from "@/src/components/atoms";
+import { Typography, Button, Icon, Badge, Checkbox } from "@/src/components/atoms";
 import { FormField } from "@/src/components/molecules";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { StorageZone } from "@/src/types";
+import { ItemPhoto } from "@/src/components/domain/ItemPhoto";
 
 export interface ReviewItemState {
   id: string;
@@ -23,6 +24,7 @@ export interface ReviewItemState {
   expiry_date: string;
   storageZone: StorageZone;
   confidence?: number;
+  imageRef?: string;
   confirmed: boolean;
   isEditing?: boolean;
 }
@@ -185,9 +187,13 @@ export function ReceiptReviewSheet({
             </Typography>
             {items.length > 1 && (
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={allConfirmed ? "Deselect all scanned items" : "Select all scanned items"}
+                accessibilityState={{ selected: allConfirmed, disabled: submitting }}
                 activeOpacity={0.7}
+                disabled={submitting}
                 onPress={allConfirmed ? onDeselectAll : onSelectAll}
-                className="py-1 px-2.5 rounded-lg bg-ground-surface border border-border-default"
+                className="min-h-[44px] px-3 rounded-lg bg-ground-surface border border-border-default items-center justify-center"
               >
                 <Text className="text-[12px] font-semibold text-brand-600 dark:text-brand-400">
                   {allConfirmed ? "Deselect All" : "Select All"}
@@ -202,7 +208,11 @@ export function ReceiptReviewSheet({
 
         {/* Success Banner */}
         {successCount !== null && (
-          <View className="mb-4 p-4 bg-fresh-500/15 border border-fresh-500/40 rounded-2xl flex-row items-center">
+          <View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            className="mb-4 p-4 bg-fresh-500/15 border border-fresh-500/40 rounded-2xl flex-row items-center"
+          >
             <Icon name="CheckCircle2" size={20} color="#10B981" />
             <Typography variant="body" className="ml-2.5 font-bold text-fresh-700">
               {successCount} {successCount === 1 ? "item" : "items"} added to pantry!
@@ -212,7 +222,11 @@ export function ReceiptReviewSheet({
 
         {/* Error Banner */}
         {errorMessage && (
-          <View className="mb-4 p-4 bg-danger-500/10 border border-danger-500/30 rounded-2xl flex-row items-center justify-between">
+          <View
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+            className="mb-4 p-4 bg-danger-500/10 border border-danger-500/30 rounded-2xl flex-row items-center justify-between"
+          >
             <View className="flex-row items-center flex-1 mr-2">
               <Icon name="AlertCircle" size={20} color="#EF4444" />
               <Typography variant="caption" className="ml-2 text-danger-700 flex-1 font-medium">
@@ -220,7 +234,12 @@ export function ReceiptReviewSheet({
               </Typography>
             </View>
             {onDismissError && (
-              <TouchableOpacity onPress={onDismissError}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss review error"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                onPress={onDismissError}
+              >
                 <Icon name="X" size={16} color="#EF4444" />
               </TouchableOpacity>
             )}
@@ -249,11 +268,20 @@ export function ReceiptReviewSheet({
                   {items.length > 1 && <Checkbox
                     checked={item.confirmed}
                     onToggle={() => onToggleConfirm(item.id)}
+                    label={`Include ${item.name}`}
                     disabled={submitting}
                     className="mr-3"
                   />}
 
-                  <Avatar emoji={emoji} size="md" className="mr-3" />
+                  <View className="mr-3">
+                    <ItemPhoto
+                      imageRef={item.imageRef}
+                      emoji={emoji}
+                      name={item.name}
+                      size={44}
+                      borderRadius={14}
+                    />
+                  </View>
 
                   <View className="flex-1 min-w-0 mr-2">
                     <Typography variant="h3" className="font-bold" numberOfLines={1}>
@@ -274,9 +302,13 @@ export function ReceiptReviewSheet({
                     )}
                     <View className="flex-row items-center gap-1.5 mt-0.5">
                       <TouchableOpacity
+                        accessibilityRole="button"
                         activeOpacity={0.7}
                         onPress={() => onToggleEdit(item.id)}
-                        accessibilityLabel="Edit item details"
+                        accessibilityLabel={item.isEditing ? `Collapse ${item.name} details` : `Edit ${item.name} details`}
+                        accessibilityState={{ expanded: item.isEditing, disabled: submitting }}
+                        disabled={submitting}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         className="p-1.5 rounded-lg bg-ground-canvas dark:bg-ground-elevated border border-border-default"
                       >
                         <Icon
@@ -287,9 +319,13 @@ export function ReceiptReviewSheet({
                       </TouchableOpacity>
 
                       <TouchableOpacity
+                        accessibilityRole="button"
                         activeOpacity={0.7}
                         onPress={() => onRemoveItem(item.id)}
-                        accessibilityLabel="Reject or delete item"
+                        accessibilityLabel={`Remove ${item.name} from review`}
+                        accessibilityState={{ disabled: submitting }}
+                        disabled={submitting}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                         className="p-1.5 rounded-lg bg-danger-500/10 border border-danger-500/20"
                       >
                         <Icon name="Trash2" size={15} color="#EF4444" />
@@ -323,14 +359,17 @@ export function ReceiptReviewSheet({
                     </View>
                     <View className="flex-row items-center bg-ground-canvas dark:bg-ground-elevated border border-border-default rounded-xl p-0.5">
                       <TouchableOpacity
+                        accessibilityRole="button"
                         activeOpacity={0.7}
+                        disabled={submitting || item.quantity <= 1}
                         onPress={() =>
                           onUpdateItem(item.id, {
                             quantity: Math.max(1, item.quantity - 1),
                           })
                         }
-                        accessibilityLabel="Decrease quantity"
-                        className="w-8 h-8 items-center justify-center rounded-lg bg-ground-surface dark:bg-ground-card border border-border-default/50"
+                        accessibilityLabel={`Decrease ${item.name} quantity`}
+                        accessibilityState={{ disabled: submitting || item.quantity <= 1 }}
+                        className="w-11 h-11 items-center justify-center rounded-lg bg-ground-surface dark:bg-ground-card border border-border-default/50"
                       >
                         <Icon name="Minus" size={14} color="#64748B" />
                       </TouchableOpacity>
@@ -338,14 +377,17 @@ export function ReceiptReviewSheet({
                         {item.quantity}
                       </Text>
                       <TouchableOpacity
+                        accessibilityRole="button"
                         activeOpacity={0.7}
+                        disabled={submitting}
                         onPress={() =>
                           onUpdateItem(item.id, {
                             quantity: item.quantity + 1,
                           })
                         }
-                        accessibilityLabel="Increase quantity"
-                        className="w-8 h-8 items-center justify-center rounded-lg bg-ground-surface dark:bg-ground-card border border-border-default/50"
+                        accessibilityLabel={`Increase ${item.name} quantity`}
+                        accessibilityState={{ disabled: submitting }}
+                        className="w-11 h-11 items-center justify-center rounded-lg bg-ground-surface dark:bg-ground-card border border-border-default/50"
                       >
                         <Icon name="Plus" size={14} color="#64748B" />
                       </TouchableOpacity>
@@ -366,11 +408,15 @@ export function ReceiptReviewSheet({
                         return (
                           <TouchableOpacity
                             key={zone.id}
+                            accessibilityRole="radio"
+                            accessibilityLabel={`${zone.label} storage zone`}
+                            accessibilityState={{ checked: isSelected, disabled: submitting }}
                             activeOpacity={0.7}
+                            disabled={submitting}
                             onPress={() =>
                               onUpdateItem(item.id, { storageZone: zone.id })
                             }
-                            className={`flex-row items-center px-3 py-1.5 rounded-xl border ${
+                            className={`min-h-[44px] flex-row items-center px-3 py-1.5 rounded-xl border ${
                               isSelected
                                 ? "bg-brand-500 border-brand-500"
                                 : "bg-ground-canvas dark:bg-ground-elevated border-border-default"
@@ -408,6 +454,11 @@ export function ReceiptReviewSheet({
                       </View>
                       {item.expiry_date ? (
                         <TouchableOpacity
+                          accessibilityRole="button"
+                          accessibilityLabel={`Clear ${item.name} expiry date`}
+                          disabled={submitting}
+                          accessibilityState={{ disabled: submitting }}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                           activeOpacity={0.7}
                           onPress={() => onUpdateItem(item.id, { expiry_date: "" })}
                         >
@@ -426,11 +477,15 @@ export function ReceiptReviewSheet({
                         return (
                           <TouchableOpacity
                             key={preset.label}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Set ${item.name} expiry to ${preset.label}`}
+                            accessibilityState={{ selected: isSelected, disabled: submitting }}
                             activeOpacity={0.7}
+                            disabled={submitting}
                             onPress={() =>
                               onUpdateItem(item.id, { expiry_date: presetDate })
                             }
-                            className={`flex-1 py-1 px-2 rounded-lg border items-center justify-center ${
+                            className={`flex-1 min-h-[44px] py-1 px-2 rounded-lg border items-center justify-center ${
                               isSelected
                                 ? "bg-brand-500 border-brand-500"
                                 : "bg-ground-canvas dark:bg-ground-elevated border-border-default"

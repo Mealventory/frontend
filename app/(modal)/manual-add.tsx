@@ -1,6 +1,7 @@
 import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
+import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
 import React, { useState } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,6 +9,10 @@ import { useRouter } from "expo-router";
 import { Typography, Button, Icon } from "@/src/components/atoms";
 import { FormField, TagChipGroup } from "@/src/components/molecules";
 import { useInventory } from "@/src/context/InventoryContext";
+import { useAuth } from "@/src/context/AuthContext";
+import { ItemPhotoField, type SelectedItemPhoto } from "@/src/components/molecules/ItemPhotoField";
+import { deleteItemPhoto, uploadItemPhoto } from "@/src/lib/itemPhotoStorage";
+import { E2E_MANUAL_ITEM_NAME, E2E_MANUAL_ITEM_QUANTITY } from "@/src/lib/e2e";
 
 import type { StorageZone } from "@/src/types";
 
@@ -26,13 +31,15 @@ const categoryEmojis: Record<string, string> = {
 export default function ManualAddModal() {
   const router = useRouter();
   const { addItem } = useInventory();
-  const [name, setName] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const { household, e2eMode } = useAuth();
+  const [name, setName] = useState(e2eMode ? E2E_MANUAL_ITEM_NAME : "");
+  const [quantity, setQuantity] = useState(e2eMode ? E2E_MANUAL_ITEM_QUANTITY : "");
   const [expDate, setExpDate] = useState("");
   const [selectedCat, setSelectedCat] = useState("Produce");
   const [storageZone, setStorageZone] = useState<StorageZone>("pantry");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
 
   const handleSave = async () => {
     if (saving) return;
@@ -45,7 +52,16 @@ export default function ManualAddModal() {
     let date: string | null;
     try { date = normalizeExpiryDate(expDate); } catch (e) { setError((e as Error).message); return; }
     setSaving(true); setError('');
+    let uploadedRef: string | null = null;
     try {
+    if (selectedPhoto) {
+      if (!household?.id) throw new Error("Choose a household before adding a photo.");
+      uploadedRef = await uploadItemPhoto(
+        household.id,
+        selectedPhoto.base64,
+        selectedPhoto.mimeType,
+      );
+    }
     await addItem({
       id: Date.now().toString(),
       name: trimmedName,
@@ -56,6 +72,7 @@ export default function ManualAddModal() {
       daysLeft: 0,
       quantity: quantity.trim() || "1 item",
       emoji: categoryEmojis[selectedCat] || "🍽️",
+      imageRef: uploadedRef,
     });
 
     if (router.canGoBack()) {
@@ -63,13 +80,22 @@ export default function ManualAddModal() {
     } else {
       router.replace("/(app)/(tabs)" as any);
     }
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not save item.'); }
+    } catch (e) {
+      if (uploadedRef) {
+        await deleteItemPhoto(uploadedRef).catch(() => {});
+      }
+      setError(e instanceof Error ? e.message : 'Could not save item.');
+    }
     finally { setSaving(false); }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24, paddingBottom: 40, width: "100%", maxWidth: 560, alignSelf: "center" }}>
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        style={{ width: "100%", maxWidth: 560, alignSelf: "center" }}
+        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}
+      >
         {/* Top Header */}
         <View className="flex-row items-center justify-between mb-5">
           <Button
@@ -91,6 +117,7 @@ export default function ManualAddModal() {
 
         <View className="gap-4 mb-6">
           <FormField
+            testID="e2e-item-name"
             label="Item Name"
             placeholder="e.g. Sourdough Bread"
             value={name}
@@ -101,6 +128,18 @@ export default function ManualAddModal() {
             required
             error={error}
             leadingIcon={<Icon name="Type" size={16} color="#94A3B8" />}
+          />
+
+          <ItemPhotoField
+            selected={selectedPhoto}
+            fallbackEmoji={categoryEmojis[selectedCat] || "🍽️"}
+            disabled={saving}
+            onChange={(photo) => {
+              setSelectedPhoto(photo);
+              setError("");
+            }}
+            onRemove={() => setSelectedPhoto(null)}
+            onError={setError}
           />
 
           <View>
@@ -127,6 +166,7 @@ export default function ManualAddModal() {
           </View>
 
           <FormField
+            testID="e2e-item-quantity"
             label="Quantity / Size"
             placeholder="e.g. 1 loaf or 500g"
             value={quantity}
@@ -139,6 +179,7 @@ export default function ManualAddModal() {
         </View>
 
         <Button
+          testID="e2e-add-to-kitchen"
           label={saving ? 'Saving…' : 'Add to Kitchen'}
           variant="primary"
           leadingIcon={<Icon name="Plus" size={18} color="#FFFFFF" />}

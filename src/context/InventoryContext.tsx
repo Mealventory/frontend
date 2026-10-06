@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { AppState } from 'react-native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { inventoryRequest, toFoodItem, InventoryRow, NewItem } from '../lib/inventoryApi';
 import { useAuth } from './AuthContext';
@@ -7,9 +8,10 @@ import { FoodItem, Recipe } from "../types";
 import {
   loadSavedRecipes,
   recipeSaveKey,
-  removeSavedRecipe,
-  saveRecipe,
 } from "../lib/savedRecipes";
+
+import { householdSavedRecipes } from "../lib/householdSavedRecipes";
+import { INVENTORY_QUERY_ROOT, inventoryQueryKey } from "../lib/queryClient";
 
 export const initialInventory: FoodItem[] = [
   { id: "1", name: "Whole Milk", category: "Dairy", expDate: "Sep 16", daysLeft: 2, quantity: "1 gallon", emoji: "🥛" },
@@ -126,6 +128,9 @@ interface InventoryContextType {
   recipes: Recipe[];
   savedRecipes: Recipe[];
   savedRecipesLoading: boolean;
+  savedRecipesError: string;
+  refreshSavedRecipes: () => Promise<void>;
+  shareLocalRecipes: () => Promise<void>;
   isRecipeSaved: (recipe: Recipe) => boolean;
   toggleSavedRecipe: (recipe: Recipe) => Promise<boolean>;
   currentScreen: FigmaScreen;
@@ -158,35 +163,93 @@ const defaultUser: UserProfile = {
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export function InventoryProvider({ children, demo = false }: { children: React.ReactNode; demo?: boolean }) {
-  const { session, household } = useAuth();
-  const [storedInventory, setInventory] = useState<FoodItem[]>(demo ? initialInventory : []);
+  const { session, household, selectHousehold } = useAuth();
+  const queryClient = useQueryClient();
+  const [demoInventory, setDemoInventory] = useState<FoodItem[]>(initialInventory);
   const scope = demo ? 'demo' : `${session?.user.id || ''}:${household?.id || ''}`;
   const activeScope = useRef(scope); activeScope.current = scope;
-  const [loadedScope, setLoadedScope] = useState(scope);
-  const inventory = loadedScope === scope ? storedInventory : [];
-  const [inventoryLoading, setInventoryLoading] = useState(false);
-  const [inventoryError, setInventoryError] = useState('');
-  const revision = useRef(0);
-  const inFlight = useRef(false);
   const mutations = useRef(0);
-  const token = async () => {
+  const previousUserId = useRef(session?.user.id);
+
+  const inventoryKey = useMemo(
+    () => inventoryQueryKey(session?.user.id, household?.id),
+    [session?.user.id, household?.id],
+  );
+
+  const token = useCallback(async () => {
     const result = await supabase?.auth.getSession();
-    if (!result?.data.session || result.error || result.data.session.user.id !== session?.user.id) throw new Error('Please sign in again.');
+    if (!result?.data.session || result.error || result.data.session.user.id !== session?.user.id) {
+      throw new Error('Please sign in again.');
+    }
     return result.data.session.access_token;
-  };
-  const refreshInventory = useCallback(async (quiet = false) => {
-    if (demo || !session?.user.id || !household?.id || inFlight.current || mutations.current) return;
-    inFlight.current = true;
-    const current = revision.current;
-    if (!quiet) setInventoryLoading(true);
-    try {
+  }, [session?.user.id]);
+
+  const inventoryQuery = useQuery<FoodItem[]>({
+    queryKey: inventoryKey,
+    enabled: !demo && Boolean(session?.user.id && household?.id),
+    queryFn: async () => {
+      if (!household?.id) return [];
       const rows = await inventoryRequest<InventoryRow[]>(await token(), household.id);
-      if (activeScope.current !== scope || current !== revision.current) return;
-      setInventory(rows.map(toFoodItem)); setLoadedScope(scope); setInventoryError('');
-    } catch (e) {
-      if (activeScope.current === scope && current === revision.current) setInventoryError(e instanceof Error ? e.message : 'Could not load inventory.');
-    } finally { inFlight.current = false; if (activeScope.current === scope) setInventoryLoading(false); }
-  }, [demo, scope, session?.user.id, household?.id]);
+      return rows.map(toFoodItem);
+    },
+  });
+
+  const inventory = demo ? demoInventory : (inventoryQuery.data ?? []);
+  const [inventoryRefreshing, setInventoryRefreshing] = useState(false);
+  const inventoryLoading =
+    inventoryRefreshing || (!demo && inventory.length === 0 && inventoryQuery.isPending);
+  const inventoryError =
+    !demo && inventory.length === 0 && inventoryQuery.error
+      ? inventoryQuery.error instanceof Error
+        ? inventoryQuery.error.message
+        : 'Could not load inventory.'
+      : '';
+
+  const refreshInventory = useCallback(async () => {
+    if (demo || !session?.user.id || !household?.id || mutations.current) return;
+    setInventoryRefreshing(true);
+    try {
+      await inventoryQuery.refetch({ cancelRefetch: true });
+    } finally {
+      setInventoryRefreshing(false);
+    }
+  }, [demo, session?.user.id, household?.id, inventoryQuery.refetch]);
+
+  const refreshInventoryQuietly = useCallback(async () => {
+    if (demo || !session?.user.id || !household?.id || mutations.current) return;
+    await inventoryQuery.refetch({ cancelRefetch: false });
+  }, [demo, session?.user.id, household?.id, inventoryQuery.refetch]);
+
+  useEffect(() => {
+    const error = inventoryQuery.error;
+    if (
+      demo ||
+      !(error instanceof Error) ||
+      error.message !== 'You no longer have access to this household.'
+    ) return;
+
+    queryClient.removeQueries({ queryKey: inventoryKey, exact: true });
+    selectHousehold(null);
+  }, [
+    demo,
+    inventoryQuery.error,
+    inventoryKey,
+    queryClient,
+    selectHousehold,
+  ]);
+
+  useEffect(() => {
+    const previous = previousUserId.current;
+    const current = session?.user.id;
+    if (previous && previous !== current) {
+      queryClient.removeQueries({
+        predicate: (query) =>
+          query.queryKey[0] === INVENTORY_QUERY_ROOT && query.queryKey[1] === previous,
+      });
+    }
+    previousUserId.current = current;
+  }, [session?.user.id, queryClient]);
+
   const [currentScreen, setCurrentScreen] = useState<FigmaScreen>("home");
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(initialInventory[0]);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -194,49 +257,59 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   const savedRecipesRef = useRef<Recipe[]>([]);
   savedRecipesRef.current = savedRecipes;
   const [savedRecipesLoading, setSavedRecipesLoading] = useState(false);
+  const [savedRecipesError, setSavedRecipesError] = useState('');
+  const [savedScope, setSavedScope] = useState(scope);
+  const savedRevision = useRef(0);
+  const savedFetchScope = useRef<string | null>(null);
+  const savingScope = useRef<string | null>(null);
+  const refreshSavedRecipes = async () => {
+    if (demo || !household || !session || savingScope.current === scope || savedFetchScope.current === scope) return;
+    savedFetchScope.current = scope;
+    const revision = ++savedRevision.current;
+    try {
+      const recipes = await householdSavedRecipes(await token(), household.id);
+      if (activeScope.current !== scope || revision !== savedRevision.current) return;
+      setSavedRecipes(recipes); savedRecipesRef.current = recipes; setSavedScope(scope); setSavedRecipesError('');
+    } catch (error) {
+      if (activeScope.current === scope && revision === savedRevision.current) setSavedRecipesError(error instanceof Error ? error.message : 'Could not sync recipes.');
+    } finally {
+      if (savedFetchScope.current === scope) savedFetchScope.current = null;
+      if (activeScope.current === scope && revision === savedRevision.current) setSavedRecipesLoading(false);
+    }
+  };
   const [user, setUser] = useState<UserProfile>(defaultUser);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   useEffect(() => {
-    revision.current++;
-    setInventory(demo ? initialInventory : []);
-    setLoadedScope(scope); setInventoryError(''); setInventoryLoading(false);
     setSelectedItem(null);
     setSelectedRecipe(null);
     setCurrentScreen('home');
-    void refreshInventory();
-    const timer = setInterval(() => { if (AppState.currentState === 'active') void refreshInventory(true); }, 5000);
-    const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshInventory(); });
-    return () => { clearInterval(timer); listener.remove(); revision.current++; };
-  }, [scope, demo, refreshInventory]);
+    if (demo) {
+      setDemoInventory(initialInventory);
+      return;
+    }
+    if (!session?.user.id || !household?.id) return;
+
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') void refreshInventoryQuietly();
+    }, 5000);
+    const listener = AppState.addEventListener('change', state => {
+      if (state === 'active') void refreshInventoryQuietly();
+    });
+    return () => {
+      clearInterval(timer);
+      listener.remove();
+    };
+  }, [scope, demo, refreshInventoryQuietly]);
 
   useEffect(() => {
-    let active = true;
-    setSavedRecipes([]);
-    savedRecipesRef.current = [];
-
-    if (demo || !session?.user.id || !household?.id) {
-      setSavedRecipesLoading(false);
-      return () => { active = false; };
-    }
-
-    setSavedRecipesLoading(true);
-    void loadSavedRecipes(session.user.id, household.id)
-      .then((recipes) => {
-        if (!active || activeScope.current !== scope) return;
-        setSavedRecipes(recipes);
-        savedRecipesRef.current = recipes;
-      })
-      .catch(() => {
-        if (!active || activeScope.current !== scope) return;
-        setSavedRecipes([]);
-        savedRecipesRef.current = [];
-      })
-      .finally(() => {
-        if (active && activeScope.current === scope) setSavedRecipesLoading(false);
-      });
-
-    return () => { active = false; };
-  }, [demo, scope, session?.user.id, household?.id]);
+    savedRevision.current++;
+    setSavedRecipes([]); savedRecipesRef.current = []; setSavedScope(scope); setSavedRecipesError('');
+    setSavedRecipesLoading(!demo && Boolean(session && household));
+    void refreshSavedRecipes();
+    const timer = setInterval(() => { if (AppState.currentState === 'active') void refreshSavedRecipes(); }, 5000);
+    const listener = AppState.addEventListener('change', state => { if (state === 'active') void refreshSavedRecipes(); });
+    return () => { savedRevision.current++; clearInterval(timer); listener.remove(); };
+  }, [demo, scope]);
   const accountName = session?.user.user_metadata?.username || session?.user.user_metadata?.display_name || session?.user.email?.split('@')[0] || '';
   const accountUser = session ? {
     name: accountName, email: session.user.email || '',
@@ -260,57 +333,101 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   }, [inventory]);
 
   const addItem = async (item: FoodItem) => {
-    if (demo) { setInventory(prev => [item, ...prev]); return; }
+    if (demo) { setDemoInventory(prev => [item, ...prev]); return; }
     if (!household || !session) throw new Error('Choose a household first.');
     const quantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
     if (!quantity || Number(quantity[1]) <= 0) throw new Error('Enter a quantity such as 2 items or 500 g.');
-    mutations.current++; revision.current++;
+    mutations.current++;
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, {
-        storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null,
+        storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null, image_ref: item.imageRef ?? null,
       });
-      if (activeScope.current === scope) { setInventory(prev => [toFoodItem(row), ...prev.filter(i => i.id !== row.id)]); setInventoryError(''); }
-    } finally { mutations.current--; revision.current++; }
+      if (activeScope.current === scope) {
+        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous => [
+          toFoodItem(row),
+          ...(previous ?? []).filter(i => i.id !== row.id),
+        ]);
+      }
+    } finally { mutations.current--; }
   };
 
   const updateItem = async (id: string, patch: Partial<NewItem>) => {
+    if (demo) {
+      const updateDemoItem = (item: FoodItem): FoodItem => {
+        if (item.id !== id) return item;
+        const existingQuantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+        const quantityValue = patch.quantity ?? Number(existingQuantity?.[1] || 1);
+        const quantityUnit = patch.unit ?? existingQuantity?.[2] ?? 'units';
+        const expiryDate = patch.expiry_date !== undefined ? patch.expiry_date : item.expiryDate;
+        const expiry = expiryDate ? new Date(`${expiryDate}T00:00:00`) : null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return {
+          ...item,
+          name: patch.name ?? item.name,
+          category: patch.category ?? item.category,
+          quantity: `${quantityValue} ${quantityUnit}`,
+          expiryDate,
+          expDate: expiry
+            ? expiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : 'Not set',
+          daysLeft: expiry
+            ? Math.round((expiry.getTime() - today.getTime()) / 86400000)
+            : 36500,
+          storageZone: patch.storage_zone ?? item.storageZone,
+          imageRef: patch.image_ref !== undefined ? patch.image_ref : item.imageRef,
+        };
+      };
+      setDemoInventory(prev => prev.map(updateDemoItem));
+      setSelectedItem(prev => prev ? updateDemoItem(prev) : prev);
+      return;
+    }
     if (!household || !session) throw new Error('Choose a household first.');
-    mutations.current++; revision.current++;
+    mutations.current++;
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'PATCH', id, patch);
       if (activeScope.current === scope) {
         const updated = toFoodItem(row);
-        setInventory(prev => prev.map(item => item.id === id ? updated : item));
+        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
+          (previous ?? []).map(item => item.id === id ? updated : item),
+        );
         setSelectedItem(prev => prev?.id === id ? updated : prev);
-        setInventoryError('');
       }
-    } finally { mutations.current--; revision.current++; }
+    } finally { mutations.current--; }
   };
 
   const removeItem = async (id: string) => {
-    if (demo) { setInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
+    if (demo) { setDemoInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
     if (!household || !session) throw new Error('Choose a household first.');
-    mutations.current++; revision.current++;
+    mutations.current++;
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       await inventoryRequest<void>(await token(), household.id, 'DELETE', id);
       if (activeScope.current === scope) {
-        setInventory(prev => prev.filter(item => item.id !== id));
-        setSelectedItem(prev => prev?.id === id ? null : prev); setInventoryError('');
+        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
+          (previous ?? []).filter(item => item.id !== id),
+        );
+        setSelectedItem(prev => prev?.id === id ? null : prev);
       }
-    } finally { mutations.current--; revision.current++; }
+    } finally { mutations.current--; }
   };
 
   const transitionItem = async (id: string, action: 'consume' | 'discard') => {
-    if (demo) { setInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
+    if (demo) { setDemoInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
     if (!household || !session) throw new Error('Choose a household first.');
-    mutations.current++; revision.current++;
+    mutations.current++;
     try {
+      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
       await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', id, undefined, action);
       if (activeScope.current === scope) {
-        setInventory(prev => prev.filter(item => item.id !== id));
-        setSelectedItem(prev => prev?.id === id ? null : prev); setInventoryError('');
+        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
+          (previous ?? []).filter(item => item.id !== id),
+        );
+        setSelectedItem(prev => prev?.id === id ? null : prev);
       }
-    } finally { mutations.current--; revision.current++; }
+    } finally { mutations.current--; }
   };
 
   const openItem = (item: FoodItem) => {
@@ -325,42 +442,37 @@ export function InventoryProvider({ children, demo = false }: { children: React.
 
   const isRecipeSaved = useCallback((recipe: Recipe) => {
     const key = recipeSaveKey(recipe);
-    return savedRecipes.some((saved) => recipeSaveKey(saved) === key);
-  }, [savedRecipes]);
+    return savedScope === scope && savedRecipes.some((saved) => recipeSaveKey(saved) === key);
+  }, [savedRecipes, savedScope, scope]);
 
-  const toggleSavedRecipe = useCallback(async (recipe: Recipe) => {
-    const key = recipeSaveKey(recipe);
-    const previous = savedRecipesRef.current;
-    const wasSaved = previous.some((saved) => recipeSaveKey(saved) === key);
-    const next = wasSaved
-      ? previous.filter((saved) => recipeSaveKey(saved) !== key)
-      : [recipe, ...previous.filter((saved) => recipeSaveKey(saved) !== key)].slice(0, 50);
-
-    setSavedRecipes(next);
-    savedRecipesRef.current = next;
-
-    if (demo) return !wasSaved;
-    if (!session?.user.id || !household?.id) {
-      setSavedRecipes(previous);
-      savedRecipesRef.current = previous;
-      throw new Error("Choose a household before saving recipes.");
-    }
-
+  const mutateSharedRecipes = async (recipes: Recipe[], remove = false) => {
+    if (!session || !household) throw new Error('Choose a household first.');
+    if (savingScope.current === scope) throw new Error('Please wait for the current recipe to finish saving.');
+    savingScope.current = scope; savedRevision.current++;
     try {
-      if (wasSaved) {
-        await removeSavedRecipe(session.user.id, household.id, recipe);
-      } else {
-        await saveRecipe(session.user.id, household.id, recipe);
+      const access = await token();
+      for (const recipe of recipes) {
+        if (activeScope.current !== scope) return;
+        await householdSavedRecipes(access, household.id, remove ? 'remove' : 'save', recipe);
       }
-      return !wasSaved;
-    } catch (error) {
-      if (activeScope.current === scope) {
-        setSavedRecipes(previous);
-        savedRecipesRef.current = previous;
-      }
-      throw error;
+    } finally {
+      if (savingScope.current === scope) savingScope.current = null;
+      if (activeScope.current === scope) await refreshSavedRecipes();
     }
-  }, [demo, household?.id, scope, session?.user.id]);
+  };
+  const toggleSavedRecipe = async (recipe: Recipe) => {
+    const wasSaved = savedRecipesRef.current.some(saved => recipeSaveKey(saved) === recipeSaveKey(recipe));
+    if (demo) {
+      setSavedRecipes(wasSaved ? savedRecipes.filter(saved => recipeSaveKey(saved) !== recipeSaveKey(recipe)) : [recipe, ...savedRecipes]);
+    } else await mutateSharedRecipes([recipe], wasSaved);
+    return !wasSaved;
+  };
+  const shareLocalRecipes = async () => {
+    if (!session || !household) throw new Error('Choose a household first.');
+    const local = await loadSavedRecipes(session.user.id, household.id);
+    if (activeScope.current !== scope) return;
+    await mutateSharedRecipes(local);
+  };
 
   const login = (email?: string) => {
     if (email) {
@@ -388,7 +500,8 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         inventoryLoading,
         inventoryError,
         recipes: dynamicRecipes,
-        savedRecipes,
+        savedRecipes: savedScope === scope ? savedRecipes : [],
+        savedRecipesError, refreshSavedRecipes, shareLocalRecipes,
         savedRecipesLoading,
         isRecipeSaved,
         toggleSavedRecipe,

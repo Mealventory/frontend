@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
 } from "react-native";
-import { useAppTheme } from "@/src/context/ThemeContext";
 
 export interface InputProps extends TextInputProps {
   label?: string;
@@ -26,10 +25,12 @@ export function Input({
   style,
   onFocus,
   onBlur,
+  accessibilityLabel,
+  accessibilityHint,
+  editable,
   ...props
 }: InputProps) {
   const [isFocused, setIsFocused] = useState(false);
-  const { isDark } = useAppTheme();
 
   return (
     <View className={`w-full ${containerClassName}`}>
@@ -39,33 +40,34 @@ export function Input({
         </Text>
       ) : null}
       <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: isDark ? "#0F172A" : "#F8FAFC",
-            borderColor: error
-              ? "#EF4444"
-              : isFocused
-              ? "#10B981"
-              : isDark
-              ? "#334155"
-              : "#E2E8F0",
-          },
-        ]}
+        className={`bg-ground-input ${error ? "border-urgency-critical" : isFocused ? "border-brand-500" : "border-border-default"}`}
+        style={styles.inputContainer}
       >
         {leadingIcon && <View style={styles.leadingIcon}>{leadingIcon}</View>}
         <TextInput
-          placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
+          accessibilityLabel={accessibilityLabel || label}
+          accessibilityHint={
+            error
+              ? `Error: ${error}`
+              : accessibilityHint
+          }
+          accessibilityState={{ disabled: editable === false }}
+          placeholderTextColor="#94A3B8"
           onFocus={(event) => { setIsFocused(true); onFocus?.(event); }}
           onBlur={(event) => { setIsFocused(false); onBlur?.(event); }}
           className={`flex-1 text-[15px] font-regular text-text-primary ${className}`}
-          style={[{ paddingVertical: 0, color: isDark ? "#F8FAFC" : "#0F172A" }, style]}
+          style={[{ paddingVertical: 0 }, style]}
+          editable={editable}
           {...props}
         />
         {trailingIcon && <View style={styles.trailingIcon}>{trailingIcon}</View>}
       </View>
       {error ? (
-        <Text className="text-[12px] font-medium text-urgency-critical mt-1 ml-1">
+        <Text
+          accessibilityRole="alert"
+          accessibilityLiveRegion="assertive"
+          className="text-[12px] font-medium text-urgency-critical mt-1 ml-1"
+        >
           {error}
         </Text>
       ) : null}

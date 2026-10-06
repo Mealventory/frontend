@@ -11,22 +11,30 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { CameraView } from "expo-camera";
 import { Typography, Icon, Button } from "@/src/components/atoms";
+import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { BarcodeScannerFrame, CameraOverlayControls } from "@/src/components/molecules";
+import { useAuth } from "@/src/context/AuthContext";
 import {
   useScannerCapture,
   SCANNER_MODES,
   BARCODE_TYPES,
   SCANNER_MODES as MODES,
 } from "@/src/hooks/useScannerCapture";
+import {
+  E2E_BARCODE_SCAN_ITEMS,
+  E2E_PRODUCT_SCAN_ITEMS,
+} from "@/src/lib/e2e";
 
 // Supported modes configuration:
-// - Item: id: "food"
+// - Product: id: "food"
 // - Tag: id: "tag"
 // - Receipt: id: "receipt"
 // - Barcode: id: "barcode"
 
 export default function ScanTabScreen() {
   const router = useRouter();
+  const { session, household, e2eMode } = useAuth();
+
   const {
     mode,
     scanning,
@@ -48,43 +56,77 @@ export default function ScanTabScreen() {
     modes,
     barcodeTypes,
     isFocused,
-    household,
   } = useScannerCapture();
+
+  if (e2eMode) {
+    return (
+      <SafeAreaView className="flex-1 bg-ground-canvas px-5 py-6">
+        <View className="flex-1 justify-center gap-4">
+          <Typography variant="h2" className="text-center">
+            Scanner E2E Fixtures
+          </Typography>
+          <Typography variant="body" color="muted" className="text-center mb-3">
+            Deterministic review flows for automated mobile smoke tests.
+          </Typography>
+          <Button
+            testID="e2e-product-review"
+            label="Open Product Review Fixture"
+            onPress={() =>
+              router.push({
+                pathname: "/(modal)/ai-review",
+                params: {
+                  items: JSON.stringify(E2E_PRODUCT_SCAN_ITEMS),
+                  mode: "food",
+                },
+              } as any)
+            }
+          />
+          <Button
+            testID="e2e-barcode-review"
+            label="Open Barcode Fallback Fixture"
+            variant="secondary"
+            onPress={() =>
+              router.push({
+                pathname: "/(modal)/ai-review",
+                params: {
+                  items: JSON.stringify(E2E_BARCODE_SCAN_ITEMS),
+                  mode: "barcode",
+                  barcode: "012345678905",
+                },
+              } as any)
+            }
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Permission: loading state
   if (!permission) {
     return (
-      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-black items-center justify-center">
+      <SafeAreaView className="flex-1 bg-ground-canvas items-center justify-center p-6">
         <ActivityIndicator size="large" color="#10B981" />
-        <Typography variant="body" className="text-white/70 mt-4">
-          Initializing camera engine...
+        <Typography variant="body" color="muted" className="mt-4 text-center">
+          Initializing Camera...
         </Typography>
       </SafeAreaView>
     );
   }
 
-  // Permission: denied / not granted state
+  // Permission: denied state
   if (!permission.granted) {
     return (
-      <SafeAreaView edges={["top", "left", "right"]} className="flex-1 bg-black justify-between p-6">
-        <View className="flex-row items-center justify-between pt-2">
-          <Typography variant="h2" className="text-white mb-1">
-            Scan Item
-          </Typography>
-          <Typography variant="h3" className="text-white font-bold">
-            Camera Permission
-          </Typography>
-        </View>
-
-        <View className="items-center px-4">
-          <View className="w-24 h-24 rounded-full bg-brand-500/10 border border-brand-500/30 items-center justify-center mb-6">
-            <Icon name="Camera" size={40} color="#10B981" />
+      <SafeAreaView className="flex-1 bg-ground-canvas justify-between p-6">
+        <View className="items-center pt-8">
+          <BrandLogo width={140} />
+          <View className="w-20 h-20 rounded-3xl bg-brand-50 items-center justify-center mb-6 mt-4 border border-brand-200">
+            <Icon name="Camera" size={36} color="#10B981" />
           </View>
-          <Typography variant="h2" className="text-white font-bold text-center mb-2">
-            Camera Access Required
+          <Typography variant="h2" className="text-center mb-2 font-bold">
+            Camera Access Needed
           </Typography>
-          <Typography variant="body" className="text-white/70 text-center mb-6 leading-6">
-            Mealventory needs camera access to scan barcodes for instant item lookup, read receipts, and detect food items with AI Vision.
+          <Typography variant="body" color="muted" className="text-center px-4 mb-8">
+            Mealventory needs camera access to scan barcodes for instant product lookup, read receipts, and detect produce with AI Vision.
           </Typography>
           <Button
             label="Grant Camera Permission"
@@ -148,28 +190,48 @@ export default function ScanTabScreen() {
         {/* Top Header */}
         <View className="flex-row items-center justify-between px-5 pt-3">
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityState={{ disabled: scanning, busy: scanning }}
             activeOpacity={0.7}
             disabled={scanning}
             onPress={handlePickImage}
             accessibilityLabel="Choose photo from gallery"
-            className="w-10 h-10 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
+            className="w-11 h-11 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
           >
             <Icon name="Image" size={20} color="#FFFFFF" />
           </TouchableOpacity>
 
           <View className="items-center">
+            <BrandLogo width={112} />
             <Typography variant="h3" className="text-white font-bold">
               AI Scanner
             </Typography>
-            <Typography variant="caption" className="text-white/70">
-              {household?.name || "Kitchen"}
-            </Typography>
+            <View className="flex-row items-center">
+              <Typography variant="caption" className="text-white/70">
+                {household?.name || "Kitchen"}
+              </Typography>
+              <TouchableOpacity
+                onPress={() => router.push("/(app)/scan-history" as any)}
+                accessibilityRole="button"
+                accessibilityLabel="Open recent scans"
+                className="ml-2 flex-row items-center rounded-full bg-black/50 border border-white/20 px-2 py-1"
+              >
+                <Icon name="History" size={11} color="#FFFFFF" />
+                <Text className="text-white/80 text-[10px] font-semibold ml-1">
+                  Recent
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Add item manually"
+            accessibilityState={{ disabled: scanning }}
             activeOpacity={0.7}
+            disabled={scanning}
             onPress={() => router.push("/(modal)/manual-add" as any)}
-            className="w-10 h-10 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
+            className="w-11 h-11 rounded-2xl bg-black/50 items-center justify-center border border-white/20"
           >
             <Icon name="Plus" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -188,7 +250,11 @@ export default function ScanTabScreen() {
         <View className="px-5 pb-4">
           {/* Error Notice Banner */}
           {errorMessage && (
-            <View className="mb-4 p-3.5 rounded-2xl bg-danger-500/95 border border-danger-400 flex-row items-center justify-between shadow-lg">
+            <View
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+              className="mb-4 p-3.5 rounded-2xl bg-danger-500/95 border border-danger-400 flex-row items-center justify-between shadow-lg"
+            >
               <View className="flex-row items-center flex-1 mr-2">
                 <Icon name="AlertCircle" size={18} color="#FFFFFF" />
                 <Text className="text-white text-[13px] font-medium ml-2 flex-1">
@@ -196,6 +262,9 @@ export default function ScanTabScreen() {
                 </Text>
               </View>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss scan error"
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 onPress={() => setErrorMessage(null)}
                 className="p-1"
               >
@@ -214,10 +283,13 @@ export default function ScanTabScreen() {
               return (
                 <TouchableOpacity
                   key={`${m.id}-${m.label}`}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${m.label} scan mode`}
+                  accessibilityState={{ checked: isSelected, disabled: scanning }}
                   activeOpacity={0.75}
                   disabled={scanning}
                   onPress={() => selectMode(m.id)}
-                  className={`flex-1 flex-row items-center justify-center py-2 px-1.5 rounded-full ${
+                  className={`flex-1 min-h-[44px] flex-row items-center justify-center py-2 px-2 rounded-full ${
                     isSelected ? "bg-brand-500" : "bg-transparent"
                   }`}
                 >

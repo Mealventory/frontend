@@ -2,6 +2,7 @@ import React from "react";
 import { TouchableOpacity, View, Text } from "react-native";
 import { expiryDays, expiryLabel, localDay } from '@/src/lib/pantryExpiry';
 import { FoodItem } from "@/src/types";
+import { ItemPhoto } from "./ItemPhoto";
 
 export interface FoodItemCardProps {
   item: FoodItem;
@@ -47,17 +48,24 @@ export function FoodItemCard({ item, onPress, className = "", today = localDay()
         accessibilityLabel={`${item.name}, ${item.quantity}, ${daysLabel}. Open item details`}
         activeOpacity={0.7}
         onPress={() => onPress(item)}
-        className="flex-1 min-w-0 flex-row items-center"
+        className="flex-1 min-w-0 min-h-[44px] flex-row items-center"
       >
       {/* Item icon and title */}
-      <View className={`${quantityControls ? "w-8 h-8 mr-2" : "w-[46px] h-[46px] mr-3.5"} shrink-0 rounded-[16px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center`}>
-        <Text className="text-2xl">{item.emoji}</Text>
+      <View className={quantityControls ? "mr-2" : "mr-3.5"}>
+        <ItemPhoto
+          imageRef={item.imageRef}
+          emoji={item.emoji}
+          name={item.name}
+          size={quantityControls ? 32 : 46}
+          borderRadius={16}
+          emojiSize={24}
+        />
       </View>
 
       {/* Item info */}
       <View className="flex-1 min-w-0 mr-3">
         <Text
-          numberOfLines={quantityControls ? 2 : 1}
+          numberOfLines={2}
           className="text-[15px] font-bold text-text-primary tracking-tight font-bold"
         >
           {item.name}
@@ -72,7 +80,7 @@ export function FoodItemCard({ item, onPress, className = "", today = localDay()
       {quantityControls}
 
       {/* Expiry remains a separate detail target, outside the quantity buttons. */}
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${item.name}: ${daysLabel}. Open item details`} onPress={() => onPress(item)} className="items-end shrink-0 max-w-[86px] ml-4">
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`${item.name}: ${daysLabel}. Open item details`} onPress={() => onPress(item)} className="items-end justify-center min-h-[44px] shrink-0 max-w-[86px] ml-4">
         <View
           className={`px-2.5 py-0.5 rounded-full border ${expiryStyle.bg} ${expiryStyle.border}`}
         >

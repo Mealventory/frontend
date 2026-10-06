@@ -15,6 +15,7 @@ export function FormField({
   error,
   required = false,
   containerClassName = "",
+  accessibilityHint,
   ...props
 }: FormFieldProps) {
   return (
@@ -27,7 +28,16 @@ export function FormField({
           <Text className="text-urgency-critical ml-1 text-xs font-bold">*</Text>
         )}
       </View>
-      <Input accessibilityLabel={label} error={error} {...props} />
+      <Input
+        accessibilityLabel={label}
+        accessibilityHint={
+          [required ? "Required field." : "", accessibilityHint || ""]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
+        error={error}
+        {...props}
+      />
       {helperText && !error ? (
         <Typography variant="caption" color="muted" className="mt-2 ml-1">
           {helperText}

@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { FoodItem } from "@/src/types";
+import { ItemPhoto } from "./ItemPhoto";
 
 export interface FreshnessHeroProps {
   item: FoodItem;
@@ -39,7 +40,16 @@ export function FreshnessHero({ item }: FreshnessHeroProps) {
     <View
       className={`items-center p-8 rounded-[28px] border ${bgClass} ${borderClass} mb-4`}
     >
-      <Text className="text-[72px] mb-3">{item.emoji}</Text>
+      <View className="mb-4">
+        <ItemPhoto
+          imageRef={item.imageRef}
+          emoji={item.emoji}
+          name={item.name}
+          size={176}
+          borderRadius={28}
+          emojiSize={72}
+        />
+      </View>
       <Text className="text-[22px] font-bold text-text-primary text-center">
         {item.name}
       </Text>

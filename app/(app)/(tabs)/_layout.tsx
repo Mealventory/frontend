@@ -8,6 +8,7 @@ import { useAppTheme } from "@/src/context/ThemeContext";
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   const { isDark } = useAppTheme();
+  const bottomInset = Math.max(insets.bottom, 8);
 
   return (
     <Tabs
@@ -19,9 +20,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: isDark ? "#0F172A" : "#FFFFFF",
           borderTopColor: isDark ? "#1E293B" : "#E2E8F0",
-          height: 64 + insets.bottom,
-          paddingBottom: Math.max(insets.bottom, 8),
-          paddingTop: 8,
+          height: 52 + bottomInset,
+          paddingBottom: bottomInset,
+          paddingTop: 4,
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -34,6 +35,7 @@ export default function TabsLayout() {
         options={{
           title: "Pantry",
           tabBarAccessibilityLabel: "Pantry",
+          tabBarButtonTestID: "tab-pantry",
           tabBarIcon: ({ color, size }) => (
             <Icon name="Refrigerator" size={size} color={color} />
           ),
@@ -54,6 +56,7 @@ export default function TabsLayout() {
         options={{
           title: "Scan",
           tabBarAccessibilityLabel: "Scan",
+          tabBarButtonTestID: "tab-scan",
           tabBarIcon: ({ color, size }) => (
             <View className="w-10 h-10 rounded-2xl bg-brand-500 items-center justify-center shadow-sm shadow-brand-500/40">
               <Icon name="Camera" size={20} color="#FFFFFF" />
@@ -76,6 +79,7 @@ export default function TabsLayout() {
         options={{
           title: "Settings",
           tabBarAccessibilityLabel: "Settings",
+          tabBarButtonTestID: "tab-settings",
           tabBarIcon: ({ color, size }) => (
             <Icon name="Settings" size={size} color={color} />
           ),

@@ -55,8 +55,10 @@ export default function RecipeDetailRouteScreen() {
           Recipe not found
         </Text>
         <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Return to Recipes"
           onPress={() => router.back()}
-          className="px-5 py-2.5 rounded-xl bg-brand-500"
+          className="min-h-[44px] px-5 py-2.5 rounded-xl bg-brand-500 items-center justify-center"
         >
           <Text className="text-white font-bold">Return to Recipes</Text>
         </TouchableOpacity>
@@ -91,7 +93,7 @@ export default function RecipeDetailRouteScreen() {
       {!!saveError && (
         <Text
           accessibilityRole="alert"
-          className="mx-5 mt-3 p-3 rounded-xl bg-urgency-critical-bg text-urgency-critical text-[12px] font-semibold"
+          className="mx-4 mt-3 p-3 rounded-xl bg-urgency-critical-bg text-urgency-critical text-[12px] font-semibold"
         >
           {saveError}
         </Text>
@@ -101,6 +103,18 @@ export default function RecipeDetailRouteScreen() {
         inventoryItemNames={inventoryNames}
         saved={isRecipeSaved(recipe)}
         onToggleSaved={toggleSaved}
+        onStartCooking={() =>
+          router.push({
+            pathname: "/(app)/recipes/[id]/cook",
+            params: { id: recipe.id },
+          } as any)
+        }
+        onPlanMeal={() =>
+          router.push({
+            pathname: "/(app)/meal-plan",
+            params: { recipeId: recipe.id },
+          } as any)
+        }
         onAddMissingIngredients={addMissing}
         onBack={() => router.back()}
       />

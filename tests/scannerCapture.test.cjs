@@ -25,6 +25,7 @@ function harness(file) {
     'expo-camera': { CameraView: 'Camera', useCameraPermissions: () => [{ granted: true }, () => {}] },
     'expo-image-picker': {},
     'expo-haptics': { impactAsync: async () => {}, ImpactFeedbackStyle: { Medium: 1 } },
+    '@/src/components/atoms/BrandLogo': { BrandLogo: 'BrandLogo' },
     '@/src/components/atoms': { Typography: 'Typography', Icon: 'Icon', Button: 'Button' },
     '@/src/components/molecules': { BarcodeScannerFrame: 'Frame', CameraOverlayControls: 'Controls' },
     '@/src/context/AuthContext': { useAuth: () => ({ session: { access_token: 'token' }, household: { id: 'home' } }) },
@@ -32,6 +33,11 @@ function harness(file) {
     '@/src/lib/scanApi': { uploadScanImage: async ({ imageUri }) => { assert.equal(imageUri, 'file:///captured.jpg'); uploads++; return pending; } },
     '@/src/lib/imageOptimizer': { compressImageForUpload: async uri => uri },
     '@/src/lib/barcodeApi': {},
+    '@/src/lib/scanHistory': { recordScanFailure: async () => {} },
+    '@/src/lib/e2e': {
+      E2E_PRODUCT_SCAN_ITEMS: [],
+      E2E_BARCODE_SCAN_ITEMS: [],
+    },
   };
   const hookMod = new Module('useScannerCapture');
   hookMod.require = name => { if (!(name in mocks)) throw new Error(name); return mocks[name]; };
