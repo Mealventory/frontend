@@ -39,6 +39,10 @@ function harness(file) {
       E2E_BARCODE_SCAN_ITEMS: [],
     },
   };
+  const hookMod = new Module('useScannerCapture');
+  hookMod.require = name => { if (!(name in mocks)) throw new Error(name); return mocks[name]; };
+  hookMod._compile(ts.transpileModule(fs.readFileSync('src/hooks/useScannerCapture.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, 'useScannerCapture.cjs');
+  mocks['@/src/hooks/useScannerCapture'] = hookMod.exports;
   const mod = new Module(file);
   mod.require = name => { if (!(name in mocks)) throw new Error(name); return mocks[name]; };
   mod._compile(ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText, file);

@@ -4,10 +4,17 @@ const fs = require('node:fs');
 
 test('scan.tsx has gallery picker button to the left of AI Scanner title', () => {
   const scanContent = fs.readFileSync('app/(app)/(tabs)/scan.tsx', 'utf8');
+  const controllerContent = fs.readFileSync('src/hooks/useScannerCapture.ts', 'utf8');
 
-  // Verify ImagePicker and scanFromURLAsync imports
-  assert.ok(scanContent.includes('expo-image-picker'), 'scan.tsx should import expo-image-picker');
-  assert.ok(scanContent.includes('scanFromURLAsync'), 'scan.tsx should import scanFromURLAsync');
+  // Verify ImagePicker and scanFromURLAsync in shared scanner architecture
+  assert.ok(
+    controllerContent.includes('expo-image-picker') || scanContent.includes('expo-image-picker'),
+    'shared scanner architecture should import expo-image-picker'
+  );
+  assert.ok(
+    controllerContent.includes('scanFromURLAsync') || scanContent.includes('scanFromURLAsync'),
+    'shared scanner architecture should import scanFromURLAsync'
+  );
 
   // Verify Image icon button in the header
   assert.ok(scanContent.includes('handlePickImage'), 'scan.tsx should define handlePickImage');
@@ -23,29 +30,38 @@ test('scan.tsx has gallery picker button to the left of AI Scanner title', () =>
 
 test('scanner.tsx modal has gallery picker button with matching capabilities', () => {
   const modalContent = fs.readFileSync('app/(modal)/scanner.tsx', 'utf8');
+  const controllerContent = fs.readFileSync('src/hooks/useScannerCapture.ts', 'utf8');
 
-  assert.ok(modalContent.includes('expo-image-picker'), 'scanner.tsx should import expo-image-picker');
-  assert.ok(modalContent.includes('scanFromURLAsync'), 'scanner.tsx should import scanFromURLAsync');
+  assert.ok(
+    controllerContent.includes('expo-image-picker') || modalContent.includes('expo-image-picker'),
+    'shared scanner architecture should import expo-image-picker'
+  );
+  assert.ok(
+    controllerContent.includes('scanFromURLAsync') || modalContent.includes('scanFromURLAsync'),
+    'shared scanner architecture should import scanFromURLAsync'
+  );
   assert.ok(modalContent.includes('handlePickImage'), 'scanner.tsx should define handlePickImage');
   assert.ok(modalContent.includes('<Icon name="Image"'), 'scanner.tsx should render an Image icon button');
 });
 
 test('mode-aware scanning logic in scan.tsx correctly handles food, receipt, and barcode modes', () => {
-  const scanContent = fs.readFileSync('app/(app)/(tabs)/scan.tsx', 'utf8');
+  const controllerContent = fs.existsSync('src/hooks/useScannerCapture.ts')
+    ? fs.readFileSync('src/hooks/useScannerCapture.ts', 'utf8')
+    : fs.readFileSync('app/(app)/(tabs)/scan.tsx', 'utf8');
 
   // Barcode mode extracts barcode from URI
-  assert.ok(scanContent.includes('mode === "barcode"'), 'scan.tsx should have barcode mode branch');
-  assert.ok(scanContent.includes('fetchProductByBarcode'), 'scan.tsx should fetch product by barcode');
-  assert.ok(scanContent.includes('scanFromURLAsync(rawUri'), 'scan.tsx should scan barcode from image URI');
+  assert.ok(controllerContent.includes('mode === "barcode"'), 'shared controller should have barcode mode branch');
+  assert.ok(controllerContent.includes('fetchProductByBarcode'), 'shared controller should fetch product by barcode');
+  assert.ok(controllerContent.includes('scanFromURLAsync(rawUri'), 'shared controller should scan barcode from image URI');
 
   // Food and receipt mode compress and upload
-  assert.ok(scanContent.includes('compressImageForUpload(rawUri'), 'scan.tsx should compress image before upload');
-  assert.ok(scanContent.includes('uploadScanImage({'), 'scan.tsx should upload scan image with active mode');
+  assert.ok(controllerContent.includes('compressImageForUpload(rawUri'), 'shared controller should compress image before upload');
+  assert.ok(controllerContent.includes('uploadScanImage({'), 'shared controller should upload scan image with active mode');
 
   // Friendly error message fallback
   assert.ok(
-    scanContent.includes('could not be detected. Please adjust camera framing and retry.'),
-    'scan.tsx should show friendly detection failure message'
+    controllerContent.includes('could not be detected. Please adjust camera framing and retry.'),
+    'shared controller should show friendly detection failure message'
   );
 });
 
