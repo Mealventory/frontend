@@ -231,17 +231,27 @@ export default function FullscreenScannerModal() {
           )}
 
           {/* Mode Switcher Segmented Control */}
-          <View className="w-full max-w-[340px] self-center flex-row items-center justify-between mb-4 bg-black/60 p-1 rounded-full border border-white/20">
+          <View
+            className={`w-full max-w-[360px] self-center flex-row items-center justify-between mb-4 bg-black/60 p-1 rounded-full border border-white/20 ${
+              capturedPhoto ? "opacity-60" : "opacity-100"
+            }`}
+          >
             {modes.map((m) => {
               const isSelected = mode === m.id;
+              const displayLabel = m.label
+                ? m.label.charAt(0).toUpperCase() + m.label.slice(1)
+                : m.id.charAt(0).toUpperCase() + m.id.slice(1);
               return (
                 <TouchableOpacity
                   key={`${m.id}-${m.label}`}
                   accessibilityRole="radio"
                   accessibilityLabel={`${m.label} scan mode`}
-                  accessibilityState={{ checked: isSelected, disabled: scanning }}
+                  accessibilityState={{
+                    checked: isSelected,
+                    disabled: scanning || Boolean(capturedPhoto),
+                  }}
                   activeOpacity={0.75}
-                  disabled={scanning}
+                  disabled={scanning || Boolean(capturedPhoto)}
                   onPress={() => selectMode(m.id)}
                   className={`flex-1 min-h-[44px] flex-row items-center justify-center py-2 px-2 rounded-full ${
                     isSelected ? "bg-brand-500" : "bg-transparent"
@@ -254,50 +264,55 @@ export default function FullscreenScannerModal() {
                   />
                   <Text
                     numberOfLines={1}
-                    className={`ml-1.5 text-[12.5px] font-semibold ${
+                    className={`ml-1 text-[12px] font-semibold ${
                       isSelected ? "text-white" : "text-white/70"
                     }`}
                   >
-                    {m.label}
+                    {displayLabel}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {/* Bottom Overlay Controls */}
-          {capturedPhoto && !scanning ? (
-            <View className="gap-3 p-3 rounded-3xl bg-black/70 border border-white/20">
-              <Typography className="text-white text-center text-sm font-medium px-2">
-                Ready to scan? Check that your photo is clear.
-              </Typography>
-              <View className="flex-row gap-3">
-                <View className="flex-1">
-                  <Button
-                    label="Retake photo"
-                    variant="secondary"
-                    className="min-h-[52px] rounded-2xl px-3"
-                    onPress={retakePhoto}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Button
-                    label="Use Photo"
-                    className="min-h-[52px] rounded-2xl px-3"
-                    onPress={() => void processScannedImage(capturedPhoto)}
-                  />
+          {/* Standardized Bottom Controls Dock */}
+          <View className="min-h-[120px] justify-center">
+            {capturedPhoto ? (
+              <View className="gap-3 p-3 rounded-3xl bg-black/70 border border-white/20">
+                <Typography className="text-white text-center text-sm font-medium px-2">
+                  Ready to scan? Check that your photo is clear.
+                </Typography>
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <Button
+                      label="Retake photo"
+                      variant="secondary"
+                      className="min-h-[52px] rounded-2xl px-3"
+                      disabled={scanning}
+                      onPress={retakePhoto}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Button
+                      label="Use Photo"
+                      className="min-h-[52px] rounded-2xl px-3"
+                      loading={scanning}
+                      disabled={scanning}
+                      onPress={() => void processScannedImage(capturedPhoto)}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
-          ) : (
-            <CameraOverlayControls
-              mode={mode}
-              onScan={handleScan}
-              scanning={scanning}
-              flashOn={flashOn}
-              onToggleFlash={toggleFlash}
-            />
-          )}
+            ) : (
+              <CameraOverlayControls
+                mode={mode}
+                onScan={handleScan}
+                scanning={scanning}
+                flashOn={flashOn}
+                onToggleFlash={toggleFlash}
+              />
+            )}
+          </View>
         </View>
       </SafeAreaView>
 

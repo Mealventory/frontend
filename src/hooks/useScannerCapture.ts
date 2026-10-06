@@ -65,6 +65,7 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isProcessingBarcode = useRef(false);
+  const isPickingImage = useRef(false);
 
   const showScanFailure = useCallback(
     (message: string) => {
@@ -81,15 +82,21 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
   );
 
   useLayoutEffect(() => {
+    if (isPickingImage.current) {
+      return;
+    }
     scanGeneration.current++;
     activeRef.current = isFocused;
     isProcessingBarcode.current = false;
     setScanning(false);
     setFlashOn(false);
-    setCapturedPhoto(null);
+    if (!isFocused) {
+      setCapturedPhoto(null);
+    }
     captureLock.current = false;
     setErrorMessage(null);
     return () => {
+      if (isPickingImage.current) return;
       activeRef.current = false;
       scanGeneration.current++;
       isProcessingBarcode.current = false;
@@ -319,12 +326,16 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
 
   const handlePickImage = async () => {
     if (scanning || captureLock.current) return;
-    const generation = scanGeneration.current;
     setErrorMessage(null);
+    isPickingImage.current = true;
 
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permissionResult.granted) {
+      if (
+        !permissionResult.granted &&
+        permissionResult.status !== "granted" &&
+        (permissionResult as any).accessPrivileges !== "limited"
+      ) {
         setErrorMessage("Gallery permission is required to choose photos.");
         return;
       }
@@ -339,11 +350,11 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
         return;
       }
 
-      if (!activeRef.current || generation !== scanGeneration.current) return;
       const pickedUri = pickerResult.assets[0].uri;
       if (pickedUri) {
-        if (mode === "barcode") await processScannedImage(pickedUri);
-        else {
+        if (mode === "barcode") {
+          await processScannedImage(pickedUri);
+        } else {
           setCapturedPhoto(pickedUri);
           setFlashOn(false);
         }
@@ -358,6 +369,8 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
           ? "Tag"
           : "Item";
       showScanFailure(`${elementName} could not be detected. Please adjust camera framing and retry.`);
+    } finally {
+      isPickingImage.current = false;
     }
   };
 
