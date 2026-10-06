@@ -14,6 +14,7 @@ import { supabase } from "@/src/lib/supabase";
 import { uploadScanImage, ScannerMode } from "@/src/lib/scanApi";
 import { compressImageForUpload } from "@/src/lib/imageOptimizer";
 import { fetchProductByBarcode } from "@/src/lib/barcodeApi";
+import { recordScanFailure } from "@/src/lib/scanHistory";
 
 export type ScannerModeConfig = {
   id: ScannerMode;
@@ -42,21 +43,6 @@ export const BARCODE_TYPES = [
 
 export const MODES = SCANNER_MODES;
 
-let recordScanFailureFn:
-  | ((
-      scope: { userId: string; householdId: string },
-      mode: ScannerMode,
-      error: string
-    ) => Promise<void>)
-  | undefined;
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  recordScanFailureFn = require("@/src/lib/scanHistory").recordScanFailure;
-} catch {
-  // Optional in environments or tests where scanHistory is not provided
-}
-
 export interface UseScannerCaptureOptions {
   initialMode?: ScannerMode;
 }
@@ -83,8 +69,8 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
   const showScanFailure = useCallback(
     (message: string) => {
       setErrorMessage(message);
-      if (session?.user?.id && household?.id && recordScanFailureFn) {
-        void recordScanFailureFn(
+      if (session?.user?.id && household?.id) {
+        void recordScanFailure(
           { userId: session.user.id, householdId: household.id },
           mode,
           message
