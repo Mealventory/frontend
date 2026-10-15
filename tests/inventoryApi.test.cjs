@@ -141,3 +141,23 @@ test('inventory image references survive API row mapping', () => {
   });
   assert.equal(item.imageRef, 'home/photo.jpg');
 });
+
+test('stacked inventory row maps accumulated quantity and updated remaining percentage', () => {
+  const item = toFoodItem({
+    id: 'stacked-item-1',
+    household_id: 'home',
+    name: 'Apples',
+    category: 'Produce',
+    quantity: '5.000',
+    remaining_percent: '100.0',
+    is_low_stock: false,
+    unit: 'pieces',
+    expiry_date: '2026-10-30',
+    status: 'active',
+    storage_zone: 'fridge',
+  });
+  assert.equal(item.id, 'stacked-item-1');
+  assert.equal(item.quantity, '5 pieces');
+  assert.equal(item.remainingPercent, 100);
+  assert.equal(item.isLowStock, false);
+});
