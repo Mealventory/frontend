@@ -1,4 +1,3 @@
-import React from "react";
 import { ScrollView, TouchableOpacity, Text, View } from "react-native";
 
 export interface TagChipGroupProps {

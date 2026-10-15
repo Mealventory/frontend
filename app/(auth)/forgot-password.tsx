@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from 'react';
 import { View, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import * as Linking from "expo-linking";

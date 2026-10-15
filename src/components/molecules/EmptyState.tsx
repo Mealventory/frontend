@@ -1,4 +1,3 @@
-import React from 'react';
 import { View } from 'react-native';
 import { Typography, Button } from '../atoms';
 import { Icon, IconName } from '../atoms/Icon';

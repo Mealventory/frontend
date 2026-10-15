@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from 'react';
 import { ActivityIndicator, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
 import { RoutePlaceholder } from "@/src/components/layout/RoutePlaceholder";

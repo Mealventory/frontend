@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text } from "react-native";
 
 export interface FreshnessMeterProps {
@@ -10,13 +9,6 @@ export function FreshnessMeter({ daysLeft }: FreshnessMeterProps) {
     5,
     Math.min(100, Math.round((Math.min(daysLeft, 30) / 30) * 100))
   );
-
-  const colorClass =
-    freshPct > 50
-      ? "bg-brand-500 text-brand-500"
-      : freshPct > 20
-      ? "bg-urgency-soon text-urgency-soon"
-      : "bg-urgency-critical text-urgency-critical";
 
   const textColor =
     freshPct > 50

@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import {View, Text, Linking} from 'react-native';
 import {Button} from '../atoms';
 import {FormField} from './FormField';

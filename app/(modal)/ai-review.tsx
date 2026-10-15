@@ -1,14 +1,13 @@
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
 import { supabase } from "@/src/lib/supabase";
-import { inventoryRequest, batchCreateInventoryItems, NewItem } from "@/src/lib/inventoryApi";
+import { batchCreateInventoryItems, NewItem } from "@/src/lib/inventoryApi";
 import { ScannedItem } from "@/src/lib/scanApi";
 import { resolveScanZone } from "@/src/lib/storageZones";
-import { StorageZone } from "@/src/types";
 import { isScannerMode, recordScanSuccess } from "@/src/lib/scanHistory";
 import {
   ReceiptReviewSheet,

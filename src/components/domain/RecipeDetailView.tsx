@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Recipe } from "@/src/types";
 import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";

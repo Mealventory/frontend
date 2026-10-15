@@ -1,4 +1,3 @@
-import React from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Icon } from "../atoms/Icon";
 import { FigmaScreen } from "@/src/context/InventoryContext";

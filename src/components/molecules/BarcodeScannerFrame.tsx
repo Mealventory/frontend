@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { View, Animated, StyleSheet, Platform, DimensionValue } from "react-native";
+import { useEffect, useRef } from "react";
+import { View, Animated, StyleSheet, Platform } from "react-native";
 import { Typography } from "../atoms/Typography";
 import { Icon } from "../atoms/Icon";
 
