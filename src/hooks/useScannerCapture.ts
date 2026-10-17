@@ -134,7 +134,8 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
           // Graceful fallback on web or unsupported environments
         }
 
-        const resolvedProduct = await fetchProductByBarcode(barcodeData);
+        const token = await getAccessToken();
+        const resolvedProduct = await fetchProductByBarcode(barcodeData, token);
 
         if (!activeRef.current || generation !== scanGeneration.current) return;
         router.push({
@@ -221,7 +222,8 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
         }
 
         try {
-          const resolvedProduct = await fetchProductByBarcode(barcodeData);
+          const token = await getAccessToken();
+          const resolvedProduct = await fetchProductByBarcode(barcodeData, token);
           if (!activeRef.current || generation !== scanGeneration.current) return;
           router.push({
             pathname: "/(modal)/ai-review",

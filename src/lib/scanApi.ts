@@ -14,6 +14,8 @@ export interface ScannedItem {
   confidence?: number;
   storageZone?: StorageZone;
   imageRef?: string;
+  brand?: string;
+  shelfLifeDays?: number;
 }
 
 export interface UploadScanParams {
