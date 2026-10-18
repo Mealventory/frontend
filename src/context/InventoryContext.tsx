@@ -143,7 +143,11 @@ interface InventoryContextType {
   updateItem: (id: string, patch: Partial<NewItem>) => Promise<void>;
   addItem: (item: FoodItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
-  transitionItem: (id: string, action: 'consume' | 'discard') => Promise<void>;
+  transitionItem: (
+  id: string,
+  action: 'consume' | 'discard',
+  reason?: 'expired' | 'spoiled' | 'bought_too_much' | 'didnt_like' | 'other'
+) => Promise<void>;
   refreshInventory: () => Promise<void>;
   inventoryLoading: boolean;
   inventoryError: string;
@@ -414,21 +418,54 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     } finally { mutations.current--; }
   };
 
-  const transitionItem = async (id: string, action: 'consume' | 'discard') => {
-    if (demo) { setDemoInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
-    if (!household || !session) throw new Error('Choose a household first.');
-    mutations.current++;
-    try {
-      await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
-      await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', id, undefined, action);
-      if (activeScope.current === scope) {
-        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
-          (previous ?? []).filter(item => item.id !== id),
-        );
-        setSelectedItem(prev => prev?.id === id ? null : prev);
-      }
-    } finally { mutations.current--; }
-  };
+  const transitionItem = async (
+  id: string,
+  action: 'consume' | 'discard',
+  reason?: 'expired' | 'spoiled' | 'bought_too_much' | 'didnt_like' | 'other'
+) => {
+  if (demo) {
+    setDemoInventory(prev => prev.filter(item => item.id !== id));
+    setSelectedItem(null);
+    return;
+  }
+
+  if (!household || !session) {
+    throw new Error('Choose a household first.');
+  }
+
+  if (action === 'discard' && !reason) {
+    throw new Error('Please select a reason for discarding this item.');
+  }
+
+  mutations.current++;
+
+  try {
+    await queryClient.cancelQueries({
+      queryKey: inventoryKey,
+      exact: true,
+    });
+
+    await inventoryRequest<InventoryRow>(
+      await token(),
+      household.id,
+      'POST',
+      id,
+      action === 'discard' && reason ? { reason } : undefined,
+      action
+    );
+
+    if (activeScope.current === scope) {
+      queryClient.setQueryData<FoodItem[]>(
+        inventoryKey,
+        previous => (previous ?? []).filter(item => item.id !== id),
+      );
+
+      setSelectedItem(prev => prev?.id === id ? null : prev);
+    }
+  } finally {
+    mutations.current--;
+  }
+};
 
   const openItem = (item: FoodItem) => {
     setSelectedItem(item);

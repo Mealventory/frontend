@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {View, Text, TouchableOpacity, ActivityIndicator} from 'react-native';
+import {View, Text, TouchableOpacity, ActivityIndicator, Alert} from 'react-native';
 import {FoodItem} from '@/src/types';
 import {FoodItemCard} from './FoodItemCard';
 import {Button} from '../atoms';
@@ -20,23 +20,43 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
  // A remote edit while the prompt is open requires a new decision.
  useEffect(()=>{setFinish(false);},[item.quantity]);
- const quantity=parseQuantity(item.quantity);
+  const quantity=parseQuantity(item.quantity);
  const display=optimistic!==null&&quantity?{...item,quantity:`${optimistic} ${quantity.unit}`}:item;
- const save=async(amount:number|null, action?:'consume'|'discard')=>{
+
+ const save=async(
+  amount:number|null,
+  action?:'consume'|'discard',
+  reason?:'expired'|'spoiled'|'bought_too_much'|'didnt_like'|'other'
+ )=>{
   if(locked.current)return;
   locked.current=true;setBusy(true);setError('');setFinish(false);
   if(amount!==null)setOptimistic(amount);
   try{
-   if(action)await transitionItem(item.id,action);
+   if(action)await transitionItem(item.id,action,reason);
    else await updateItem(item.id,{quantity:amount!});
   }catch(e){
    if(mounted.current){setOptimistic(null);setError(e instanceof Error?e.message:'Could not save this change. Please retry.');}
-   // Reconcile uncertain network outcomes before another tap; refresh reports its own error.
    try{await refreshInventory();}catch{/* Keep the original save error visible. */}
   }finally{
    locked.current=false;
    if(mounted.current){setOptimistic(null);setBusy(false);}
   }
+ };
+
+ const discardWithReason = () => {
+  Alert.alert(
+   'Discard item',
+   `Why are you discarding ${item.name}?`,
+   [
+    {text:'Expired',onPress:()=>void save(null,'discard','expired')},
+    {text:'Spoiled',onPress:()=>void save(null,'discard','spoiled')},
+    {text:'Bought too much',onPress:()=>void save(null,'discard','bought_too_much')},
+    {text:"Didn't like it",onPress:()=>void save(null,'discard','didnt_like')},
+    {text:'Other',onPress:()=>void save(null,'discard','other')},
+    {text:'Cancel',style:'cancel'},
+   ],
+   {cancelable:true}
+  );
  };
  const change=(delta:1|-1)=>{
   if(locked.current||!quantity)return;
@@ -74,7 +94,7 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
      label:'Discarded',
      accessibilityLabel:`Mark ${item.name} as discarded`,
      tone:'danger',
-     onPress:()=>save(null,'discard'),
+     onPress:discardWithReason,
     },
    ]}
   >
@@ -85,7 +105,7 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
     <Text className="text-text-primary font-bold">Finished with {item.name}?</Text>
     <Text className="text-text-muted">Mark the remaining {item.quantity} as consumed or discarded. Cancel keeps the item unchanged.</Text>
     <Button label="Consumed" onPress={()=>void save(null,'consume')} />
-    <Button label="Discarded" variant="outline" onPress={()=>void save(null,'discard')} />
+    <Button label="Discarded" variant="outline" onPress={discardWithReason} />
     <Button label="Cancel" variant="ghost" onPress={()=>setFinish(false)} />
    </View>}
    {!!error&&<Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>}

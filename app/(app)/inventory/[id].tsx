@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, ScrollView, TouchableOpacity, Text } from "react-native";
+import { Alert, View, ScrollView, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Icon } from "@/src/components/atoms/Icon";
@@ -14,7 +14,7 @@ export default function ItemDetailScreen() {
   const router = useRouter();
   const { inventory, removeItem, transitionItem } = useInventory();
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const item = inventory.find((i) => i.id === id);
 
@@ -24,6 +24,7 @@ export default function ItemDetailScreen() {
         <Text className="text-[16px] font-bold text-text-primary mb-4">
           Item not found
         </Text>
+
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="Return to Kitchen"
@@ -36,17 +37,70 @@ export default function ItemDetailScreen() {
     );
   }
 
-  const handleAction = async (action: 'delete' | 'consume' | 'discard') => {
+  const handleAction = async (
+    action: "delete" | "consume" | "discard",
+    reason?: "expired" | "spoiled" | "bought_too_much" | "didnt_like" | "other"
+  ) => {
     if (deleting) return;
-    setDeleting(true); setError('');
+
+    setDeleting(true);
+    setError("");
+
     try {
-      if (action === 'delete') {
+      if (action === "delete") {
         await removeItem(item.id);
-        if (item.imageRef) void deleteItemPhoto(item.imageRef).catch(() => {});
-      } else await transitionItem(item.id, action);
+
+        if (item.imageRef) {
+          void deleteItemPhoto(item.imageRef).catch(() => {});
+        }
+      } else {
+        await transitionItem(item.id, action, reason);
+      }
+
       router.back();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not update item.'); }
-    finally { setDeleting(false); }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not update item."
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    Alert.alert(
+      "Discard item",
+      `Why are you discarding ${item.name}?`,
+      [
+        {
+          text: "Expired",
+          onPress: () => handleAction("discard", "expired"),
+        },
+        {
+          text: "Spoiled",
+          onPress: () => handleAction("discard", "spoiled"),
+        },
+        {
+          text: "Bought too much",
+          onPress: () => handleAction("discard", "bought_too_much"),
+        },
+        {
+          text: "Didn't like it",
+          onPress: () => handleAction("discard", "didnt_like"),
+        },
+        {
+          text: "Other",
+          onPress: () => handleAction("discard", "other"),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ],
+      {
+        cancelable: true,
+      }
+    );
   };
 
   const infoRows = [
@@ -78,17 +132,37 @@ export default function ItemDetailScreen() {
           activeOpacity={0.7}
           onPress={() => handleAction("delete")}
           disabled={deleting}
-          accessibilityLabel={deleting ? 'Deleting item' : `Delete ${item.name}`}
-          accessibilityState={{ disabled: deleting, busy: deleting }}
+          accessibilityLabel={
+            deleting ? "Deleting item" : `Delete ${item.name}`
+          }
+          accessibilityState={{
+            disabled: deleting,
+            busy: deleting,
+          }}
           className="w-11 h-11 rounded-[14px] bg-urgency-critical-bg border border-urgency-critical/30 items-center justify-center"
         >
           <Icon name="Trash2" size={16} color="#F43F5E" />
         </TouchableOpacity>
       </View>
 
-      {!!error && <Text accessibilityRole="alert" style={{ color: '#B42318', paddingHorizontal: APP_GUTTER, paddingVertical: 12 }}>{error}</Text>}
+      {!!error && (
+        <Text
+          accessibilityRole="alert"
+          style={{
+            color: "#B42318",
+            paddingHorizontal: APP_GUTTER,
+            paddingVertical: 12,
+          }}
+        >
+          {error}
+        </Text>
+      )}
+
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingBottom: 60 }}
+        contentContainerStyle={{
+          paddingHorizontal: APP_GUTTER,
+          paddingBottom: 60,
+        }}
         showsVerticalScrollIndicator={false}
         className="flex-1"
       >
@@ -96,7 +170,9 @@ export default function ItemDetailScreen() {
         <FreshnessHero item={item} />
 
         {/* Freshness Bar */}
-        {item.expiryDate !== null && <FreshnessMeter daysLeft={item.daysLeft} />}
+        {item.expiryDate !== null && (
+          <FreshnessMeter daysLeft={item.daysLeft} />
+        )}
 
         {/* Info Rows Table */}
         <View className="bg-ground-surface dark:bg-ground-card rounded-[22px] border border-border-default shadow-sm mb-4 overflow-hidden">
@@ -104,12 +180,15 @@ export default function ItemDetailScreen() {
             <View
               key={row.label}
               className={`flex-row items-center justify-between px-5 py-3.5 ${
-                index < infoRows.length - 1 ? "border-b border-border-default" : ""
+                index < infoRows.length - 1
+                  ? "border-b border-border-default"
+                  : ""
               }`}
             >
               <Text className="text-[14px] font-regular text-text-muted">
                 {row.label}
               </Text>
+
               <Text className="text-[14px] font-bold text-text-primary text-right flex-1 ml-4">
                 {row.value}
               </Text>
@@ -118,16 +197,37 @@ export default function ItemDetailScreen() {
         </View>
 
         {item.remainingPercent != null && (
-          <View className={`p-4 rounded-[22px] border mb-4 ${item.isLowStock ? 'bg-urgency-soon-bg border-urgency-soon/30' : 'bg-ground-surface border-border-default'}`}>
+          <View
+            className={`p-4 rounded-[22px] border mb-4 ${
+              item.isLowStock
+                ? "bg-urgency-soon-bg border-urgency-soon/30"
+                : "bg-ground-surface border-border-default"
+            }`}
+          >
             <View className="flex-row items-center gap-2 mb-2">
-              <Icon name="Gauge" size={18} color={item.isLowStock ? '#F59E0B' : '#10B981'} />
-              <Text className={`text-[15px] font-bold ${item.isLowStock ? 'text-urgency-soon' : 'text-text-primary'}`}>
-                {item.isLowStock ? 'Low stock' : 'Quantity remaining'}
+              <Icon
+                name="Gauge"
+                size={18}
+                color={item.isLowStock ? "#F59E0B" : "#10B981"}
+              />
+
+              <Text
+                className={`text-[15px] font-bold ${
+                  item.isLowStock
+                    ? "text-urgency-soon"
+                    : "text-text-primary"
+                }`}
+              >
+                {item.isLowStock
+                  ? "Low stock"
+                  : "Quantity remaining"}
               </Text>
             </View>
+
             <Text className="text-[14px] text-text-secondary">
               {item.quantity} remaining · {item.remainingPercent}% left
             </Text>
+
             <Text className="text-[12px] text-text-muted mt-1">
               Mealventory warns automatically at 10% remaining.
             </Text>
@@ -135,36 +235,77 @@ export default function ItemDetailScreen() {
         )}
 
         <View className="gap-3 mb-4">
-          <TouchableOpacity testID="e2e-edit-item" disabled={deleting} accessibilityRole="button"
+          {/* Edit */}
+          <TouchableOpacity
+            testID="e2e-edit-item"
+            disabled={deleting}
+            accessibilityRole="button"
             accessibilityLabel={`Edit ${item.name}`}
             accessibilityState={{ disabled: deleting }}
-            onPress={() => router.push({ pathname: '/(app)/inventory/edit', params: { id: item.id } })}
-            className="p-4 rounded-xl bg-ground-subtle items-center">
-            <Text className="text-brand-600 dark:text-brand-400 font-bold">Edit item</Text>
+            onPress={() =>
+              router.push({
+                pathname: "/(app)/inventory/edit",
+                params: { id: item.id },
+              })
+            }
+            className="p-4 rounded-xl bg-ground-subtle items-center"
+          >
+            <Text className="text-brand-600 dark:text-brand-400 font-bold">
+              Edit item
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity testID="e2e-consume-item" disabled={deleting} onPress={() => handleAction('consume')}
-            className="p-4 rounded-xl bg-brand-500 items-center" accessibilityRole="button"
+
+          {/* Consume */}
+          <TouchableOpacity
+            testID="e2e-consume-item"
+            disabled={deleting}
+            onPress={() => handleAction("consume")}
+            className="p-4 rounded-xl bg-brand-500 items-center"
+            accessibilityRole="button"
             accessibilityLabel={`Mark ${item.name} as consumed`}
-            accessibilityState={{ disabled: deleting, busy: deleting }}>
-            <Text className="text-white font-bold">{deleting ? 'Saving…' : 'Mark as consumed'}</Text>
+            accessibilityState={{
+              disabled: deleting,
+              busy: deleting,
+            }}
+          >
+            <Text className="text-white font-bold">
+              {deleting ? "Saving…" : "Mark as consumed"}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity disabled={deleting} onPress={() => handleAction('discard')}
-            className="p-4 rounded-xl bg-ground-subtle items-center" accessibilityRole="button"
+
+          {/* Discard */}
+          <TouchableOpacity
+            disabled={deleting}
+            onPress={handleDiscard}
+            className="p-4 rounded-xl bg-ground-subtle items-center"
+            accessibilityRole="button"
             accessibilityLabel={`Mark ${item.name} as discarded`}
-            accessibilityState={{ disabled: deleting, busy: deleting }}>
-            <Text className="text-text-primary font-bold">Mark as discarded</Text>
+            accessibilityState={{
+              disabled: deleting,
+              busy: deleting,
+            }}
+          >
+            <Text className="text-text-primary font-bold">
+              Mark as discarded
+            </Text>
           </TouchableOpacity>
-          <Text className="text-text-muted">These actions apply to the entire item quantity and keep its history.</Text>
+
+          <Text className="text-text-muted">
+            These actions apply to the entire item quantity and keep its
+            history.
+          </Text>
         </View>
 
         {/* Recipe Suggestion Nudge Card */}
         <View className="p-5 bg-brand-50 dark:bg-brand-500/15 border border-brand-500/30 rounded-[22px]">
           <View className="flex-row items-center gap-2.5 mb-2">
             <Text className="text-2xl">👨‍🍳</Text>
+
             <Text className="text-[15px] font-bold text-brand-600 dark:text-brand-400">
               Use it before it expires
             </Text>
           </View>
+
           <Text className="text-[13px] text-text-secondary leading-relaxed mb-3.5">
             Find recipes that use {item.name} so nothing goes to waste.
           </Text>
@@ -173,7 +314,9 @@ export default function ItemDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel={`Find recipes using ${item.name}`}
             activeOpacity={0.8}
-            onPress={() => router.push("/(app)/(tabs)/recipes" as any)}
+            onPress={() =>
+              router.push("/(app)/(tabs)/recipes" as any)
+            }
             className="w-full h-[44px] rounded-[14px] bg-brand-500 items-center justify-center shadow-sm shadow-brand-500/30"
           >
             <Text className="text-[14px] font-bold text-white">
