@@ -1,4 +1,3 @@
-import React from 'react';
 import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '@/src/context/ThemeContext';
 import { Icon } from '../atoms/Icon';

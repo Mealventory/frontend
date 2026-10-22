@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from 'react';
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { RoutePlaceholder } from "@/src/components/layout/RoutePlaceholder";

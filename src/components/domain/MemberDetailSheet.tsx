@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   View,
   Text,
   Modal,
   Pressable,
   ScrollView,
-  ActivityIndicator,
   Alert,
   Platform,
 } from "react-native";
@@ -22,7 +21,6 @@ export interface MemberDetailSheetProps {
   onUpdateRole?: (member: MemberProfile, newRole: HouseholdRole) => Promise<void>;
   onRemoveMember?: (member: MemberProfile) => Promise<void>;
   onLeaveHousehold?: (member: MemberProfile) => Promise<void>;
-  loading?: boolean;
 }
 
 const roleDescriptions: Record<HouseholdRole, string> = {
@@ -60,21 +58,18 @@ export function MemberDetailSheet({
   onUpdateRole,
   onRemoveMember,
   onLeaveHousehold,
-  loading = false,
 }: MemberDetailSheetProps) {
   const [selectedRole, setSelectedRole] = useState<HouseholdRole>(member?.role || "member");
   const [actionBusy, setActionBusy] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [confirmingRemove, setConfirmingRemove] = useState(false);
 
   // Sync selectedRole when member changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (member) {
       setSelectedRole(member.role);
       setErrorMessage(null);
       setSuccessMessage(null);
-      setConfirmingRemove(false);
     }
   }, [member?.userId, member?.role]);
 

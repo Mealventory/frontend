@@ -1,4 +1,3 @@
-import React from "react";
 import { TouchableOpacity, View } from "react-native";
 import { FoodItem } from "@/src/types";
 import { Avatar } from "../atoms/Avatar";

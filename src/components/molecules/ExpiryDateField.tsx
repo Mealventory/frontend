@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Modal, Pressable, Text } from 'react-native';
 import { FormField } from './FormField';
 import { Button } from '../atoms';

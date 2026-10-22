@@ -1,4 +1,3 @@
-import React from "react";
 import {
   View,
   Image,
@@ -14,12 +13,7 @@ import { Typography, Icon, Button } from "@/src/components/atoms";
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { BarcodeScannerFrame, CameraOverlayControls } from "@/src/components/molecules";
 import { useAuth } from "@/src/context/AuthContext";
-import {
-  useScannerCapture,
-  SCANNER_MODES,
-  BARCODE_TYPES,
-  SCANNER_MODES as MODES,
-} from "@/src/hooks/useScannerCapture";
+import { useScannerCapture } from "@/src/hooks/useScannerCapture";
 import {
   E2E_BARCODE_SCAN_ITEMS,
   E2E_PRODUCT_SCAN_ITEMS,
@@ -33,7 +27,7 @@ import {
 
 export default function ScanTabScreen() {
   const router = useRouter();
-  const { session, household, e2eMode } = useAuth();
+  const { household, e2eMode } = useAuth();
 
   const {
     mode,

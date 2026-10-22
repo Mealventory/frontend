@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Button, Icon, Typography } from "@/src/components/atoms";
 

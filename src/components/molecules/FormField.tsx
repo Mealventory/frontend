@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text } from "react-native";
 import { Input, InputProps } from "../atoms/Input";
 import { Typography } from "../atoms/Typography";

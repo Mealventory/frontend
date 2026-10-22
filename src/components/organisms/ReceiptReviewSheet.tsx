@@ -1,11 +1,10 @@
 import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '../molecules/ExpiryDateField';
-import React from "react";
+import { useMemo } from "react";
 import {
   View,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Text,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -117,7 +116,7 @@ export function ReceiptReviewSheet({
   const confirmedItems = items.filter((i) => i.confirmed);
   const allConfirmed = items.length > 0 && confirmedItems.length === items.length;
 
-  const modeBadge = React.useMemo(() => {
+  const modeBadge = useMemo(() => {
     switch (mode) {
       case "barcode":
         return "Barcode scan";

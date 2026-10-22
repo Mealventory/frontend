@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text } from "react-native";
 import { FoodItem } from "@/src/types";
 import { ItemPhoto } from "./ItemPhoto";

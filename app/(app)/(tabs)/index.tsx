@@ -1,5 +1,5 @@
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { View, FlatList, ScrollView, TextInput, TouchableOpacity, RefreshControl, AppState, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';

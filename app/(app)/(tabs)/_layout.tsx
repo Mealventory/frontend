@@ -1,4 +1,3 @@
-import React from "react";
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { View } from "react-native";
@@ -57,7 +56,7 @@ export default function TabsLayout() {
           title: "Scan",
           tabBarAccessibilityLabel: "Scan",
           tabBarButtonTestID: "tab-scan",
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: () => (
             <View className="w-10 h-10 rounded-2xl bg-brand-500 items-center justify-center shadow-sm shadow-brand-500/40">
               <Icon name="Camera" size={20} color="#FFFFFF" />
             </View>

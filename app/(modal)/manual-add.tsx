@@ -2,7 +2,7 @@ import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
-import React, { useState } from "react";
+import { useState } from 'react';
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";

@@ -1,4 +1,3 @@
-import React from "react";
 import {
   View,
   Image,
@@ -13,12 +12,7 @@ import { CameraView } from "expo-camera";
 import { Typography, Icon, Button } from "@/src/components/atoms";
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { BarcodeScannerFrame, CameraOverlayControls } from "@/src/components/molecules";
-import {
-  useScannerCapture,
-  SCANNER_MODES,
-  BARCODE_TYPES,
-  SCANNER_MODES as MODES,
-} from "@/src/hooks/useScannerCapture";
+import { useScannerCapture } from "@/src/hooks/useScannerCapture";
 
 // Supported modes configuration:
 // - Product: id: "food"

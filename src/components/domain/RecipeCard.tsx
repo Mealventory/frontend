@@ -1,4 +1,3 @@
-import React from "react";
 import { TouchableOpacity, View, Text, Pressable } from "react-native";
 import { Icon } from "@/src/components/atoms/Icon";
 import { Recipe } from "@/src/types";

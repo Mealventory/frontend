@@ -1,4 +1,3 @@
-import React from 'react';
 import { Image, View } from 'react-native';
 
 /** Display the original artwork in a compact viewport without stretching it. */

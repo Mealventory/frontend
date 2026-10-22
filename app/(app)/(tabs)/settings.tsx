@@ -1,7 +1,7 @@
 import { ThemeSelector } from "@/src/components/molecules/ThemeSelector";
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { useNotifications } from "@/src/context/NotificationContext";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
