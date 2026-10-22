@@ -46,7 +46,7 @@ const reviewSheetMod = load('src/components/organisms/ReceiptReviewSheet.tsx', {
   '@/src/types': {},
 });
 
-const { parseRawScanItems, getItemEmoji, saveReviewedItems, batchSaveReviewedItems } = load('app/(modal)/ai-review.tsx', {
+const { parseRawScanItems, getItemEmoji, saveReviewedItems, batchSaveReviewedItems, createScanBatchKey } = load('app/(modal)/ai-review.tsx', {
   '@/src/lib/expiryDate': load('src/lib/expiryDate.ts'),
   '@/src/lib/storageZones': load('src/lib/storageZones.ts'),
   'react-native': {
@@ -317,3 +317,12 @@ test('batchSaveReviewedItems handles multiple identical items and resolves all s
   assert.equal(receivedPayloads[1].name, 'Greek Yogurt');
 });
 
+
+test('scan batch operation keys are unique and compatible with backend validation', () => {
+  const first = createScanBatchKey();
+  const second = createScanBatchKey();
+  assert.notEqual(first, second);
+  for (const key of [first, second]) {
+    assert.match(key, /^[A-Za-z0-9][A-Za-z0-9_-]{15,127}$/);
+  }
+});

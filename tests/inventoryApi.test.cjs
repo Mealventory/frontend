@@ -77,44 +77,40 @@ test('failed status actions reject and inactive items explain recovery', async (
   }
 });
 
-test('batchCreateInventoryItems posts items array to /api/v1/inventory/batch with bearer and household headers', async () => {
+test('batchCreateInventoryItems posts directly to household batch route with retry key', async () => {
   const items = [
     { name: 'Organic Milk', category: 'Dairy', quantity: 1, unit: 'gal', expiry_date: '2026-10-01', storage_zone: 'fridge' },
     { name: 'Sourdough', category: 'Bakery', quantity: 1, unit: 'loaf', expiry_date: null, storage_zone: 'pantry' },
   ];
-  let requestedUrl = '';
-  let requestedHeaders = {};
-  let requestedBody = null;
+  const requests = [];
   global.fetch = async (url, options) => {
-    requestedUrl = url;
-    requestedHeaders = options.headers;
-    requestedBody = JSON.parse(options.body);
+    requests.push({ url, ...options });
     return new Response(JSON.stringify([{ id: 'uuid-1' }, { id: 'uuid-2' }]), { status: 201 });
   };
-  const result = await batchCreateInventoryItems('jwt-token-123', 'household-456', items);
-  assert.equal(requestedUrl, 'https://backend.example/api/v1/inventory/batch');
-  assert.equal(requestedHeaders.Authorization, 'Bearer jwt-token-123');
-  assert.equal(requestedHeaders['X-Household-ID'], 'household-456');
-  assert.equal(requestedBody.length, 2);
-  assert.equal(requestedBody[0].name, 'Organic Milk');
-  assert.equal(requestedBody[0].storage_zone, 'fridge');
-  assert.equal(result.length, 2);
+  const id = 'scan-20261022-abc123def456';
+  const first = await batchCreateInventoryItems('jwt-token-123', 'household-456', items, id);
+  const retried = await batchCreateInventoryItems('jwt-token-123', 'household-456', items, id);
+  assert.deepEqual(first, retried);
+  assert.equal(requests.length, 2);
+  for (const request of requests) {
+    assert.equal(request.url, 'https://backend.example/api/v1/items/batch');
+    assert.equal(request.headers.Authorization, 'Bearer jwt-token-123');
+    assert.equal(request.headers['X-Household-ID'], 'household-456');
+    assert.equal(request.headers['Idempotency-Key'], id);
+    assert.equal(JSON.parse(request.body)[0].storage_zone, 'fridge');
+  }
 });
 
-test('batchCreateInventoryItems falls back to /api/v1/items/batch when /inventory/batch returns 404', async () => {
+test('ordinary batch callers do not set an idempotency key or fall back to legacy route', async () => {
   const items = [{ name: 'Rice', category: 'Pantry', quantity: 1, unit: 'kg', expiry_date: null, storage_zone: 'pantry' }];
-  let urls = [];
-  global.fetch = async (url) => {
+  const urls = [];
+  global.fetch = async (url, options) => {
     urls.push(url);
-    if (url.includes('/inventory/batch')) {
-      return new Response(JSON.stringify({ detail: 'Not Found' }), { status: 404 });
-    }
+    assert.equal(options.headers['Idempotency-Key'], undefined);
     return new Response(JSON.stringify([{ id: 'uuid-1', name: 'Rice' }]), { status: 201 });
   };
   const result = await batchCreateInventoryItems('jwt-token', 'household-1', items);
-  assert.equal(urls.length, 2);
-  assert.equal(urls[0], 'https://backend.example/api/v1/inventory/batch');
-  assert.equal(urls[1], 'https://backend.example/api/v1/items/batch');
+  assert.deepEqual(urls, ['https://backend.example/api/v1/items/batch']);
   assert.equal(result.length, 1);
 });
 
