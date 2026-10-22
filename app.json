@@ -11,20 +11,26 @@
       "resizeMode": "contain",
       "backgroundColor": "#F6F8F4"
     },
+    "icon": "./assets/branding/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.mealventory.app",
       "infoPlist": {
         "NSCameraUsageDescription": "Mealventory requires camera access to scan grocery receipts and barcodes.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "icon": "./assets/branding/icon.png"
     },
     "android": {
       "package": "com.mealventory.app",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/adaptive-icon.png",
+        "backgroundColor": "#F6F8F4"
+      }
     },
     "web": {
       "bundler": "metro",

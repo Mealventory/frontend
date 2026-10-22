@@ -298,3 +298,22 @@ test('barcode/product image references are persisted in batch review payloads', 
   assert.deepEqual(result.errors, []);
   assert.equal(payloads[0].image_ref, 'https://images.openfoodfacts.org/yogurt.jpg');
 });
+
+test('batchSaveReviewedItems handles multiple identical items and resolves all saved IDs', async () => {
+  const raw = [
+    { id: 'scan-1', name: 'Greek Yogurt', quantity: 1, unit: 'tubs', storageZone: 'fridge' },
+    { id: 'scan-2', name: 'Greek Yogurt', quantity: 2, unit: 'tubs', storageZone: 'fridge' },
+  ];
+  const items = parseRawScanItems(JSON.stringify(raw));
+  let receivedPayloads = [];
+  const result = await batchSaveReviewedItems(items, async payloads => {
+    receivedPayloads = payloads;
+    return [{ id: 'stacked-db-id', name: 'Greek Yogurt', quantity: 3 }];
+  });
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(result.savedIds, ['scan-1', 'scan-2']);
+  assert.equal(receivedPayloads.length, 2);
+  assert.equal(receivedPayloads[0].name, 'Greek Yogurt');
+  assert.equal(receivedPayloads[1].name, 'Greek Yogurt');
+});
+
