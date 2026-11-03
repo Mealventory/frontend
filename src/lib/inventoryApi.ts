@@ -24,7 +24,14 @@ export type NewItem = {
   image_ref?: string | null;
 };
 
-export async function inventoryRequest<T>(token: string, household: string, method = 'GET', id?: string, body?: Partial<NewItem>, action?: 'consume' | 'discard'): Promise<T> {
+export async function inventoryRequest<T>(
+  token: string,
+  household: string,
+  method = 'GET',
+  id?: string,
+  body?: Partial<NewItem> | { reason: 'expired' | 'spoiled' | 'bought_too_much' | 'didnt_like' | 'other' },
+  action?: 'consume' | 'discard'
+): Promise<T> {
   if (!backendUrl) throw new Error('The backend connection is not configured.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);

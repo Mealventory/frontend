@@ -13,6 +13,13 @@ export type ActivityAction =
   | "deleted"
   | "shopping_added";
 
+export type WasteReason =
+  | "expired"
+  | "spoiled"
+  | "bought_too_much"
+  | "didnt_like"
+  | "other";
+
 export interface HouseholdActivityEvent {
   id: string;
   household_id: string;
@@ -23,6 +30,7 @@ export interface HouseholdActivityEvent {
   entity_id: string | null;
   item_name: string;
   created_at: string;
+  reason?: WasteReason | null;
 }
 
 export async function fetchHouseholdActivity(
