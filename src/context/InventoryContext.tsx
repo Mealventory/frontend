@@ -337,7 +337,44 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   }, [inventory]);
 
   const addItem = async (item: FoodItem) => {
-    if (demo) { setDemoInventory(prev => [item, ...prev]); return; }
+    if (demo) {
+      const incomingMatch = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+      const incomingVal = incomingMatch ? Number(incomingMatch[1]) : 1;
+      const incomingUnit = (incomingMatch?.[2] || 'units').trim().toLowerCase();
+      const incomingZone = item.storageZone || 'pantry';
+      const incomingExpiry = item.expiryDate || null;
+      const incomingName = item.name.trim().toLowerCase();
+
+      setDemoInventory(prev => {
+        const matchIndex = prev.findIndex(p => {
+          const pMatch = p.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+          const pUnit = (pMatch?.[2] || 'units').trim().toLowerCase();
+          const pZone = p.storageZone || 'pantry';
+          const pExpiry = p.expiryDate || null;
+          const pName = p.name.trim().toLowerCase();
+          return pName === incomingName && pZone === incomingZone && pExpiry === incomingExpiry && pUnit === incomingUnit;
+        });
+
+        if (matchIndex >= 0) {
+          const existing = prev[matchIndex];
+          const existMatch = existing.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+          const existVal = existMatch ? Number(existMatch[1]) : 1;
+          const unitDisplay = existMatch?.[2] || incomingMatch?.[2] || 'units';
+          const combinedQty = existVal + incomingVal;
+          const updatedItem: FoodItem = {
+            ...existing,
+            quantity: `${combinedQty} ${unitDisplay}`.trim(),
+            imageRef: existing.imageRef || item.imageRef || null,
+          };
+          const next = [...prev];
+          next[matchIndex] = updatedItem;
+          return next;
+        }
+
+        return [item, ...prev];
+      });
+      return;
+    }
     if (!household || !session) throw new Error('Choose a household first.');
     const quantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
     if (!quantity || Number(quantity[1]) <= 0) throw new Error('Enter a quantity such as 2 items or 500 g.');
@@ -348,10 +385,15 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null, image_ref: item.imageRef ?? null,
       });
       if (activeScope.current === scope) {
-        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous => [
-          toFoodItem(row),
-          ...(previous ?? []).filter(i => i.id !== row.id),
-        ]);
+        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous => {
+          const updated = toFoodItem(row);
+          const list = previous ?? [];
+          const exists = list.some(i => i.id === updated.id);
+          if (exists) {
+            return list.map(i => (i.id === updated.id ? updated : i));
+          }
+          return [updated, ...list];
+        });
       }
     } finally { mutations.current--; }
   };

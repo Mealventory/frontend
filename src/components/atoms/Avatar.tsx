@@ -1,4 +1,3 @@
-import React from "react";
 import { View, Text, Image } from "react-native";
 
 export type AvatarSize = "sm" | "md" | "lg" | "xl";

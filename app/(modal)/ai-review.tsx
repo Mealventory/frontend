@@ -1,14 +1,13 @@
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
 import { supabase } from "@/src/lib/supabase";
-import { inventoryRequest, batchCreateInventoryItems, NewItem } from "@/src/lib/inventoryApi";
+import { batchCreateInventoryItems, NewItem } from "@/src/lib/inventoryApi";
 import { ScannedItem } from "@/src/lib/scanApi";
 import { resolveScanZone } from "@/src/lib/storageZones";
-import { StorageZone } from "@/src/types";
 import { isScannerMode, recordScanSuccess } from "@/src/lib/scanHistory";
 import {
   ReceiptReviewSheet,
@@ -17,6 +16,12 @@ import {
 } from "@/src/components/organisms/ReceiptReviewSheet";
 
 export { ReviewItemState, getItemEmoji };
+
+// This ID identifies an inventory save attempt, not an authentication secret.
+// The backend scopes all idempotency keys to the verified household and user.
+export function createScanBatchKey(): string {
+  return `scan-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
 
 export function parseRawScanItems(rawParam?: string, rawBarcode?: string): ReviewItemState[] {
   if (rawParam) {
@@ -140,6 +145,7 @@ export default function AIReviewModal() {
   const [items, setItems] = useState<ReviewItemState[]>(initialItems);
   const historyRecorded = useRef(false);
   const savingRef = useRef(false);
+  const batchKeyRef = useRef<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successCount, setSuccessCount] = useState<number | null>(null);
@@ -187,30 +193,36 @@ export default function AIReviewModal() {
   const confirmedItems = items.filter((i) => i.confirmed);
 
   const handleToggleConfirm = (id: string) => {
+    batchKeyRef.current = null; // Edited review starts a new operation.
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, confirmed: !item.confirmed } : item))
     );
   };
 
   const handleSelectAll = () => {
+    batchKeyRef.current = null; // Edited review starts a new operation.
     setItems((prev) => prev.map((item) => ({ ...item, confirmed: true })));
   };
 
   const handleDeselectAll = () => {
+    batchKeyRef.current = null; // Edited review starts a new operation.
     setItems((prev) => prev.map((item) => ({ ...item, confirmed: false })));
   };
 
   const handleToggleEdit = (id: string) => {
+    batchKeyRef.current = null; // Edited review starts a new operation.
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, isEditing: !item.isEditing } : item))
     );
   };
 
   const handleRemoveItem = (id: string) => {
+    batchKeyRef.current = null; // Edited review starts a new operation.
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handleUpdateItem = (id: string, updates: Partial<ReviewItemState>) => {
+    batchKeyRef.current = null; // Edited review starts a new operation.
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
     );
@@ -242,9 +254,13 @@ export default function AIReviewModal() {
 
     try {
       const token = await getAccessToken();
+      // Reuse the key across ambiguous network failures and retries.
+      const batchKey = batchKeyRef.current ?? createScanBatchKey();
+      batchKeyRef.current = batchKey;
       const { savedIds, errors } = await batchSaveReviewedItems(selected,
-        payloads => batchCreateInventoryItems(token, household.id, payloads));
+        payloads => batchCreateInventoryItems(token, household.id, payloads, batchKey));
       if (errors.length) { setErrorMessage(errors.join("\n")); return; }
+      batchKeyRef.current = null; // The server acknowledged the save.
       setItems(previous => previous.filter(item => !savedIds.includes(item.id)));
       setSuccessCount(previous => (previous || 0) + savedIds.length);
       await refreshInventory();

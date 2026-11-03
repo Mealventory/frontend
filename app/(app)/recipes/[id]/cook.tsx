@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from 'react';
 import { useAuth } from "@/src/context/AuthContext";
 import { RecipeCompletionReview } from "@/src/components/domain/RecipeCompletionReview";
 import { ActivityIndicator, Text, TouchableOpacity } from "react-native";

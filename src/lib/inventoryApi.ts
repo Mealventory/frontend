@@ -64,6 +64,7 @@ export async function batchCreateInventoryItems<T = InventoryRow[]>(
   token: string,
   household: string,
   items: NewItem[],
+  idempotencyKey?: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<T> {
   if (!backendUrl) throw new Error('The backend connection is not configured.');
@@ -73,35 +74,32 @@ export async function batchCreateInventoryItems<T = InventoryRow[]>(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    let response = await fetchFn(`${backendUrl}/api/v1/inventory/batch`, {
+    // The household batch route supports atomic, durable idempotency. Do not
+    // route scan saves through the retired user-scoped inventory endpoint.
+    const response = await fetchFn(`${backendUrl}/api/v1/items/batch`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'X-Household-ID': household,
         'Content-Type': 'application/json',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
       },
       body: JSON.stringify(items),
       signal: controller.signal,
     });
 
-    if (response.status === 404) {
-      response = await fetchFn(`${backendUrl}/api/v1/items/batch`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-Household-ID': household,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(items),
-        signal: controller.signal,
-      });
-    }
-
     if (!response.ok) {
       if (response.status === 401) throw new Error('Please sign in again.');
       if (response.status === 403) throw new Error('You no longer have access to this household.');
       const problem = await response.json().catch(() => null);
-      throw new Error(problem?.detail || 'Could not batch save items to inventory. Please try again.');
+      const detailMsg = Array.isArray(problem?.detail)
+        ? problem.detail.map((d: any) => d?.msg || JSON.stringify(d)).join(', ')
+        : typeof problem?.detail === 'string'
+        ? problem.detail
+        : problem?.detail
+        ? JSON.stringify(problem.detail)
+        : 'Could not batch save items to inventory. Please try again.';
+      throw new Error(detailMsg);
     }
 
     return await response.json();

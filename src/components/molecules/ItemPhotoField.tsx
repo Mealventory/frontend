@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from 'react';
 import { Image, View } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Button, Icon, Typography } from "@/src/components/atoms";

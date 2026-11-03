@@ -1,5 +1,5 @@
 import { resolveScanZone } from './storageZones';
-import { ScannedItem } from './scanApi';
+import { getBackendUrl, ScannedItem } from './scanApi';
 import { StorageZone } from '../types';
 
 export function normalizeOpenFoodFactsCategory(categoriesTags?: string[], categoryStr?: string): { category: string; storageZone: StorageZone } {
@@ -8,120 +8,69 @@ export function normalizeOpenFoodFactsCategory(categoriesTags?: string[], catego
     categoryStr || '',
   ].join(' ').toLowerCase();
 
-  if (combined.includes('frozen') || combined.includes('ice cream')) {
-    return { category: 'Frozen', storageZone: 'freezer' };
-  }
-  if (combined.includes('dairy') || combined.includes('milk') || combined.includes('cheese') || combined.includes('yogurt') || combined.includes('butter')) {
-    return { category: 'Dairy', storageZone: 'fridge' };
-  }
-  if (combined.includes('meat') || combined.includes('poultry') || combined.includes('beef') || combined.includes('chicken') || combined.includes('pork') || combined.includes('fish') || combined.includes('seafood')) {
-    return { category: 'Meat', storageZone: 'fridge' };
-  }
-  if (combined.includes('beverage') || combined.includes('drink') || combined.includes('juice') || combined.includes('soda') || combined.includes('tea') || combined.includes('coffee')) {
-    return { category: 'Beverage', storageZone: 'fridge' };
-  }
-  if (combined.includes('fruit') || combined.includes('vegetable') || combined.includes('produce') || combined.includes('salad') || combined.includes('fresh')) {
-    return { category: 'Produce', storageZone: 'fridge' };
-  }
-  if (combined.includes('bread') || combined.includes('bakery') || combined.includes('pastry') || combined.includes('toast') || combined.includes('bagel')) {
-    return { category: 'Bakery', storageZone: 'pantry' };
-  }
-  if (combined.includes('spice') || combined.includes('herb') || combined.includes('seasoning')) {
-    return { category: 'Spices', storageZone: 'spicerack' };
-  }
-
+  if (combined.includes('frozen') || combined.includes('ice cream')) return { category: 'Frozen', storageZone: 'freezer' };
+  if (combined.includes('dairy') || combined.includes('milk') || combined.includes('cheese') || combined.includes('yogurt') || combined.includes('butter')) return { category: 'Dairy', storageZone: 'fridge' };
+  if (combined.includes('meat') || combined.includes('poultry') || combined.includes('beef') || combined.includes('chicken') || combined.includes('pork') || combined.includes('fish') || combined.includes('seafood')) return { category: 'Meat', storageZone: 'fridge' };
+  if (combined.includes('beverage') || combined.includes('drink') || combined.includes('juice') || combined.includes('soda') || combined.includes('tea') || combined.includes('coffee')) return { category: 'Beverage', storageZone: 'fridge' };
+  if (combined.includes('fruit') || combined.includes('vegetable') || combined.includes('produce') || combined.includes('salad') || combined.includes('fresh')) return { category: 'Produce', storageZone: 'fridge' };
+  if (combined.includes('bread') || combined.includes('bakery') || combined.includes('pastry') || combined.includes('toast') || combined.includes('bagel')) return { category: 'Bakery', storageZone: 'pantry' };
+  if (combined.includes('spice') || combined.includes('herb') || combined.includes('seasoning')) return { category: 'Spices', storageZone: 'spicerack' };
   return { category: 'Pantry', storageZone: 'pantry' };
 }
 
-export async function fetchProductByBarcode(
-  barcode: string,
-  fetchFn: typeof fetch = fetch
-): Promise<ScannedItem> {
+function fallbackItem(barcode: string): ScannedItem {
   const cleanBarcode = (barcode || '').trim();
-  if (!cleanBarcode) {
-    return {
-      name: 'Unknown Barcode Item',
-      category: 'Pantry',
-      quantity: 1,
-      unit: 'units',
-      expiry_date: null,
-      confidence: 0.5,
-      storageZone: 'pantry',
-    };
-  }
-
-  const fallbackItem: ScannedItem = {
-    name: `Item (${cleanBarcode})`,
+  return {
+    name: cleanBarcode ? `Item (${cleanBarcode})` : 'Unknown Barcode Item',
     category: 'Pantry',
     quantity: 1,
     unit: 'units',
     expiry_date: null,
-    confidence: 0.8,
+    confidence: cleanBarcode ? 0.8 : 0.5,
     storageZone: 'pantry',
   };
+}
+
+export async function fetchProductByBarcode(
+  barcode: string,
+  token: string,
+  fetchFn: typeof fetch = fetch
+): Promise<ScannedItem> {
+  const cleanBarcode = (barcode || '').trim();
+  if (!cleanBarcode || !token) return fallbackItem(cleanBarcode);
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
-
+  const timeoutId = setTimeout(() => controller.abort(), 3000);
   try {
-    const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(cleanBarcode)}.json`;
-    const res = await fetchFn(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mealventory - iOS Scanner - Version 1.0',
-      },
-    });
-
-    if (!res.ok) {
-      return fallbackItem;
-    }
-
-    const data = await res.json();
-    if (data?.status !== 1 || !data?.product) {
-      return fallbackItem;
-    }
-
-    const product = data.product;
-    const rawName = (product.product_name || product.product_name_en || product.generic_name || '').trim();
-    const brand = (product.brands || '').trim();
-    const rawImage = (
-      product.image_front_url ||
-      product.image_url ||
-      product.image_front_small_url ||
-      ''
-    ).trim();
-    const imageRef = rawImage
-      ? rawImage.replace(/^http:\/\//i, 'https://')
-      : undefined;
-
-    let name = rawName;
-    if (brand && name && !name.toLowerCase().includes(brand.toLowerCase())) {
-      name = `${brand} ${name}`;
-    }
-    if (!name) {
-      name = brand ? `${brand} Product` : `Item (${cleanBarcode})`;
-    }
-
-    // Capitalize first letter
-    name = name.charAt(0).toUpperCase() + name.slice(1);
-
-    const { category, storageZone } = normalizeOpenFoodFactsCategory(
-      product.categories_tags,
-      product.categories
+    const backendUrl = getBackendUrl();
+    if (!backendUrl) return fallbackItem(cleanBarcode);
+    const response = await fetchFn(
+      `${backendUrl}/api/v1/barcode/${encodeURIComponent(cleanBarcode)}`,
+      { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal }
     );
+    if (!response.ok) return fallbackItem(cleanBarcode);
+    const product = await response.json();
+    if (!product?.found) return fallbackItem(cleanBarcode);
 
+    const category = typeof product.category === 'string' ? product.category : 'Pantry';
+    const storageZone = typeof product.storage_zone === 'string'
+      ? product.storage_zone as StorageZone
+      : normalizeOpenFoodFactsCategory([], category).storageZone;
+    const days = product.shelf_life_days ?? product.shelf_life?.days;
     return {
-      name,
+      name: typeof product.name === 'string' ? product.name : `Item (${cleanBarcode})`,
+      brand: typeof product.brand === 'string' ? product.brand : undefined,
       category,
       quantity: 1,
       unit: 'units',
       expiry_date: null,
       confidence: 0.95,
       storageZone: resolveScanZone(storageZone, category),
-      imageRef: imageRef?.startsWith('https://') ? imageRef : undefined,
+      imageRef: typeof product.image_url === 'string' ? product.image_url : undefined,
+      shelfLifeDays: Number.isFinite(days) ? days : undefined,
     };
   } catch {
-    return fallbackItem;
+    return fallbackItem(cleanBarcode);
   } finally {
     clearTimeout(timeoutId);
   }

@@ -1,4 +1,3 @@
-import React from "react";
 import { View, TouchableOpacity, Text, ActivityIndicator } from "react-native";
 import { Icon } from "../atoms/Icon";
 
@@ -22,7 +21,7 @@ export function CameraOverlayControls({
   const isBarcodeMode = mode === "barcode";
 
   return (
-    <View className={`flex-row items-center gap-3 px-5 pb-6 ${className}`}>
+    <View className={`flex-row items-center gap-3 ${className}`}>
       {onToggleFlash && (
         <TouchableOpacity
           accessibilityRole="button"

@@ -1,5 +1,5 @@
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
-import React from "react";
+import type { ReactNode } from "react";
 import { View, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -16,13 +16,12 @@ export interface RoutePlaceholderProps {
   description: string;
   iconName?: IconName;
   showBackToHome?: boolean;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export function RoutePlaceholder({
   title,
   category,
-  routePath,
   description,
   iconName = "Layers",
   showBackToHome = true,

@@ -1,5 +1,5 @@
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";

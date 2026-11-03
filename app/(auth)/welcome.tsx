@@ -1,4 +1,3 @@
-import React from "react";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { RoutePlaceholder } from "@/src/components/layout/RoutePlaceholder";

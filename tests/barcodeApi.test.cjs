@@ -16,7 +16,7 @@ const mod = new Module('barcodeApi');
 const originalRequire = mod.require.bind(mod);
 mod.require = (name) => {
   if (name === './storageZones') return zones.exports;
-  if (name === './scanApi') return {};
+  if (name === './scanApi') return { getBackendUrl: () => 'https://mealventory.test' };
   return originalRequire(name);
 };
 mod._compile(
@@ -33,24 +33,25 @@ afterEach(() => {
   global.fetch = originalFetch;
 });
 
-test('fetchProductByBarcode resolves product name, brand, category, and storageZone from OpenFoodFacts', async () => {
-  global.fetch = async (url) => {
-    assert.ok(url.includes('011110038364'));
+test('fetchProductByBarcode resolves product data from the authenticated backend barcode endpoint', async () => {
+  global.fetch = async (url, options) => {
+    assert.equal(url, 'https://mealventory.test/api/v1/barcode/011110038364');
+    assert.equal(options.headers.Authorization, 'Bearer test-token');
     return new Response(
       JSON.stringify({
-        status: 1,
-        product: {
-          product_name: 'Greek Whole Milk Yogurt',
-          brands: 'Chobani',
-          categories_tags: ['en:dairies', 'en:fermented-foods', 'en:yogurts'],
-          image_front_url: 'http://images.openfoodfacts.org/yogurt.jpg',
-        },
+        found: true,
+        name: 'Chobani Greek Whole Milk Yogurt',
+        brand: 'Chobani',
+        category: 'Dairy',
+        storage_zone: 'fridge',
+        image_url: 'https://images.openfoodfacts.org/yogurt.jpg',
+        shelf_life_days: 3,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   };
 
-  const item = await fetchProductByBarcode('011110038364');
+  const item = await fetchProductByBarcode('011110038364', 'test-token');
   assert.equal(item.name, 'Chobani Greek Whole Milk Yogurt');
   assert.equal(item.category, 'Dairy');
   assert.equal(item.storageZone, 'fridge');
@@ -58,20 +59,19 @@ test('fetchProductByBarcode resolves product name, brand, category, and storageZ
   assert.equal(item.unit, 'units');
   assert.equal(item.confidence, 0.95);
   assert.equal(item.imageRef, 'https://images.openfoodfacts.org/yogurt.jpg');
+  assert.equal(item.brand, 'Chobani');
+  assert.equal(item.shelfLifeDays, 3);
 });
 
 test('fetchProductByBarcode returns fallback item when product is not found', async () => {
   global.fetch = async () => {
     return new Response(
-      JSON.stringify({
-        status: 0,
-        status_verbose: 'product not found',
-      }),
+      JSON.stringify({ found: false }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   };
 
-  const item = await fetchProductByBarcode('9999999999999');
+  const item = await fetchProductByBarcode('9999999999999', 'test-token');
   assert.equal(item.name, 'Item (9999999999999)');
   assert.equal(item.category, 'Pantry');
   assert.equal(item.storageZone, 'pantry');
@@ -83,7 +83,7 @@ test('fetchProductByBarcode handles network failure gracefully without throwing'
     throw new Error('Network request failed');
   };
 
-  const item = await fetchProductByBarcode('123456789012');
+  const item = await fetchProductByBarcode('123456789012', 'test-token');
   assert.equal(item.name, 'Item (123456789012)');
   assert.equal(item.category, 'Pantry');
   assert.equal(item.storageZone, 'pantry');

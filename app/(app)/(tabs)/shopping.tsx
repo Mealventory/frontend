@@ -1,5 +1,5 @@
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
-import React, { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,

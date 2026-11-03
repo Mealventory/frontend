@@ -1,5 +1,8 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {View, Text, TouchableOpacity, ActivityIndicator, Alert} from 'react-native';
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { FoodItem } from "@/src/types";
+import { FoodItemCard } from "./FoodItemCard";
+import { Button } from "../atoms";
 import {FoodItem} from '@/src/types';
 import {FoodItemCard} from './FoodItemCard';
 import {Button} from '../atoms';
