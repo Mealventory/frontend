@@ -10,6 +10,11 @@ const pantry = fs.readFileSync(
   "src/components/domain/PantryItemCard.tsx",
   "utf8"
 );
+const foodCard = fs.readFileSync(
+  "src/components/domain/FoodItemCard.tsx",
+  "utf8"
+);
+const theme = fs.readFileSync("global.css", "utf8");
 const shopping = fs.readFileSync(
   "app/(app)/(tabs)/shopping.tsx",
   "utf8"
@@ -51,6 +56,22 @@ test("swipe actions have an internal duplicate-action lock", () => {
 test("pantry swipe wrapper clips hidden actions to the card radius", () => {
   assert.match(swipe, /containerClassName/);
   assert.match(pantry, /containerClassName="rounded-\[20px\]"/);
+});
+
+test("dark pantry and shopping swipe rows hide actions behind opaque card backgrounds", () => {
+  // The shared dark card token is intentionally translucent; swipe foregrounds
+  // must instead use the solid elevated token so hidden actions cannot bleed through.
+  const darkTheme = theme.split(':root[class~="dark"],')[1];
+  assert.ok(darkTheme);
+  assert.match(darkTheme, /--color-ground-elevated:\s*#[0-9a-f]{6}\s*;/i);
+
+  assert.match(foodCard, /bg-ground-surface dark:bg-ground-elevated rounded-\[20px\]/);
+
+  const shoppingRows = shopping.match(/<SwipeActionRow\b[\s\S]*?<\/SwipeActionRow>/g) || [];
+  assert.equal(shoppingRows.length, 2);
+  for (const row of shoppingRows) {
+    assert.match(row, /className="bg-ground-card dark:bg-ground-elevated"/);
+  }
 });
 
 test("pantry maps right swipe to consumed and left swipe to discarded", () => {

@@ -41,7 +41,7 @@ export function FoodItemCard({ item, onPress, className = "", today = localDay()
 
   return (
     <View
-      className={`flex-row items-center p-3.5 bg-ground-surface dark:bg-ground-card rounded-[20px] border border-border-default shadow-sm ${className}`}
+      className={`flex-row items-center p-3.5 bg-ground-surface dark:bg-ground-elevated rounded-[20px] border border-border-default shadow-sm ${className}`}
     >
       <TouchableOpacity
         accessibilityRole="button"
