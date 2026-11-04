@@ -77,7 +77,7 @@ test('zone cards open the pantry filter and empty zones can add an item', () => 
 
   nodes.find((node) => node.props?.accessibilityLabel?.startsWith('Open Refrigerator')).props.onPress();
   assert.deepEqual(h.pushes[0], {
-    pathname: '/(app)/(tabs)/index',
+    pathname: '/(app)/(tabs)',
     params: { zone: 'fridge' },
   });
 

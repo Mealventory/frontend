@@ -45,7 +45,7 @@ export default function StorageZonesScreen() {
 
   const openZone = (zone: StorageZone) => {
     router.push({
-      pathname: "/(app)/(tabs)/index",
+      pathname: "/(app)/(tabs)",
       params: { zone },
     } as any);
   };
