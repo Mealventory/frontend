@@ -161,18 +161,25 @@ export function SwipeActionRow({
     }
   };
 
+  const actionOpacity = translateX.interpolate({
+    inputRange: [-8, -1, 0, 1, 8],
+    outputRange: [1, 1, 0, 1, 1],
+    extrapolate: "clamp",
+  });
+
   const renderActions = (
     rows: SwipeAction[],
     side: "left" | "right",
     width: number
   ) => (
-    <View
+    <Animated.View
       style={{
         position: "absolute",
         top: 0,
         bottom: 0,
         width,
         flexDirection: "row",
+        opacity: actionOpacity,
         ...(side === "left" ? { left: 0 } : { right: 0 }),
       }}
     >
@@ -202,7 +209,7 @@ export function SwipeActionRow({
           </TouchableOpacity>
         );
       })}
-    </View>
+    </Animated.View>
   );
 
   return (

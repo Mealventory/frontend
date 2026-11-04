@@ -8,6 +8,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { Icon } from "@/src/components/atoms/Icon";
 import { useAuth } from "@/src/context/AuthContext";
 import {
   fetchHouseholdActivity,
@@ -30,7 +32,16 @@ const MONTHS = [
 ];
 
 export default function AnalyticsScreen() {
+  const router = useRouter();
   const { session, household } = useAuth();
+
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(app)/(tabs)" as any);
+    }
+  };
 
   const today = new Date();
 
@@ -152,7 +163,7 @@ const unclassifiedWasteCount = monthEvents.filter(
   };
 
   return (
-      <SafeAreaView className="flex-1 bg-[#7DB59F]" edges={["top"]}>
+      <SafeAreaView className="flex-1 bg-ground-canvas" edges={["top"]}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
@@ -164,6 +175,19 @@ const unclassifiedWasteCount = monthEvents.filter(
         }
       >
         <View className="mb-6">
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Back to My Kitchen"
+            activeOpacity={0.7}
+            onPress={handleGoBack}
+            className="mb-4 flex-row items-center self-start rounded-xl border border-border-default bg-ground-surface px-3.5 py-2.5 min-h-[44px] gap-2"
+          >
+            <Icon name="ArrowLeft" size={18} color="#10B981" />
+            <Text className="text-sm font-semibold text-text-primary">
+              Back to My Kitchen
+            </Text>
+          </TouchableOpacity>
+
           <Text className="text-3xl font-bold text-text-primary">
             Waste Analytics
           </Text>
