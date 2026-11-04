@@ -16,7 +16,7 @@ export default function SettingsTabScreen() {
   const notifications = useNotifications();
   const router = useRouter();
   const { colorScheme, themePreference } = useAppTheme();
-  const { session, e2eMode, signOutE2E, openHouseholdSelection } = useAuth();
+  const { session, e2eMode, signOutE2E } = useAuth();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -243,10 +243,7 @@ export default function SettingsTabScreen() {
             label="Switch / Manage Households"
             variant="outline"
             leadingIcon={<Icon name="Home" size={16} />}
-            onPress={() => {
-              openHouseholdSelection();
-              router.replace("/" as any);
-            }}
+            onPress={() => router.push("/households" as any)}
           />
           {!!logoutError && <Typography color="critical">{logoutError}</Typography>}
           <Button
