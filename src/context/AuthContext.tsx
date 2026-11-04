@@ -21,8 +21,6 @@ const AuthContext = createContext<{
   session: Session | null; ready: boolean; recovery: boolean; recoveryError: string;
   finishRecovery: () => void;
   household: Household | null; selectHousehold: (household: Household | null) => void;
-  choosingHousehold: boolean;
-  openHouseholdSelection: () => void;
   e2eMode: boolean;
   signInE2E: (email: string, password: string) => boolean;
   signOutE2E: () => void;
@@ -34,8 +32,6 @@ const AuthContext = createContext<{
   finishRecovery: () => {},
   household: null,
   selectHousehold: () => {},
-  choosingHousehold: false,
-  openHouseholdSelection: () => {},
   e2eMode: false,
   signInE2E: () => false,
   signOutE2E: () => {},
@@ -47,14 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [recovery, setRecovery] = useState(E2E_ENABLED ? false : initialRecovery);
   const [recoveryError, setRecoveryError] = useState('');
   const [household, setHousehold] = useState<Household | null>(null);
-  // Keep the original household picker visible when opened from Settings.
-  // This is UI state only: opening it must not clear the persisted kitchen.
-  const [choosingHousehold, setChoosingHousehold] = useState(false);
-  const openHouseholdSelection = useCallback(() => setChoosingHousehold(true), []);
 
   const selectHousehold = useCallback((next: Household | null) => {
     setHousehold(next);
-    if (next) setChoosingHousehold(false);
     const userId = session?.user.id;
     if (E2E_ENABLED || !userId) return;
     const key = householdSelectionKey(userId);
@@ -71,7 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!active) return;
       const previousUserId = userId;
       if (previousUserId !== next?.user.id) {
-        setChoosingHousehold(false);
         setHousehold(null);
         if (previousUserId) appStorage.removeItem(householdSelectionKey(previousUserId));
       }
@@ -79,7 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(next); setReady(true);
       if (event === 'PASSWORD_RECOVERY') setRecovery(true);
       if (event === 'SIGNED_OUT') {
-        setChoosingHousehold(false);
         setHousehold(null);
         setRecovery(false);
       }
@@ -143,7 +132,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password === E2E_PASSWORD;
     if (!valid) return false;
     setSession(E2E_SESSION);
-    setChoosingHousehold(false);
     setHousehold(null);
     setRecovery(false);
     setRecoveryError('');
@@ -154,7 +142,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOutE2E = () => {
     if (!E2E_ENABLED) return;
     setSession(null);
-    setChoosingHousehold(false);
     setHousehold(null);
     setRecovery(false);
     setRecoveryError('');
@@ -169,8 +156,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     finishRecovery: () => { setRecovery(false); setRecoveryError(''); },
     household,
     selectHousehold,
-    choosingHousehold,
-    openHouseholdSelection,
     e2eMode: E2E_ENABLED,
     signInE2E,
     signOutE2E,
