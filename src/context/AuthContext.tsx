@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (state === 'active') client.auth.startAutoRefresh();
       else client.auth.stopAutoRefresh();
     };
-    if (Platform.OS !== 'web') refresh(AppState.currentState);
+    if (Platform.OS !== 'web') refresh(AppState.currentState ?? 'unknown');
     const appSubscription = AppState.addEventListener('change', refresh);
     return () => { active = false; data.subscription.unsubscribe(); linkSubscription?.remove(); appSubscription.remove(); };
   }, []);

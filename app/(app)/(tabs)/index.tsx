@@ -357,7 +357,7 @@ export default function PantryDashboardScreen() {
                 }}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
-                    inventoryError ? null : inventoryLoading ? (
+                    inventoryError ? undefined : inventoryLoading ? (
                         <ActivityIndicator
                             accessibilityLabel="Loading pantry"
                             color="#10B981"
