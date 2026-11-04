@@ -378,35 +378,19 @@ export default function HouseholdScreen({
               <Action title={busy ? 'Saving…' : page === 'create' ? 'Create household' : 'Join household'} disabled={busy || (page === 'create' ? !name.trim() : !isValidInviteCode(code))} onPress={saveHousehold} />
             </View>
           </> : <>
-            <Text style={styles.eyebrow}>BETTER TOGETHER</Text><Text style={styles.title}>{manageHouseholds ? 'Your households.' : 'Your household.'}</Text>
-            <Text style={styles.subtitle}>{manageHouseholds ? 'Choose which kitchen to enter, or create or join another.' : 'A home for your shared kitchen.'}</Text>
+            <Text style={styles.eyebrow}>BETTER TOGETHER</Text><Text style={styles.title}>Your household.</Text>
+            <Text style={styles.subtitle}>A home for your shared kitchen.</Text>
             {loading ? <ActivityIndicator accessibilityLabel="Loading households" color={accent} style={{ margin: 30 }} /> : !householdsLoaded ? <View style={styles.empty}><Text style={styles.heading}>Couldn’t load your households</Text><Text style={styles.center}>Your membership hasn’t been checked yet. Retry once the backend connection is restored.</Text><Action title="Retry" onPress={refreshHouseholds} /></View> : !selected ? <View style={styles.empty}><Users size={38} color={accent} /><Text style={styles.heading}>Who’s in your kitchen?</Text><Text style={styles.center}>Create a household for your family or roommates, or join one with an invite code.</Text></View> : <>
-              {manageHouseholds ? (
-                <View style={{ marginBottom: 16 }}>
-                  <Text style={[styles.heading, { textAlign: 'left', marginBottom: 12 }]}>Your kitchens</Text>
+              {households.length > 1 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={{ marginBottom: 16 }}
+                >
                   {households.map(kitchen => (
                     <Pressable
-                      key={kitchen.id}
                       accessibilityRole="button"
                       accessibilityLabel={`Select ${kitchen.name} kitchen`}
-                      accessibilityState={{ selected: selected.id === kitchen.id }}
-                      onPress={() => setSelected(kitchen)}
-                      style={[
-                        styles.card,
-                        { paddingHorizontal: 18, paddingVertical: 16, marginBottom: 10 },
-                        selected.id === kitchen.id && styles.selectedChip,
-                      ]}
-                    >
-                      <Text style={styles.cardTitle}>{kitchen.name}{activeHousehold?.id === kitchen.id ? ' (Current)' : ''}</Text>
-                      <Text style={styles.muted}>{formatRole(kitchen.role)}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : households.length > 1 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-                  {households.map(kitchen => (
-                    <Pressable
-                      accessibilityRole="button"
                       accessibilityState={{ selected: selected.id === kitchen.id }}
                       key={kitchen.id}
                       onPress={() => setSelected(kitchen)}
@@ -416,7 +400,7 @@ export default function HouseholdScreen({
                     </Pressable>
                   ))}
                 </ScrollView>
-              ) : null}
+              )}
               <View style={styles.householdCard}>
                 <View style={styles.row}><Home size={25} color={accent} /><Text style={styles.badge}>{selected.role}</Text></View>
                 <Text style={styles.householdName}>{selected.name}</Text>
