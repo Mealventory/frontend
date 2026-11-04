@@ -65,9 +65,9 @@ test("dark pantry and shopping swipe rows hide actions behind opaque card backgr
   assert.ok(darkTheme);
   assert.match(darkTheme, /--color-ground-elevated:\s*#[0-9a-f]{6}\s*;/i);
 
-  assert.match(foodCard, /bg-ground-surface dark:bg-ground-elevated rounded-\\[20px\\]/);
+  assert.match(foodCard, /bg-ground-surface dark:bg-ground-elevated rounded-\[20px\]/);
 
-  const shoppingRows = shopping.match(/<SwipeActionRow\\b[\\s\\S]*?<\\/SwipeActionRow>/g) || [];
+  const shoppingRows = shopping.match(/<SwipeActionRow\b[\s\S]*?<\/SwipeActionRow>/g) || [];
   assert.equal(shoppingRows.length, 2);
   for (const row of shoppingRows) {
     assert.match(row, /className="bg-ground-card dark:bg-ground-elevated"/);
