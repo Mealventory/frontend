@@ -257,7 +257,7 @@ export default function SettingsTabScreen() {
               try {
                 if (e2eMode) signOutE2E();
                 else await signOutAccount(supabase);
-                router.replace("/" as any);
+                router.replace("/households" as any);
               } catch (e) {
                 setLogoutError(e instanceof Error ? e.message : 'Could not sign out. Please try again.');
               } finally { setLoggingOut(false); }
