@@ -7,9 +7,20 @@ test("Expo branding points to the Mealventory logo asset set", () => {
 
   assert.equal(config.icon, "./assets/branding/icon.png");
   assert.equal(config.ios.icon, "./assets/branding/icon.png");
-  assert.equal(config.splash.image, "./assets/branding/mealventory-logo.png");
-  assert.equal(config.splash.resizeMode, "contain");
-  assert.equal(config.splash.backgroundColor, "#F6F8F4");
+  const splash = config.plugins.find(
+    (plugin) =>
+      Array.isArray(plugin) &&
+      plugin[0] === "expo-splash-screen"
+  );
+
+  assert.ok(splash, "expo-splash-screen branding config is missing");
+
+  assert.equal(
+    splash[1].image,
+    "./assets/branding/mealventory-logo.png"
+  );
+  assert.equal(splash[1].resizeMode, "contain");
+  assert.equal(splash[1].backgroundColor, "#F6F8F4");
   assert.equal(
     config.android.adaptiveIcon.foregroundImage,
     "./assets/branding/adaptive-icon.png"

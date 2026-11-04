@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "scheme": "mealventory",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/branding/mealventory-logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F6F8F4"
-    },
     "icon": "./assets/branding/icon.png",
     "ios": {
       "supportsTablet": true,
@@ -52,6 +47,15 @@
         {
           "icon": "./assets/branding/notification-icon.png",
           "color": "#087F5B"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/branding/mealventory-logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F6F8F4",
+          "imageWidth": 200
         }
       ]
     ],
