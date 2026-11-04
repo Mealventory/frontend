@@ -344,6 +344,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
       const incomingZone = item.storageZone || 'pantry';
       const incomingExpiry = item.expiryDate || null;
       const incomingName = item.name.trim().toLowerCase();
+      const incomingCategory = (item.category || 'Pantry').trim().toLowerCase();
 
       setDemoInventory(prev => {
         const matchIndex = prev.findIndex(p => {
@@ -352,7 +353,14 @@ export function InventoryProvider({ children, demo = false }: { children: React.
           const pZone = p.storageZone || 'pantry';
           const pExpiry = p.expiryDate || null;
           const pName = p.name.trim().toLowerCase();
-          return pName === incomingName && pZone === incomingZone && pExpiry === incomingExpiry && pUnit === incomingUnit;
+          const pCategory = (p.category || 'Pantry').trim().toLowerCase();
+          return (
+            pName === incomingName &&
+            pCategory === incomingCategory &&
+            pZone === incomingZone &&
+            pExpiry === incomingExpiry &&
+            pUnit === incomingUnit
+          );
         });
 
         if (matchIndex >= 0) {
@@ -436,10 +444,16 @@ export function InventoryProvider({ children, demo = false }: { children: React.
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'PATCH', id, patch);
       if (activeScope.current === scope) {
         const updated = toFoodItem(row);
-        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
-          (previous ?? []).map(item => item.id === id ? updated : item),
-        );
-        setSelectedItem(prev => prev?.id === id ? updated : prev);
+        queryClient.setQueryData<FoodItem[]>(inventoryKey, previous => {
+          const list = previous ?? [];
+          if (updated.id !== id) {
+            return list
+              .filter(item => item.id !== id)
+              .map(item => (item.id === updated.id ? updated : item));
+          }
+          return list.map(item => (item.id === id ? updated : item));
+        });
+        setSelectedItem(prev => (prev?.id === id || prev?.id === updated.id ? updated : prev));
       }
     } finally { mutations.current--; }
   };

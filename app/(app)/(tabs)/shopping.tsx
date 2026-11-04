@@ -768,7 +768,7 @@ export default function ShoppingTabScreen() {
                     ]}
                   >
                     <View
-                      className="bg-ground-card"
+                      className="bg-ground-card dark:bg-ground-elevated"
                       style={{ opacity: busyId === item.id ? 0.55 : 1 }}
                     >
                       <Checkbox
@@ -815,7 +815,7 @@ export default function ShoppingTabScreen() {
                     ]}
                   >
                     <View
-                      className="bg-ground-card"
+                      className="bg-ground-card dark:bg-ground-elevated"
                       style={{ opacity: busyId === item.id ? 0.55 : 1 }}
                     >
                       <Checkbox
