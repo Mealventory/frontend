@@ -37,7 +37,7 @@ test("original household selector retains the exact compact home design", () => 
   assert.ok(entry.includes('<Text style={styles.subtitle}>A home for your shared kitchen.</Text>'));
   assert.ok(entry.includes("households.length > 1 &&"));
   assert.ok(entry.includes("horizontal showsHorizontalScrollIndicator={false}"));
-  assert.ok(entry.includes("style={[styles.chip, selected.id === household.id && styles.selectedChip]}"));
+  assert.ok(entry.includes("style={[styles.chip, household.id === selected.id && styles.selectedChip]}"));
   assert.ok(entry.includes('<HouseholdInviteCard'));
   assert.ok(entry.includes('title="Create a household"'));
   assert.ok(entry.includes('title="Join with an invite code"'));
