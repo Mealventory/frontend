@@ -20,11 +20,16 @@ test("active kitchen does not redirect away from the household manager", () => {
   assert.match(entry, /router\.replace\('\/\(app\)\/\(tabs\)' as any\)/);
 });
 
-test("household manager lists all kitchens and enters only the selected one", () => {
-  assert.match(entry, /manageHouseholds \? \([\s\S]*?households\.map\(kitchen =>/);
+test("household manager uses the same compact kitchen chips and home layout", () => {
+  assert.match(entry, /<Text style=\{styles\.title\}>Your household\.<\/Text>/);
+  assert.match(entry, /<Text style=\{styles\.subtitle\}>A home for your shared kitchen\.<\/Text>/);
+  assert.match(entry, /households\.length > 1 && \(/);
+  assert.match(entry, /<ScrollView\s+horizontal\s+showsHorizontalScrollIndicator=\{false\}/);
+  assert.match(entry, /households\.map\(kitchen =>/);
   assert.match(entry, /accessibilityLabel=\{`Select \$\{kitchen\.name\} kitchen`\}/);
   assert.match(entry, /onPress=\{\(\) => setSelected\(kitchen\)\}/);
-  assert.match(entry, /activeHousehold\?\.id === kitchen\.id \? ' \(Current\)'/);
+  assert.match(entry, /style=\{\[styles\.chip, selected\.id === kitchen\.id && styles\.selectedChip\]\}/);
+  assert.doesNotMatch(entry, />Your kitchens<|\(Current\)/);
   assert.match(entry, /onPress=\{\(\) => \{ selectHousehold\(selected\); router\.push\('\/\(app\)\/\(tabs\)'/);
   assert.match(entry, /<Action title="Create a household"/);
   assert.match(entry, /<Action title="Join with an invite code"/);
