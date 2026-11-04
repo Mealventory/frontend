@@ -1,6 +1,6 @@
 
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     View,
     FlatList,

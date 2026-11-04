@@ -1,15 +1,18 @@
-import React, { useEffect, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+
 import { FoodItem } from "@/src/types";
 import { FoodItemCard } from "./FoodItemCard";
-import { Button } from "../atoms";
-import {FoodItem} from '@/src/types';
-import {FoodItemCard} from './FoodItemCard';
-import {Button} from '../atoms';
-import {Icon} from '../atoms/Icon';
-import {SwipeActionRow} from '../molecules/SwipeActionRow';
-import {useInventory} from '@/src/context/InventoryContext';
-import {parseQuantity, adjustQuantity} from '@/src/lib/quickQuantity';
+import { Button, Icon } from "../atoms";
+import { SwipeActionRow } from "../molecules/SwipeActionRow";
+import { useInventory } from "@/src/context/InventoryContext";
+import { parseQuantity, adjustQuantity } from "@/src/lib/quickQuantity";
 
 // Parent keys this component by account, household and item to isolate pending UI.
 export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;onPress:(item:FoodItem)=>void}) {

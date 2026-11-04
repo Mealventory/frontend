@@ -99,7 +99,9 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
       setPage('join');
       setError('');
       setNotice('Invite code loaded. Review it, then join the household.');
-      router.setParams({ invite: undefined } as any);
+      (router.setParams as (params: { invite?: string }) => void)({
+        invite: undefined,
+      });
     } else {
       setNotice('Sign in or create an account to accept this household invite.');
     }

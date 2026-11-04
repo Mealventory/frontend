@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   RefreshControl,
@@ -174,6 +174,7 @@ const unclassifiedWasteCount = monthEvents.filter(
 
         <View className="mb-5 flex-row items-center justify-between">
           <TouchableOpacity
+            accessibilityRole="button"
             onPress={() => changeYear(-1)}
             accessibilityLabel="Previous year"
             className="rounded-xl border border-border-default px-4 py-3"
@@ -197,6 +198,7 @@ const unclassifiedWasteCount = monthEvents.filter(
           </View>
 
           <TouchableOpacity
+            accessibilityRole="button"
             onPress={() => changeYear(1)}
             disabled={
               selectedYear > today.getFullYear() ||
@@ -214,6 +216,8 @@ const unclassifiedWasteCount = monthEvents.filter(
           <View className="mb-5 flex-row flex-wrap gap-2">
             {MONTHS.map((month, index) => (
               <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={`Select ${month} ${selectedYear}`}
                 key={month}
                 onPress={() => selectMonth(index)}
                 className={`rounded-xl border px-3 py-2 ${
@@ -243,6 +247,8 @@ const unclassifiedWasteCount = monthEvents.filter(
             </Text>
             <Text className="mt-2 text-text-muted">{error}</Text>
             <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading analytics"
               onPress={() => void loadActivity()}
               className="mt-3 self-start rounded-xl bg-brand-500 px-4 py-3"
             >
