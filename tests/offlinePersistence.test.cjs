@@ -82,7 +82,12 @@ test("last selected household is persisted per user for a true offline cold star
   assert.ok(home.includes("manageHouseholds"));
   assert.ok(home.includes("router.replace('/(app)/(tabs)'"));
   assert.ok(home.includes("activeHouseholdRef.current"));
-  assert.ok(settings.includes('params: { manage: "1" }'));
+  // The tab and original entry screen both have index routes; navigate by a
+  // unique alias that reuses the original selector component.
+  const selector = fs.readFileSync("app/households.tsx", "utf8");
+  assert.ok(selector.includes('<HouseholdScreen forceManageHouseholds />'));
+  assert.ok(home.includes("forceManageHouseholds || manageParam === '1'"));
+  assert.ok(settings.includes('router.push("/households" as any)'));
 });
 
 test("Expo native prebuild folders remain generated local artifacts", () => {

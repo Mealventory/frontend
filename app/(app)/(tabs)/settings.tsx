@@ -243,12 +243,7 @@ export default function SettingsTabScreen() {
             label="Switch / Manage Households"
             variant="outline"
             leadingIcon={<Icon name="Home" size={16} />}
-            onPress={() =>
-              router.replace({
-                pathname: "/",
-                params: { manage: "1" },
-              } as any)
-            }
+            onPress={() => router.push("/households" as any)}
           />
           {!!logoutError && <Typography color="critical">{logoutError}</Typography>}
           <Button
