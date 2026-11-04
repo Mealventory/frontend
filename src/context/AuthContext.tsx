@@ -23,7 +23,6 @@ const AuthContext = createContext<{
   household: Household | null; selectHousehold: (household: Household | null) => void;
   choosingHousehold: boolean;
   openHouseholdSelection: () => void;
-  closeHouseholdSelection: () => void;
   e2eMode: boolean;
   signInE2E: (email: string, password: string) => boolean;
   signOutE2E: () => void;
@@ -37,7 +36,6 @@ const AuthContext = createContext<{
   selectHousehold: () => {},
   choosingHousehold: false,
   openHouseholdSelection: () => {},
-  closeHouseholdSelection: () => {},
   e2eMode: false,
   signInE2E: () => false,
   signOutE2E: () => {},
@@ -53,7 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // This is UI state only: opening it must not clear the persisted kitchen.
   const [choosingHousehold, setChoosingHousehold] = useState(false);
   const openHouseholdSelection = useCallback(() => setChoosingHousehold(true), []);
-  const closeHouseholdSelection = useCallback(() => setChoosingHousehold(false), []);
 
   const selectHousehold = useCallback((next: Household | null) => {
     setHousehold(next);
@@ -174,7 +171,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     selectHousehold,
     choosingHousehold,
     openHouseholdSelection,
-    closeHouseholdSelection,
     e2eMode: E2E_ENABLED,
     signInE2E,
     signOutE2E,
