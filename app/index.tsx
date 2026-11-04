@@ -39,32 +39,27 @@ function Action({ title, onPress, disabled, secondary = false, testID }: { title
   </Pressable>;
 }
 
-export default function HouseholdScreen({
-  initialSignUp = false,
-  forceManageHouseholds = false,
-}: {
-  initialSignUp?: boolean;
-  forceManageHouseholds?: boolean;
-}) {
+export default function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boolean }) {
   const { isDark } = useAppTheme();
   const styles = getLoginStyles(isDark);
   const accent = isDark ? '#34D399' : green;
   const placeholderColor = isDark ? '#94A3B8' : '#84938C';
   const router = useRouter();
-  const params = useLocalSearchParams<{ invite?: string | string[]; manage?: string | string[] }>();
+  const params = useLocalSearchParams<{ invite?: string | string[] }>();
   const inviteParam = normalizeInviteCode(
     Array.isArray(params.invite) ? params.invite[0] || '' : params.invite || ''
   );
-  const manageParam = Array.isArray(params.manage) ? params.manage[0] : params.manage;
-  const manageHouseholds = forceManageHouseholds || manageParam === '1';
   const {
     session,
     household: activeHousehold,
     selectHousehold,
+    choosingHousehold,
+    closeHouseholdSelection,
     e2eMode,
     signInE2E,
     signOutE2E,
   } = useAuth();
+  const manageHouseholds = choosingHousehold;
   const sessionRef = useRef<Session | null>(null);
   const generation = useRef(0);
   const memberRequest = useRef(0);
@@ -315,7 +310,10 @@ export default function HouseholdScreen({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Back to current kitchen"
-              onPress={() => router.replace('/(app)/(tabs)' as any)}
+              onPress={() => {
+                closeHouseholdSelection();
+                router.replace('/(app)/(tabs)' as any);
+              }}
               style={[styles.back, { marginBottom: 16 }]}
             >
               <ArrowLeft size={18} color={accent} />
