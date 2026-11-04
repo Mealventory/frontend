@@ -8,6 +8,7 @@ import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/context/AuthContext';
+import { useAppTheme } from '@/src/context/ThemeContext';
 import { signOutAccount, usernameFor } from '@/src/lib/account';
 import { backendConfigured, Household, householdRequest, Member } from '@/src/lib/householdApi';
 import { resolveMemberProfile, formatRole } from '@/src/lib/memberProfiles';
@@ -21,6 +22,8 @@ type Page = 'home' | 'create' | 'join';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 
 function Action({ title, onPress, disabled, secondary = false, testID }: { title: string; onPress: () => void; disabled?: boolean; secondary?: boolean; testID?: string }) {
+  const { isDark } = useAppTheme();
+  const styles = getLoginStyles(isDark);
   return <Pressable
     testID={testID}
     accessible
@@ -31,12 +34,16 @@ function Action({ title, onPress, disabled, secondary = false, testID }: { title
     onPress={onPress}
     style={[styles.button, secondary && styles.secondary, disabled && { opacity: .5 }]}
   >
-    <Text accessible={false} style={[styles.buttonText, secondary && { color: green }]}>{title}</Text>
+    <Text accessible={false} style={[styles.buttonText, secondary && { color: isDark ? '#34D399' : green }]}>{title}</Text>
     {!secondary && <ArrowRight color="white" size={18} />}
   </Pressable>;
 }
 
 export default function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boolean }) {
+  const { isDark } = useAppTheme();
+  const styles = getLoginStyles(isDark);
+  const accent = isDark ? '#34D399' : green;
+  const placeholderColor = isDark ? '#94A3B8' : '#84938C';
   const router = useRouter();
   const params = useLocalSearchParams<{ invite?: string | string[]; manage?: string | string[] }>();
   const inviteParam = normalizeInviteCode(
@@ -288,7 +295,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
         </View>
         {session && (
           <Pressable accessibilityRole="button" accessibilityLabel="Log out" disabled={busy} onPress={signOut} style={styles.signOutHeaderButton}>
-            <LogOut size={16} color="#B42318" />
+            <LogOut size={16} color={isDark ? '#FDA29B' : '#B42318'} />
             <Text style={styles.signOutHeaderText}>Log out</Text>
           </Pressable>
         )}
@@ -302,7 +309,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
             <View style={styles.hero}><Text style={styles.eyebrow}>A LITTLE LESS WASTE. A LOT MORE TOGETHER.</Text>
               <Text style={styles.title}>A shared kitchen,{ '\n' }a fresher start.</Text>
               <Text style={styles.subtitle}>Bring your household together. Start with a place everyone can call their kitchen.</Text>
-              <View style={styles.heroIllustration}><Home size={52} color={green} strokeWidth={1.5} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>Your people. Your pantry.</Text><Text style={styles.muted}>One household, all together.</Text></View></View>
+              <View style={styles.heroIllustration}><Home size={52} color={accent} strokeWidth={1.5} /><View style={{ flex: 1 }}><Text style={styles.cardTitle}>Your people. Your pantry.</Text><Text style={styles.muted}>One household, all together.</Text></View></View>
             </View>
             <View style={styles.card}>
               {e2eMode && (
@@ -314,7 +321,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                 <Text style={styles.heading}>Reset your password</Text>
                 <Text style={styles.muted}>Enter your email to receive a password recovery link.</Text>
                 <Text style={styles.label}>Email address</Text>
-                <TextInput accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+                <TextInput accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={placeholderColor} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
                 <Action title={busy ? 'Sending…' : 'Send recovery email'} disabled={busy || !email.trim()} onPress={handleForgotPassword} />
                 <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setForgot(false); setError(''); setNotice(''); }}><Text style={styles.link}>Back to sign in</Text></Pressable>
               </> : <>
@@ -322,12 +329,12 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                 <Text style={[styles.muted, { textAlign: "center" }]}>{signUp ? 'Your shared kitchen starts here.' : 'Sign in to find your household.'}</Text>
                 {signUp && <>
                   <Text style={styles.label}>Username (optional)</Text>
-                  <TextInput accessibilityLabel="Username" style={styles.input} value={username} onChangeText={setUsername} placeholder={`e.g. ${email.includes('@') ? email.split('@')[0] : 'chef_pablo'} (optional)`} placeholderTextColor="#84938C" autoCapitalize="none" autoCorrect={false} />
+                  <TextInput accessibilityLabel="Username" style={styles.input} value={username} onChangeText={setUsername} placeholder={`e.g. ${email.includes('@') ? email.split('@')[0] : 'chef_pablo'} (optional)`} placeholderTextColor={placeholderColor} autoCapitalize="none" autoCorrect={false} />
                 </>}
                 <Text style={styles.label}>Email address</Text>
-                <TextInput testID="e2e-email" accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor="#84938C" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
+                <TextInput testID="e2e-email" accessibilityLabel="Email address" style={styles.input} value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={placeholderColor} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
                 <Text style={styles.label}>Password</Text>
-                <TextInput testID="e2e-password" accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} placeholder="Your password" placeholderTextColor="#84938C" secureTextEntry autoCapitalize="none" autoComplete={signUp ? 'new-password' : 'current-password'} onSubmitEditing={authenticate} />
+                <TextInput testID="e2e-password" accessibilityLabel="Password" style={styles.input} value={password} onChangeText={setPassword} placeholder="Your password" placeholderTextColor={placeholderColor} secureTextEntry autoCapitalize="none" autoComplete={signUp ? 'new-password' : 'current-password'} onSubmitEditing={authenticate} />
                 {!signUp && (
                   <Pressable accessibilityRole="button" disabled={busy} onPress={() => { setForgot(true); setError(''); setNotice(''); }} style={{ alignSelf: 'flex-end', marginTop: 8 }}>
                     <Text style={[styles.link, { paddingVertical: 2, fontSize: 13 }]}>Forgot password?</Text>
@@ -344,22 +351,22 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
               </>}
             </View>
           </> : page !== 'home' ? <>
-            <Pressable accessibilityRole="button" disabled={busy} style={styles.back} onPress={() => openPage('home')}><ArrowLeft size={18} color={green} /><Text style={styles.link}>Your households</Text></Pressable>
+            <Pressable accessibilityRole="button" disabled={busy} style={styles.back} onPress={() => openPage('home')}><ArrowLeft size={18} color={accent} /><Text style={styles.link}>Your households</Text></Pressable>
             <Text style={styles.eyebrow}>MAKE ROOM FOR EVERYONE</Text>
             <Text style={styles.title}>{page === 'create' ? 'Start your kitchen.' : 'Pull up a chair.'}</Text>
             <Text style={styles.subtitle}>{page === 'create' ? 'Give your household a name. We’ll make a code you can share with your people.' : 'Enter the six-character invite code shared by someone in your household.'}</Text>
             <View style={styles.card}>
               <Text style={styles.label}>{page === 'create' ? 'Household name' : 'Invite code'}</Text>
-              {page === 'create' ? <TextInput accessibilityLabel="Household name" style={styles.input} placeholder="e.g. Smith Family" value={name} onChangeText={setName} maxLength={120} /> : <TextInput accessibilityLabel="Invite code" style={[styles.input, styles.codeInput]} placeholder="ABC123" value={code} onChangeText={value => setCode(normalizeInviteCode(value))} autoCapitalize="characters" autoCorrect={false} maxLength={6} />}
+              {page === 'create' ? <TextInput accessibilityLabel="Household name" style={styles.input} placeholder="e.g. Smith Family" placeholderTextColor={placeholderColor} value={name} onChangeText={setName} maxLength={120} /> : <TextInput accessibilityLabel="Invite code" style={[styles.input, styles.codeInput]} placeholder="ABC123" placeholderTextColor={placeholderColor} value={code} onChangeText={value => setCode(normalizeInviteCode(value))} autoCapitalize="characters" autoCorrect={false} maxLength={6} />}
               <Action title={busy ? 'Saving…' : page === 'create' ? 'Create household' : 'Join household'} disabled={busy || (page === 'create' ? !name.trim() : !isValidInviteCode(code))} onPress={saveHousehold} />
             </View>
           </> : <>
             <Text style={styles.eyebrow}>BETTER TOGETHER</Text><Text style={styles.title}>Your household.</Text>
             <Text style={styles.subtitle}>A home for your shared kitchen.</Text>
-            {loading ? <ActivityIndicator accessibilityLabel="Loading households" color={green} style={{ margin: 30 }} /> : !householdsLoaded ? <View style={styles.empty}><Text style={styles.heading}>Couldn’t load your households</Text><Text style={styles.center}>Your membership hasn’t been checked yet. Retry once the backend connection is restored.</Text><Action title="Retry" onPress={refreshHouseholds} /></View> : !selected ? <View style={styles.empty}><Users size={38} color={green} /><Text style={styles.heading}>Who’s in your kitchen?</Text><Text style={styles.center}>Create a household for your family or roommates, or join one with an invite code.</Text></View> : <>
+            {loading ? <ActivityIndicator accessibilityLabel="Loading households" color={accent} style={{ margin: 30 }} /> : !householdsLoaded ? <View style={styles.empty}><Text style={styles.heading}>Couldn’t load your households</Text><Text style={styles.center}>Your membership hasn’t been checked yet. Retry once the backend connection is restored.</Text><Action title="Retry" onPress={refreshHouseholds} /></View> : !selected ? <View style={styles.empty}><Users size={38} color={accent} /><Text style={styles.heading}>Who’s in your kitchen?</Text><Text style={styles.center}>Create a household for your family or roommates, or join one with an invite code.</Text></View> : <>
               {households.length > 1 && <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>{households.map(household => <Pressable accessibilityRole="button" accessibilityState={{ selected: selected.id === household.id }} key={household.id} onPress={() => setSelected(household)} style={[styles.chip, household.id === selected.id && styles.selectedChip]}><Text style={{ color: green }}>{household.name}</Text></Pressable>)}</ScrollView>}
               <View style={styles.householdCard}>
-                <View style={styles.row}><Home size={25} color={green} /><Text style={styles.badge}>{selected.role}</Text></View>
+                <View style={styles.row}><Home size={25} color={accent} /><Text style={styles.badge}>{selected.role}</Text></View>
                 <Text style={styles.householdName}>{selected.name}</Text>
                 {selected.invite_code ? (
                   <HouseholdInviteCard
@@ -380,8 +387,8 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                   <ArrowRight color="white" size={16} />
                 </Pressable>
               </View>
-              <View style={styles.card}><View style={styles.row}><Text style={styles.heading}>At the table</Text><Pressable accessibilityRole="button" accessibilityLabel="Refresh members" onPress={refreshMembers}><RefreshCw size={18} color={green} /></Pressable></View>
-                {memberLoading ? <ActivityIndicator color={green} /> : members.map(member => {
+              <View style={styles.card}><View style={styles.row}><Text style={styles.heading}>At the table</Text><Pressable accessibilityRole="button" accessibilityLabel="Refresh members" onPress={refreshMembers}><RefreshCw size={18} color={accent} /></Pressable></View>
+                {memberLoading ? <ActivityIndicator color={accent} /> : members.map(member => {
                   const profile = resolveMemberProfile(member, session);
                   return (
                     <View key={member.user_id} style={styles.member}>
@@ -389,7 +396,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
                         {profile.initials ? (
                           <Text style={{ fontSize: 13, fontFamily: 'Inter_700Bold', color: green }}>{profile.initials}</Text>
                         ) : (
-                          <Users size={18} color={green} />
+                          <Users size={18} color={accent} />
                         )}
                       </View>
                       <View style={{ flex: 1 }}>
@@ -416,7 +423,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
   </SafeAreaView>;
 }
 
-const styles = StyleSheet.create({
+const lightStyles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F6F8F4' },
   headerWrapper: {
     width: '100%',
@@ -503,3 +510,79 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
+
+const darkStyles = StyleSheet.create({
+  safe: { backgroundColor: '#020617' },
+  headerWrapper: { backgroundColor: '#020617', borderBottomColor: '#334155' },
+  brandText: { color: '#F8FAFC' },
+  eyebrow: { color: '#34D399' },
+  title: { color: '#F8FAFC' },
+  subtitle: { color: '#94A3B8' },
+  heroIllustration: { backgroundColor: '#1E293B' },
+  card: { backgroundColor: '#0F172A', borderColor: '#334155' },
+  heading: { color: '#F8FAFC' },
+  muted: { color: '#94A3B8' },
+  label: { color: '#CBD5E1' },
+  e2eIndicator: { color: '#34D399', backgroundColor: '#064E3B' },
+  input: { color: '#F8FAFC', backgroundColor: '#1E293B', borderColor: '#475569' },
+  secondary: { backgroundColor: '#1E293B' },
+  link: { color: '#34D399' },
+  error: { backgroundColor: '#4C1D2A', color: '#FDA29B' },
+  info: { backgroundColor: '#064E3B', color: '#A7F3D0' },
+  footer: { color: '#94A3B8' },
+  empty: { backgroundColor: '#0F172A', borderColor: '#334155' },
+  center: { color: '#94A3B8' },
+  householdCard: { backgroundColor: '#0F172A' },
+  householdName: { color: '#F8FAFC' },
+  badge: { backgroundColor: '#064E3B', color: '#34D399' },
+  invite: { color: '#F8FAFC' },
+  avatar: { backgroundColor: '#1E293B' },
+  cardTitle: { color: '#F8FAFC' },
+  chip: { borderColor: '#334155' },
+  selectedChip: { backgroundColor: '#064E3B', borderColor: '#10B981' },
+  signOutHeaderButton: { backgroundColor: '#4C1D2A', borderColor: '#9F1239' },
+  signOutHeaderText: { color: '#FDA29B' },
+  bottomLogoutButton: { backgroundColor: '#4C1D2A', borderColor: '#9F1239' },
+  bottomLogoutText: { color: '#FDA29B' },
+});
+
+// Use the app's already hydrated theme on every signed-out and household screen.
+// Compose colour overrides with the original spacing and layout styles.
+function getLoginStyles(isDark: boolean) {
+  if (!isDark) return lightStyles;
+  return {
+    ...lightStyles,
+    safe: [lightStyles.safe, darkStyles.safe],
+    headerWrapper: [lightStyles.headerWrapper, darkStyles.headerWrapper],
+    brandText: [lightStyles.brandText, darkStyles.brandText],
+    eyebrow: [lightStyles.eyebrow, darkStyles.eyebrow],
+    title: [lightStyles.title, darkStyles.title],
+    subtitle: [lightStyles.subtitle, darkStyles.subtitle],
+    heroIllustration: [lightStyles.heroIllustration, darkStyles.heroIllustration],
+    card: [lightStyles.card, darkStyles.card],
+    heading: [lightStyles.heading, darkStyles.heading],
+    muted: [lightStyles.muted, darkStyles.muted],
+    label: [lightStyles.label, darkStyles.label],
+    e2eIndicator: [lightStyles.e2eIndicator, darkStyles.e2eIndicator],
+    input: [lightStyles.input, darkStyles.input],
+    secondary: [lightStyles.secondary, darkStyles.secondary],
+    link: [lightStyles.link, darkStyles.link],
+    error: [lightStyles.error, darkStyles.error],
+    info: [lightStyles.info, darkStyles.info],
+    footer: [lightStyles.footer, darkStyles.footer],
+    empty: [lightStyles.empty, darkStyles.empty],
+    center: [lightStyles.center, darkStyles.center],
+    householdCard: [lightStyles.householdCard, darkStyles.householdCard],
+    householdName: [lightStyles.householdName, darkStyles.householdName],
+    badge: [lightStyles.badge, darkStyles.badge],
+    invite: [lightStyles.invite, darkStyles.invite],
+    avatar: [lightStyles.avatar, darkStyles.avatar],
+    cardTitle: [lightStyles.cardTitle, darkStyles.cardTitle],
+    chip: [lightStyles.chip, darkStyles.chip],
+    selectedChip: [lightStyles.selectedChip, darkStyles.selectedChip],
+    signOutHeaderButton: [lightStyles.signOutHeaderButton, darkStyles.signOutHeaderButton],
+    signOutHeaderText: [lightStyles.signOutHeaderText, darkStyles.signOutHeaderText],
+    bottomLogoutButton: [lightStyles.bottomLogoutButton, darkStyles.bottomLogoutButton],
+    bottomLogoutText: [lightStyles.bottomLogoutText, darkStyles.bottomLogoutText],
+  };
+}
