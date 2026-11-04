@@ -54,7 +54,6 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     household: activeHousehold,
     selectHousehold,
     choosingHousehold,
-    closeHouseholdSelection,
     e2eMode,
     signInE2E,
     signOutE2E,
@@ -306,20 +305,6 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView keyboardShouldPersistTaps="handled" style={styles.scrollFrame} contentContainerStyle={styles.scroll}>
         <View style={styles.container}>
-          {session && manageHouseholds && activeHousehold ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Back to current kitchen"
-              onPress={() => {
-                closeHouseholdSelection();
-                router.replace('/(app)/(tabs)' as any);
-              }}
-              style={[styles.back, { marginBottom: 16 }]}
-            >
-              <ArrowLeft size={18} color={accent} />
-              <Text style={styles.link}>Back to kitchen</Text>
-            </Pressable>
-          ) : null}
           {!session ? <>
             <View style={styles.hero}><Text style={styles.eyebrow}>A LITTLE LESS WASTE. A LOT MORE TOGETHER.</Text>
               <Text style={styles.title}>A shared kitchen,{ '\n' }a fresher start.</Text>
