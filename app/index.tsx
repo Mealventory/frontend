@@ -39,7 +39,13 @@ function Action({ title, onPress, disabled, secondary = false, testID }: { title
   </Pressable>;
 }
 
-export default function HouseholdScreen({ initialSignUp = false }: { initialSignUp?: boolean }) {
+export default function HouseholdScreen({
+  initialSignUp = false,
+  forceManageHouseholds = false,
+}: {
+  initialSignUp?: boolean;
+  forceManageHouseholds?: boolean;
+}) {
   const { isDark } = useAppTheme();
   const styles = getLoginStyles(isDark);
   const accent = isDark ? '#34D399' : green;
@@ -50,7 +56,7 @@ export default function HouseholdScreen({ initialSignUp = false }: { initialSign
     Array.isArray(params.invite) ? params.invite[0] || '' : params.invite || ''
   );
   const manageParam = Array.isArray(params.manage) ? params.manage[0] : params.manage;
-  const manageHouseholds = manageParam === '1';
+  const manageHouseholds = forceManageHouseholds || manageParam === '1';
   const {
     session,
     household: activeHousehold,
