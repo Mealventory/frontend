@@ -104,7 +104,7 @@
     --color-ground-canvas: #020617;
     --color-ground-input: #0F172A;
     --color-ground-surface: #0F172A;
-    --color-ground-card: rgba(30, 41, 59, 0.75);
+    --color-ground-card: #0F172A;
     --color-ground-elevated: #1E293B;
     --color-ground-subtle: #1E293B;
     --color-ground-muted: #334155;
@@ -115,9 +115,9 @@
     /* 3. Text & Typography Colors (Dark Theme)                                   */
     /* -------------------------------------------------------------------------- */
     --color-text-primary: #F8FAFC;
-    --color-text-secondary: #94A3B8;
-    --color-text-muted: #64748B;
-    --color-text-subtle: #475569;
+    --color-text-secondary: #CBD5E1;
+    --color-text-muted: #94A3B8;
+    --color-text-subtle: #94A3B8;
     --color-text-brand: #34D399;
     --color-text-inverse: #0F172A;
 
