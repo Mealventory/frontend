@@ -82,8 +82,11 @@ test("last selected household is persisted per user for a true offline cold star
   assert.ok(home.includes("manageHouseholds"));
   assert.ok(home.includes("router.replace('/(app)/(tabs)'"));
   assert.ok(home.includes("activeHouseholdRef.current"));
-  assert.ok(settings.includes('router.push("/households"'));
-  assert.ok(home.includes("forceManageHouseholds || manageParam === '1'"));
+  assert.ok(auth.includes("const [choosingHousehold, setChoosingHousehold] = useState(false)"));
+  assert.ok(auth.includes("openHouseholdSelection"));
+  assert.ok(home.includes("const manageHouseholds = choosingHousehold"));
+  assert.ok(settings.includes('openHouseholdSelection();'));
+  assert.ok(settings.includes('router.replace("/" as any)'));
 });
 
 test("Expo native prebuild folders remain generated local artifacts", () => {
