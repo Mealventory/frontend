@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { AppState } from 'react-native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { onlineManager, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { inventoryRequest, toFoodItem, InventoryRow, NewItem } from '../lib/inventoryApi';
 import { useAuth } from './AuthContext';
@@ -12,6 +12,24 @@ import {
 
 import { householdSavedRecipes } from "../lib/householdSavedRecipes";
 import { INVENTORY_QUERY_ROOT, inventoryQueryKey } from "../lib/queryClient";
+import {
+  OFFLINE_SYNC_TOAST_MESSAGE,
+  applyPatchToFoodItem,
+  buildFoodItemFromNewItem,
+  createNetInfoAdapter,
+  createOfflineId,
+  flushOfflineMutations,
+  isConnectivityError,
+  loadOfflineQueue,
+  loadSyncConflicts,
+  offlineConflictsStorageKey,
+  offlineQueueStorageKey,
+  saveOfflineQueue,
+  saveSyncConflicts,
+  setupOnlineManager,
+  type QueuedInventoryMutation,
+  type SyncConflict,
+} from "../lib/offlineSync";
 
 export const initialInventory: FoodItem[] = [
   { id: "1", name: "Whole Milk", category: "Dairy", expDate: "Sep 16", daysLeft: 2, quantity: "1 gallon", emoji: "🥛" },
@@ -151,6 +169,15 @@ interface InventoryContextType {
   refreshInventory: () => Promise<void>;
   inventoryLoading: boolean;
   inventoryError: string;
+  isOnline: boolean;
+  pendingSyncCount: number;
+  isSyncing: boolean;
+  syncToast: string;
+  syncConflicts: SyncConflict[];
+  flushPendingSync: () => Promise<void>;
+  retrySyncConflict: (conflictId: string) => Promise<void>;
+  dismissSyncConflict: (conflictId: string) => void;
+  dismissSyncToast: () => void;
   openItem: (item: FoodItem) => void;
   openRecipe: (recipe: Recipe) => void;
   login: (email?: string) => void;
@@ -201,13 +228,80 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   const inventory = demo ? demoInventory : (inventoryQuery.data ?? []);
   const [inventoryRefreshing, setInventoryRefreshing] = useState(false);
   const inventoryLoading =
-    inventoryRefreshing || (!demo && inventory.length === 0 && inventoryQuery.isPending);
+    inventoryRefreshing ||
+    (!demo &&
+      inventory.length === 0 &&
+      inventoryQuery.isPending &&
+      inventoryQuery.fetchStatus !== 'paused');
   const inventoryError =
     !demo && inventory.length === 0 && inventoryQuery.error
       ? inventoryQuery.error instanceof Error
         ? inventoryQuery.error.message
         : 'Could not load inventory.'
       : '';
+
+  const queueKey = useMemo(
+    () => (demo ? null : offlineQueueStorageKey(session?.user.id, household?.id)),
+    [demo, session?.user.id, household?.id],
+  );
+  const conflictsKey = useMemo(
+    () => (demo ? null : offlineConflictsStorageKey(session?.user.id, household?.id)),
+    [demo, session?.user.id, household?.id],
+  );
+
+  const [isOnline, setIsOnline] = useState(true);
+  const isOnlineRef = useRef(true);
+  isOnlineRef.current = isOnline;
+
+  const [queuedMutations, setQueuedMutations] = useState<QueuedInventoryMutation[]>(() =>
+    loadOfflineQueue(queueKey),
+  );
+  const queuedRef = useRef<QueuedInventoryMutation[]>(queuedMutations);
+
+  const [syncConflicts, setSyncConflicts] = useState<SyncConflict[]>(() =>
+    loadSyncConflicts(conflictsKey),
+  );
+  const conflictsRef = useRef<SyncConflict[]>(syncConflicts);
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const flushingRef = useRef(false);
+  const [syncToast, setSyncToast] = useState('');
+
+  const updateQueuedState = useCallback(
+    (next: QueuedInventoryMutation[]) => {
+      queuedRef.current = next;
+      setQueuedMutations(next);
+      saveOfflineQueue(queueKey, next);
+    },
+    [queueKey],
+  );
+
+  const enqueueMutation = useCallback(
+    (entry: QueuedInventoryMutation) => {
+      const next = [...queuedRef.current, entry];
+      updateQueuedState(next);
+    },
+    [updateQueuedState],
+  );
+
+  const updateConflictsState = useCallback(
+    (next: SyncConflict[]) => {
+      conflictsRef.current = next;
+      setSyncConflicts(next);
+      saveSyncConflicts(conflictsKey, next);
+    },
+    [conflictsKey],
+  );
+
+  const dismissSyncToast = useCallback(() => {
+    setSyncToast('');
+  }, []);
+
+  useEffect(() => {
+    if (!syncToast) return;
+    const timer = setTimeout(() => setSyncToast(''), 4500);
+    return () => clearTimeout(timer);
+  }, [syncToast]);
 
   const refreshInventory = useCallback(async () => {
     if (demo || !session?.user.id || !household?.id || mutations.current) return;
@@ -283,6 +377,218 @@ export function InventoryProvider({ children, demo = false }: { children: React.
   };
   const [user, setUser] = useState<UserProfile>(defaultUser);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+
+  const flushPendingSync = useCallback(async () => {
+    if (demo || !session?.user.id || !household?.id) return;
+    if (!isOnlineRef.current || flushingRef.current) return;
+    const startingQueue = queuedRef.current;
+    if (startingQueue.length === 0) return;
+
+    const capturedScope = scope;
+    const capturedQueueKey = queueKey;
+    const capturedConflictsKey = conflictsKey;
+    const capturedInventoryKey = inventoryKey;
+
+    flushingRef.current = true;
+    mutations.current++;
+    setIsSyncing(true);
+
+    try {
+      const result = await flushOfflineMutations(
+        startingQueue,
+        {
+          add: async (payload) =>
+            inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, payload),
+          update: async (id, patch) =>
+            inventoryRequest<InventoryRow>(await token(), household.id, 'PATCH', id, patch),
+          remove: async (id) =>
+            inventoryRequest<void>(await token(), household.id, 'DELETE', id),
+          transition: async (id, action, reason) => {
+            await inventoryRequest<InventoryRow>(
+              await token(),
+              household.id,
+              'POST',
+              id,
+              action === 'discard' && reason ? { reason } : undefined,
+              action,
+            );
+          },
+        },
+        {
+          onAddResolved: (tempId, resolvedItem) => {
+            queryClient.setQueryData<FoodItem[]>(capturedInventoryKey, (previous) => {
+              const list = previous ?? [];
+              if (list.some((item) => item.id === tempId)) {
+                return list.map((item) => (item.id === tempId ? resolvedItem : item));
+              }
+              if (list.some((item) => item.id === resolvedItem.id)) {
+                return list.map((item) => (item.id === resolvedItem.id ? resolvedItem : item));
+              }
+              return [resolvedItem, ...list];
+            });
+            setSelectedItem((prev) => (prev?.id === tempId ? resolvedItem : prev));
+          },
+          onUpdateResolved: (itemId, resolvedItem) => {
+            queryClient.setQueryData<FoodItem[]>(capturedInventoryKey, (previous) =>
+              (previous ?? []).map((item) => (item.id === itemId ? resolvedItem : item)),
+            );
+            setSelectedItem((prev) => (prev?.id === itemId ? resolvedItem : prev));
+          },
+          onRemoveResolved: (itemId) => {
+            queryClient.setQueryData<FoodItem[]>(capturedInventoryKey, (previous) =>
+              (previous ?? []).filter((item) => item.id !== itemId),
+            );
+            setSelectedItem((prev) => (prev?.id === itemId ? null : prev));
+          },
+        },
+      );
+
+      const extraQueued =
+        activeScope.current === capturedScope
+          ? queuedRef.current.slice(startingQueue.length)
+          : [];
+      const nextQueue = [...result.remainingQueue, ...extraQueued];
+      saveOfflineQueue(capturedQueueKey, nextQueue);
+
+      const updatedConflicts =
+        result.newConflicts.length > 0
+          ? [...conflictsRef.current, ...result.newConflicts]
+          : conflictsRef.current;
+      if (result.newConflicts.length > 0) {
+        saveSyncConflicts(capturedConflictsKey, updatedConflicts);
+      }
+
+      if (activeScope.current === capturedScope) {
+        queuedRef.current = nextQueue;
+        setQueuedMutations(nextQueue);
+        if (result.newConflicts.length > 0) {
+          conflictsRef.current = updatedConflicts;
+          setSyncConflicts(updatedConflicts);
+        }
+
+        if (
+          result.stoppedReason === 'auth' &&
+          result.authErrorMessage === 'You no longer have access to this household.'
+        ) {
+          queryClient.removeQueries({ queryKey: capturedInventoryKey, exact: true });
+          selectHousehold(null);
+          return;
+        }
+
+        if (result.flushedCount > 0) {
+          await queryClient.invalidateQueries({ queryKey: capturedInventoryKey, exact: true });
+        }
+
+        if (
+          result.stoppedReason === 'completed' &&
+          nextQueue.length === 0 &&
+          result.flushedCount > 0 &&
+          result.newConflicts.length === 0
+        ) {
+          setSyncToast(OFFLINE_SYNC_TOAST_MESSAGE);
+        }
+      }
+    } finally {
+      flushingRef.current = false;
+      mutations.current--;
+      if (activeScope.current === capturedScope) {
+        setIsSyncing(false);
+      }
+    }
+  }, [
+    demo,
+    session?.user.id,
+    household?.id,
+    scope,
+    queueKey,
+    conflictsKey,
+    inventoryKey,
+    token,
+    queryClient,
+    selectHousehold,
+  ]);
+
+  const retrySyncConflict = useCallback(
+    async (conflictId: string) => {
+      const target = conflictsRef.current.find((conflict) => conflict.id === conflictId);
+      if (!target) return;
+      updateConflictsState(conflictsRef.current.filter((conflict) => conflict.id !== conflictId));
+      enqueueMutation({ ...target.mutation, createdAt: Date.now() });
+      if (isOnlineRef.current) {
+        await flushPendingSync();
+      }
+    },
+    [enqueueMutation, flushPendingSync, updateConflictsState],
+  );
+
+  const dismissSyncConflict = useCallback(
+    (conflictId: string) => {
+      updateConflictsState(conflictsRef.current.filter((conflict) => conflict.id !== conflictId));
+      void refreshInventory();
+    },
+    [refreshInventory, updateConflictsState],
+  );
+
+  useEffect(() => {
+    if (demo) {
+      onlineManager.setOnline(true);
+      isOnlineRef.current = true;
+      setIsOnline(true);
+      return;
+    }
+
+    queryClient.setMutationDefaults(['inventory'], { networkMode: 'offlineFirst' });
+
+    const adapter = createNetInfoAdapter();
+    const stopOnlineManager = setupOnlineManager(adapter);
+    let active = true;
+
+    const applyOnline = (online: boolean) => {
+      if (!active) return;
+      const wasOffline = !isOnlineRef.current;
+      isOnlineRef.current = online;
+      setIsOnline(online);
+      if (online && wasOffline && queuedRef.current.length > 0) {
+        void flushPendingSync();
+      }
+    };
+
+    if (adapter) {
+      void adapter.fetch().then(applyOnline);
+      const unsubscribe = adapter.subscribe(applyOnline);
+      return () => {
+        active = false;
+        unsubscribe();
+        stopOnlineManager();
+      };
+    }
+
+    return () => {
+      active = false;
+      stopOnlineManager();
+    };
+  }, [demo, queryClient, flushPendingSync]);
+
+  useEffect(() => {
+    setSyncToast('');
+    if (demo) {
+      queuedRef.current = [];
+      setQueuedMutations([]);
+      conflictsRef.current = [];
+      setSyncConflicts([]);
+      return;
+    }
+    const loadedQueue = loadOfflineQueue(queueKey);
+    const loadedConflicts = loadSyncConflicts(conflictsKey);
+    queuedRef.current = loadedQueue;
+    setQueuedMutations(loadedQueue);
+    conflictsRef.current = loadedConflicts;
+    setSyncConflicts(loadedConflicts);
+    if (loadedQueue.length > 0 && isOnlineRef.current) {
+      void flushPendingSync();
+    }
+  }, [demo, queueKey, conflictsKey, flushPendingSync]);
+
   useEffect(() => {
     setSelectedItem(null);
     setSelectedRecipe(null);
@@ -386,12 +692,44 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     if (!household || !session) throw new Error('Choose a household first.');
     const quantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
     if (!quantity || Number(quantity[1]) <= 0) throw new Error('Enter a quantity such as 2 items or 500 g.');
+    const payload: NewItem = {
+      storage_zone: item.storageZone,
+      name: item.name,
+      category: item.category,
+      quantity: Number(quantity[1]),
+      unit: quantity[2] || 'units',
+      expiry_date: item.expiryDate || null,
+      image_ref: item.imageRef ?? null,
+    };
+    const queueAddOffline = () => {
+      const tempId = createOfflineId('offline');
+      const optimistic = buildFoodItemFromNewItem(tempId, payload);
+      queryClient.setQueryData<FoodItem[]>(inventoryKey, (previous) => [
+        optimistic,
+        ...(previous ?? []),
+      ]);
+      enqueueMutation({
+        id: createOfflineId('mut'),
+        kind: 'add',
+        tempId,
+        itemName: payload.name,
+        payload,
+        createdAt: Date.now(),
+      });
+    };
+
+    if (!isOnlineRef.current || queuedRef.current.length > 0) {
+      queueAddOffline();
+      if (isOnlineRef.current) {
+        void flushPendingSync();
+      }
+      return;
+    }
+
     mutations.current++;
     try {
       await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
-      const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, {
-        storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null, image_ref: item.imageRef ?? null,
-      });
+      const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, payload);
       if (activeScope.current === scope) {
         queryClient.setQueryData<FoodItem[]>(inventoryKey, previous => {
           const updated = toFoodItem(row);
@@ -403,6 +741,15 @@ export function InventoryProvider({ children, demo = false }: { children: React.
           return [updated, ...list];
         });
       }
+    } catch (error) {
+      if (activeScope.current === scope && isConnectivityError(error)) {
+        onlineManager.setOnline(false);
+        isOnlineRef.current = false;
+        setIsOnline(false);
+        queueAddOffline();
+        return;
+      }
+      throw error;
     } finally { mutations.current--; }
   };
 
@@ -438,6 +785,33 @@ export function InventoryProvider({ children, demo = false }: { children: React.
       return;
     }
     if (!household || !session) throw new Error('Choose a household first.');
+
+    const queueUpdateOffline = () => {
+      const cached = queryClient.getQueryData<FoodItem[]>(inventoryKey) ?? [];
+      const existing = cached.find(item => item.id === id) ?? (selectedItem?.id === id ? selectedItem : undefined);
+      const itemName = patch.name ?? existing?.name ?? 'Inventory item';
+      queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
+        (previous ?? []).map(item => (item.id === id ? applyPatchToFoodItem(item, patch) : item)),
+      );
+      setSelectedItem(prev => (prev?.id === id ? applyPatchToFoodItem(prev, patch) : prev));
+      enqueueMutation({
+        id: createOfflineId('mut'),
+        kind: 'update',
+        itemId: id,
+        itemName,
+        patch,
+        createdAt: Date.now(),
+      });
+    };
+
+    if (!isOnlineRef.current || queuedRef.current.length > 0 || id.startsWith('offline-')) {
+      queueUpdateOffline();
+      if (isOnlineRef.current) {
+        void flushPendingSync();
+      }
+      return;
+    }
+
     mutations.current++;
     try {
       await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
@@ -455,12 +829,47 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         });
         setSelectedItem(prev => (prev?.id === id || prev?.id === updated.id ? updated : prev));
       }
+    } catch (error) {
+      if (activeScope.current === scope && isConnectivityError(error)) {
+        onlineManager.setOnline(false);
+        isOnlineRef.current = false;
+        setIsOnline(false);
+        queueUpdateOffline();
+        return;
+      }
+      throw error;
     } finally { mutations.current--; }
   };
 
   const removeItem = async (id: string) => {
     if (demo) { setDemoInventory(prev => prev.filter(item => item.id !== id)); setSelectedItem(null); return; }
     if (!household || !session) throw new Error('Choose a household first.');
+
+    const queueRemoveOffline = () => {
+      const cached = queryClient.getQueryData<FoodItem[]>(inventoryKey) ?? [];
+      const existing = cached.find(item => item.id === id) ?? (selectedItem?.id === id ? selectedItem : undefined);
+      const itemName = existing?.name ?? 'Inventory item';
+      queryClient.setQueryData<FoodItem[]>(inventoryKey, previous =>
+        (previous ?? []).filter(item => item.id !== id),
+      );
+      setSelectedItem(prev => (prev?.id === id ? null : prev));
+      enqueueMutation({
+        id: createOfflineId('mut'),
+        kind: 'remove',
+        itemId: id,
+        itemName,
+        createdAt: Date.now(),
+      });
+    };
+
+    if (!isOnlineRef.current || queuedRef.current.length > 0 || id.startsWith('offline-')) {
+      queueRemoveOffline();
+      if (isOnlineRef.current) {
+        void flushPendingSync();
+      }
+      return;
+    }
+
     mutations.current++;
     try {
       await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
@@ -471,6 +880,15 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         );
         setSelectedItem(prev => prev?.id === id ? null : prev);
       }
+    } catch (error) {
+      if (activeScope.current === scope && isConnectivityError(error)) {
+        onlineManager.setOnline(false);
+        isOnlineRef.current = false;
+        setIsOnline(false);
+        queueRemoveOffline();
+        return;
+      }
+      throw error;
     } finally { mutations.current--; }
   };
 
@@ -491,6 +909,34 @@ export function InventoryProvider({ children, demo = false }: { children: React.
 
   if (action === 'discard' && !reason) {
     throw new Error('Please select a reason for discarding this item.');
+  }
+
+  const queueTransitionOffline = () => {
+    const cached = queryClient.getQueryData<FoodItem[]>(inventoryKey) ?? [];
+    const existing = cached.find(item => item.id === id) ?? (selectedItem?.id === id ? selectedItem : undefined);
+    const itemName = existing?.name ?? 'Inventory item';
+    queryClient.setQueryData<FoodItem[]>(
+      inventoryKey,
+      previous => (previous ?? []).filter(item => item.id !== id),
+    );
+    setSelectedItem(prev => (prev?.id === id ? null : prev));
+    enqueueMutation({
+      id: createOfflineId('mut'),
+      kind: 'transition',
+      itemId: id,
+      itemName,
+      action,
+      reason,
+      createdAt: Date.now(),
+    });
+  };
+
+  if (!isOnlineRef.current || queuedRef.current.length > 0 || id.startsWith('offline-')) {
+    queueTransitionOffline();
+    if (isOnlineRef.current) {
+      void flushPendingSync();
+    }
+    return;
   }
 
   mutations.current++;
@@ -518,6 +964,15 @@ export function InventoryProvider({ children, demo = false }: { children: React.
 
       setSelectedItem(prev => prev?.id === id ? null : prev);
     }
+  } catch (error) {
+    if (activeScope.current === scope && isConnectivityError(error)) {
+      onlineManager.setOnline(false);
+      isOnlineRef.current = false;
+      setIsOnline(false);
+      queueTransitionOffline();
+      return;
+    }
+    throw error;
   } finally {
     mutations.current--;
   }
@@ -592,6 +1047,15 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         refreshInventory,
         inventoryLoading,
         inventoryError,
+        isOnline: demo ? true : isOnline,
+        pendingSyncCount: demo ? 0 : queuedMutations.length,
+        isSyncing: demo ? false : isSyncing,
+        syncToast: demo ? '' : syncToast,
+        syncConflicts: demo ? [] : syncConflicts,
+        flushPendingSync,
+        retrySyncConflict,
+        dismissSyncConflict,
+        dismissSyncToast,
         recipes: dynamicRecipes,
         savedRecipes: savedScope === scope ? savedRecipes : [],
         savedRecipesError, refreshSavedRecipes, shareLocalRecipes,

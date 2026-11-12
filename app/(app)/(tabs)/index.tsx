@@ -18,6 +18,7 @@ import { Icon } from "@/src/components/atoms/Icon";
 import { PantryItemCard } from "@/src/components/domain/PantryItemCard";
 import { PantryFilterSheet } from "@/src/components/domain/PantryFilterSheet";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
+import { OfflineSyncBanner } from "@/src/components/molecules/OfflineSyncBanner";
 import { useInventory } from "@/src/context/InventoryContext";
 import { useAuth } from "@/src/context/AuthContext";
 import { localDay, pantryView, ExpiryGroup } from "@/src/lib/pantryExpiry";
@@ -86,6 +87,15 @@ export default function PantryDashboardScreen() {
         refreshInventory,
         inventoryLoading,
         inventoryError,
+        isOnline = true,
+        pendingSyncCount = 0,
+        isSyncing = false,
+        syncToast = "",
+        syncConflicts = [],
+        flushPendingSync,
+        retrySyncConflict,
+        dismissSyncConflict,
+        dismissSyncToast,
     } = useInventory();
 
     const [selectedCat, setSelectedCat] = useState("All");
@@ -154,6 +164,18 @@ export default function PantryDashboardScreen() {
     const header = (
         <View className="gap-3 pb-4">
             <BrandLogo />
+
+            <OfflineSyncBanner
+                isOnline={isOnline}
+                pendingSyncCount={pendingSyncCount}
+                isSyncing={isSyncing}
+                syncToast={syncToast}
+                syncConflicts={syncConflicts}
+                onSyncNow={flushPendingSync ? () => void flushPendingSync() : undefined}
+                onRetryConflict={retrySyncConflict ? (id) => void retrySyncConflict(id) : undefined}
+                onDismissConflict={dismissSyncConflict}
+                onDismissToast={dismissSyncToast}
+            />
 
             <View className="flex-row items-center justify-between gap-3 pt-3">
                 <View className="flex-1">
