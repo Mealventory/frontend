@@ -29,6 +29,8 @@ export interface FoodItem {
 }
 
 export interface Recipe {
+  /** Optional recipe yield. Older generated and saved recipes may omit it. */
+  servings?: number;
   priorityIngredients?: string[];
   missingIngredients?: string[];
   id: string;
