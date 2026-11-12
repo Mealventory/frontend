@@ -1,9 +1,19 @@
-import type { InventoryRow } from './inventoryApi';
+import type { InventoryRow, NewItem } from './inventoryApi';
+import type { StorageZone } from '../types';
 
 export type Deduction = { item_id: string; quantity: string; expected_quantity: string; unit: string };
 export type CompletionRequest = { completion_id: string; recipe_id: string; recipe_name: string; items: Deduction[] };
 export type CompletionResult = { completion_id: string; recipe_name: string; items: { item_id: string; name: string; used: string; remaining: string; unit: string; status: string }[] };
-export type CompletionRecord = { request: CompletionRequest; result?: CompletionResult };
+export type LeftoverRecord = { status: 'pending' | 'saved'; item: NewItem };
+export type CompletionRecord = {
+  request: CompletionRequest;
+  result?: CompletionResult;
+  servings_made?: number;
+  /** A finished meal can intentionally leave pantry quantities unchanged. */
+  pantryUpdateSkipped?: boolean;
+  /** Kept with the completion record so retries reuse the exact request. */
+  leftover?: LeftoverRecord;
+};
 
 const normalize = (name: string) => name.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
 export function suggestedInventory(ingredients: string[], rows: InventoryRow[]) {
@@ -25,6 +35,40 @@ export function reviewedDeductions(rows: InventoryRow[], amounts: Record<string,
 
 export function newCompletionId() {
   return `meal-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function leftoverIdempotencyKey(completionId: string) {
+  return `leftover-${completionId}`;
+}
+
+export function createLeftoverInventoryItem(
+  name: string,
+  portions: string,
+  storageZone: StorageZone,
+  expiryDate: string | null,
+): NewItem {
+  const trimmedName = name.trim();
+  if (!trimmedName || trimmedName.length > 200) {
+    throw new Error('Enter a leftover name between 1 and 200 characters.');
+  }
+  const amount = portions.trim();
+  if (!/^\d+(?:\.\d{1,3})?$/.test(amount) || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {
+    throw new Error('Enter a portion amount greater than 0, using up to 3 decimal places.');
+  }
+  if (Number(amount) > 999999999) {
+    throw new Error('Enter a smaller portion amount.');
+  }
+  if (storageZone !== 'fridge' && storageZone !== 'freezer') {
+    throw new Error('Choose the fridge or freezer for leftovers.');
+  }
+  return {
+    name: trimmedName,
+    category: 'Prepared meal',
+    quantity: Number(amount),
+    unit: 'portions',
+    expiry_date: expiryDate,
+    storage_zone: storageZone,
+  };
 }
 
 export class CompletionError extends Error {

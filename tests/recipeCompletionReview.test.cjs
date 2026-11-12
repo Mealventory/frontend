@@ -10,13 +10,14 @@ function compile(path, mocks = {}) {
   return mod.exports;
 }
 const lib = compile('src/lib/recipeCompletion.ts');
+const expiryDate = compile('src/lib/expiryDate.ts');
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function walk(node) {
   if (Array.isArray(node)) return node.flatMap(walk);
   if (!node || typeof node !== 'object') return [];
   return [node, ...walk(node.props?.children)];
 }
-function harness(storage, submit, failStorage = false) {
+function harness(storage, submit, failStorage = false, batchCreate = async () => []) {
   let cursor = 0; const slots = []; const effects = [];
   const react = {
     useState(value) { const i = cursor++; if (!(i in slots)) slots[i] = value; return [slots[i], value => { slots[i] = typeof value === 'function' ? value(slots[i]) : value; }]; },
@@ -28,7 +29,9 @@ function harness(storage, submit, failStorage = false) {
     react, 'react/jsx-runtime': { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) },
     'react-native': { ActivityIndicator: 'Spinner', ScrollView: 'ScrollView', Text: 'Text', TextInput: 'TextInput', View: 'View' },
     'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' }, '../atoms/Button': { Button: 'Button' },
-    '../../lib/inventoryApi': { inventoryRequest: async () => [{ id: 'rice', name: 'Rice', quantity: '5', unit: 'cups' }] },
+    '../atoms/Checkbox': { Checkbox: 'Checkbox' }, '../molecules/FormField': { FormField: 'FormField' },
+    '../molecules/TagChipGroup': { TagChipGroup: 'TagChipGroup' }, '../molecules/ExpiryDateField': { ExpiryDateField: 'ExpiryDateField' },
+    '../../lib/inventoryApi': { inventoryRequest: async () => [{ id: 'rice', name: 'Rice', quantity: '5', unit: 'cups' }], batchCreateInventoryItems: batchCreate },
     '../../lib/supabase': { supabase: { auth: { getSession: async () => ({ data: { session: { access_token: 'token', user: { id: 'user' } } } }) } } },
     '../../lib/recipeCompletion': { ...lib, submitCompletion: submit },
     '../../lib/recipeCompletionStorage': {
@@ -36,6 +39,7 @@ function harness(storage, submit, failStorage = false) {
       writeCompletion: async (key, record) => { if (failStorage) throw Error('Storage unavailable'); storage.set(key, record); },
     },
     '../../lib/cookingSession': { clearCookingSession: () => cleared++ },
+    '../../lib/expiryDate': expiryDate,
   }).RecipeCompletionReview;
   function render() {
     cursor = 0;
@@ -81,4 +85,110 @@ test('storage failure prevents an unprotected inventory mutation', async () => {
   h.render().find(n => n.props?.label === 'Confirm amounts & update pantry').props.onPress();
   await tick();
   assert.equal(calls, 0); assert.equal(h.cleared, 0);
+});
+
+test('skipping pantry deductions finishes the meal and leftover retry reuses its exact idempotent request', async () => {
+  const storage = new Map(); const calls = []; let attempt = 0;
+  let h = harness(storage, async () => { throw Error('ingredient completion must not be called'); }, false,
+    async (_token, home, items, key) => {
+      calls.push({ home, items, key });
+      attempt++;
+      if (attempt === 1) throw Error('Connection interrupted after request');
+      return [{ id: 'leftover-1' }];
+    });
+
+  h.render(); await tick();
+  h.render().find(node => node.props?.label === 'Finish without changing pantry').props.onPress();
+  await tick();
+  assert.ok(h.render().some(node => node.props?.children === 'Meal finished. Your pantry was left unchanged.'));
+
+  h.render().find(node => node.props?.label === 'Save Leftovers').props.onPress();
+  let nodes = h.render();
+  nodes.find(node => node.type === 'Checkbox').props.onToggle(true);
+  nodes = h.render();
+  nodes.find(node => node.props?.label === 'Save Leftovers' && node.props?.disabled === false).props.onPress();
+  await tick();
+  nodes = h.render();
+  assert.ok(nodes.some(node => node.props?.label === 'Retry Save Leftovers'));
+  h = harness(storage, async () => { throw Error('ingredient completion must not be called'); }, false,
+    async (_token, home, items, key) => {
+      calls.push({ home, items, key });
+      attempt++;
+      return [{ id: 'leftover-1' }];
+    });
+  h.render(); await tick();
+  nodes = h.render();
+  assert.ok(nodes.some(node => node.props?.label === 'Retry Save Leftovers'));
+  nodes.find(node => node.props?.label === 'Retry Save Leftovers').props.onPress();
+  await tick();
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].home, 'home');
+  assert.equal(calls[0].key, `leftover-${storage.get('user:home:recipe').request.completion_id}`);
+  assert.match(calls[0].key, /^leftover-meal-/);
+  assert.deepEqual(calls[0].items, calls[1].items);
+  assert.equal(calls[0].items[0].name, 'Rice bowl');
+  assert.equal(calls[0].items[0].quantity, 1);
+  assert.equal(calls[0].items[0].unit, 'portions');
+  assert.equal(calls[0].items[0].storage_zone, 'fridge');
+  assert.equal(calls[0].items[0].expiry_date, null);
+  assert.equal(storage.get('user:home:recipe').leftover.status, 'saved');
+  assert.equal(h.refreshed, 1);
+});
+
+test('confirmed date is stored with leftover and ingredient consumption retains its own completion ID', async () => {
+  const storage = new Map(); const calls = [];
+  const h = harness(storage, async (_token, home, request) => ({ completion_id: request.completion_id, items: [] }), false,
+    async (_token, _home, items, key) => { calls.push({ items, key }); return []; });
+  h.render(); await tick();
+  let nodes = h.render();
+  nodes.find(node => node.props?.label === 'Servings prepared').props.onChangeText('3');
+  nodes = h.render();
+  nodes.find(node => node.type === 'TextInput').props.onChangeText('2');
+  h.render().find(node => node.props?.label === 'Confirm amounts & update pantry').props.onPress();
+  await tick();
+  nodes = h.render();
+  nodes.find(node => node.props?.label === 'Save Leftovers').props.onPress();
+  nodes = h.render();
+  assert.equal(nodes.find(node => node.props?.label === 'Portions to save').props.value, '3');
+  nodes.find(node => node.props?.label === 'Portions to save').props.onChangeText('2');
+  nodes = h.render();
+  nodes.find(node => node.type === 'ExpiryDateField').props.onChangeText('2027-04-05');
+  nodes = h.render();
+  nodes.find(node => node.type === 'Checkbox').props.onToggle(true);
+  nodes = h.render();
+  nodes.find(node => node.props?.label === 'Save Leftovers' && node.props?.disabled === false).props.onPress();
+  await tick();
+
+  assert.equal(calls.length, 1);
+  const savedRecord = storage.get('user:home:recipe');
+  assert.equal(calls[0].key, `leftover-${savedRecord.request.completion_id}`);
+  assert.notEqual(calls[0].key, savedRecord.request.completion_id);
+  assert.equal(calls[0].items[0].expiry_date, '2027-04-05');
+  assert.equal(calls[0].items[0].quantity, 2);
+  assert.equal(savedRecord.result.completion_id, savedRecord.request.completion_id);
+  assert.equal(savedRecord.servings_made, 3);
+  assert.equal(savedRecord.leftover.status, 'saved');
+});
+
+test('unknown dates require confirmation and malformed dates never reach inventory', async () => {
+  const storage = new Map(); let mutations = 0;
+  const h = harness(storage, async () => { throw Error('not used'); }, false, async () => { mutations++; return []; });
+  h.render(); await tick();
+  h.render().find(node => node.props?.label === 'Finish without changing pantry').props.onPress();
+  await tick();
+  h.render().find(node => node.props?.label === 'Save Leftovers').props.onPress();
+  let nodes = h.render();
+  const saveButton = () => h.render().find(node => node.props?.label === 'Save Leftovers' && node.props?.disabled !== undefined);
+  assert.equal(saveButton().props.disabled, true);
+  nodes.find(node => node.type === 'Checkbox').props.onToggle(true);
+  nodes = h.render();
+  nodes.find(node => node.type === 'ExpiryDateField').props.onChangeText('2027-02-30');
+  nodes = h.render();
+  nodes.find(node => node.type === 'Checkbox').props.onToggle(true);
+  nodes = h.render();
+  nodes.find(node => node.props?.label === 'Save Leftovers' && node.props?.disabled === false).props.onPress();
+  await tick();
+  assert.equal(mutations, 0);
+  assert.ok(h.render().some(node => typeof node.props?.children === 'string' && node.props.children.includes('date does not exist')));
 });

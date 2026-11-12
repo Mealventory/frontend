@@ -20,6 +20,19 @@ test('review rejects incompatible input and overdraws', () => {
   for (const amount of ['0', '-1', 'six', '2kg', '6', '1.0001', 'Infinity']) assert.throws(() => lib.reviewedDeductions(rows, { a: amount }));
   assert.equal(lib.reviewedDeductions(rows, { a: '5' })[0].quantity, '5');
 });
+test('leftover rows are explicit prepared-meal items and use a separate operation key', () => {
+  const item = lib.createLeftoverInventoryItem('  Lentil soup  ', '2.5', 'freezer', '2027-01-25');
+  assert.deepEqual(item, {
+    name: 'Lentil soup', category: 'Prepared meal', quantity: 2.5,
+    unit: 'portions', expiry_date: '2027-01-25', storage_zone: 'freezer',
+  });
+  const key = lib.leftoverIdempotencyKey('meal-session-1234567890');
+  assert.equal(key, 'leftover-meal-session-1234567890');
+  assert.notEqual(key, 'meal-session-1234567890');
+  for (const [name, portions, zone] of [['', '1', 'fridge'], ['Soup', '0', 'fridge'], ['Soup', '1.2345', 'fridge'], ['Soup', '1', 'pantry']]) {
+    assert.throws(() => lib.createLeftoverInventoryItem(name, portions, zone, null));
+  }
+});
 test('interrupted response can retry the identical household-scoped submission', async () => {
   const oldFetch = global.fetch;
   process.env.EXPO_PUBLIC_BACKEND_URL = 'https://example.test';
