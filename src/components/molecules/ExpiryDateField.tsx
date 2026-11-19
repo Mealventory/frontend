@@ -4,8 +4,18 @@ import { FormField } from './FormField';
 import { Button } from '../atoms';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 
-export function ExpiryDateField({ value, onChangeText, editable = true }: {
-  value: string; onChangeText: (value: string) => void; editable?: boolean;
+export function ExpiryDateField({
+  value,
+  onChangeText,
+  editable = true,
+  onInputFocus,
+  onInputBlur,
+}: {
+  value: string;
+  onChangeText: (value: string) => void;
+  editable?: boolean;
+  onInputFocus?: () => void;
+  onInputBlur?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState(() => new Date());
@@ -23,7 +33,12 @@ export function ExpiryDateField({ value, onChangeText, editable = true }: {
       placeholder="20270125 or 2027/01/25" error={error}
       helperText="Year, month, day. Leave blank if unknown."
       onChangeText={text => { setError(''); onChangeText(text); }}
-      onBlur={() => { try { onChangeText(normalizeExpiryDate(value) || ''); setError(''); } catch (e) { setError((e as Error).message); } }} />
+      onFocus={onInputFocus}
+      onBlur={() => {
+        onInputBlur?.();
+        try { onChangeText(normalizeExpiryDate(value) || ''); setError(''); }
+        catch (e) { setError((e as Error).message); }
+      }} />
     <Button label="Choose a date" variant="secondary" disabled={!editable} onPress={show} />
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 }}>
