@@ -3,7 +3,7 @@ import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
 import { E2E_EDITED_ITEM_NAME } from '@/src/lib/e2e';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -41,7 +41,7 @@ function EditForm({ item }: { item: FoodItem }) {
   const [error, setError] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const expiryInputFocused = useRef(false);
 
   useEffect(() => {
