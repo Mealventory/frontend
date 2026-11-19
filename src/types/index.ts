@@ -13,6 +13,8 @@ export type FoodCategory =
   | "Snacks";
 
 export interface FoodItem {
+  /** Current server-side revision for household inventory edits. */
+  version?: number;
   expiryDate?: string | null;
   id: string;
   name: string;
