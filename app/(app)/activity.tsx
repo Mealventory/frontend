@@ -151,6 +151,73 @@ export default function HouseholdActivityScreen() {
         </View>
       </View>
 
+      {!loading && !error && events.length > 0 && (
+        <View className="pb-3" style={{ paddingHorizontal: APP_GUTTER }}>
+          <View className="flex-row justify-between items-center mb-2">
+            <Typography variant="caption" color="muted">Filter by action</Typography>
+            {(actionFilter !== "all" || actorFilter !== "all") && (
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel="Clear activity filters"
+                onPress={clearFilters}
+              >
+                <Typography variant="caption" color="brand">Clear filters</Typography>
+              </TouchableOpacity>
+            )}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
+            {ACTIVITY_ACTION_FILTERS.map(({ value, label }) => {
+              const selected = actionFilter === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  testID={`activity-action-${value}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`Filter activity by ${label}`}
+                  onPress={() => setActionFilter(value)}
+                  className={`mr-2 px-3 py-2 rounded-full border ${
+                    selected ? "bg-brand-500 border-brand-500" : "bg-ground-surface border-border-default"
+                  }`}
+                >
+                  <Typography variant="caption" className={selected ? "text-white" : "text-text-secondary"}>
+                    {label}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <Typography variant="caption" color="muted" className="mt-3 mb-2">
+            Filter by member
+          </Typography>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }}>
+            {[{ userId: "all", name: "All members" }, ...actors].map((actor) => {
+              const selected = actorFilter === actor.userId;
+              return (
+                <TouchableOpacity
+                  key={actor.userId}
+                  testID={`activity-member-${actor.userId}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`Filter activity by ${actor.name}`}
+                  onPress={() => setActorFilter(actor.userId)}
+                  className={`mr-2 px-3 py-2 rounded-full border ${
+                    selected ? "bg-brand-500 border-brand-500" : "bg-ground-surface border-border-default"
+                  }`}
+                >
+                  <Typography variant="caption" className={selected ? "text-white" : "text-text-secondary"}>
+                    {actor.name}
+                  </Typography>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <Typography variant="caption" color="muted" className="mt-3">
+            {filteredEvents.length} of {events.length} recent activities. Showing up to 100 latest events.
+          </Typography>
+        </View>
+      )}
+
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#10B981" />
@@ -170,12 +237,12 @@ export default function HouseholdActivityScreen() {
         </View>
       ) : (
         <FlatList
-          data={events}
+          data={filteredEvents}
           keyExtractor={(event) => event.id}
           contentContainerStyle={{
             paddingHorizontal: APP_GUTTER,
             paddingBottom: 36,
-            flexGrow: events.length === 0 ? 1 : undefined,
+            flexGrow: filteredEvents.length === 0 ? 1 : undefined,
           }}
           refreshControl={
             <RefreshControl
@@ -184,13 +251,25 @@ export default function HouseholdActivityScreen() {
             />
           }
           ListEmptyComponent={
-            <EmptyState
-              icon="History"
-              title="No household activity yet"
-              description="Pantry and shopping changes from household members will show up here."
-            />
+            events.length === 0 ? (
+              <EmptyState
+                icon="History"
+                title="No household activity yet"
+                description="Pantry and shopping changes from household members will show up here."
+              />
+            ) : (
+              <EmptyState
+                icon="Search"
+                title="No matching activity"
+                description="No recent events match those filters. Try another action or member."
+                actionLabel="Clear filters"
+                onAction={clearFilters}
+              />
+            )
           }
           renderItem={({ item: event }) => {
+            const actor = actorById.get(event.actor_user_id);
+            const actorName = actor?.name || event.actor_name || "Household member";
             const canOpen =
               event.entity_type === "inventory" &&
               Boolean(event.entity_id) &&
@@ -202,23 +281,27 @@ export default function HouseholdActivityScreen() {
                 accessibilityRole={canOpen ? "button" : undefined}
                 accessibilityLabel={
                   canOpen
-                    ? `${event.actor_name} ${activityDescription(event)}. Open item`
+                    ? `${actorName} ${activityDescription(event)}. Open item`
                     : undefined
                 }
                 onPress={() => openEvent(event)}
                 className="flex-row items-center py-4 border-b border-border-default"
               >
-                <View className="w-10 h-10 rounded-xl bg-ground-subtle dark:bg-ground-elevated items-center justify-center">
-                  <Icon
-                    name={actionIcon(event.action)}
-                    size={18}
-                    color="#10B981"
+                <View className="relative w-[46px] h-[46px] mr-3">
+                  <Avatar
+                    uri={actor?.avatarUrl || undefined}
+                    initials={activityActorInitials(actorName)}
+                    size="md"
+                    className="rounded-full"
                   />
+                  <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border border-border-default bg-ground-surface items-center justify-center">
+                    <Icon name={actionIcon(event.action)} size={11} color="#10B981" />
+                  </View>
                 </View>
-                <View className="flex-1 min-w-0 ml-3">
+                <View className="flex-1 min-w-0">
                   <Typography numberOfLines={2}>
                     <Typography className="font-bold">
-                      {event.actor_name}
+                      {actorName}
                     </Typography>
                     {" "}{activityDescription(event)}
                   </Typography>
