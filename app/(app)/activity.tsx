@@ -1,18 +1,27 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  ScrollView,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { Icon, Typography } from "@/src/components/atoms";
+import { Avatar, Icon, Typography } from "@/src/components/atoms";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { useAuth } from "@/src/context/AuthContext";
 import { useInventory } from "@/src/context/InventoryContext";
 import { APP_GUTTER } from "@/src/lib/layout";
+import { getHouseholdMembers, type Member } from "@/src/lib/householdApi";
+import {
+  ACTIVITY_ACTION_FILTERS,
+  activityActorInitials,
+  activityActorOptions,
+  filterActivityEvents,
+  type ActivityActionFilter,
+} from "@/src/lib/activityFilters";
 import {
   activityDescription,
   fetchHouseholdActivity,
@@ -35,6 +44,10 @@ export default function HouseholdActivityScreen() {
   const { session, household } = useAuth();
   const { inventory, openItem } = useInventory();
   const [events, setEvents] = useState<HouseholdActivityEvent[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [actionFilter, setActionFilter] = useState<ActivityActionFilter>("all");
+  const [actorFilter, setActorFilter] = useState("all");
+  const requestSequence = useRef(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -44,9 +57,25 @@ export default function HouseholdActivityScreen() {
     [inventory],
   );
 
+  const actors = useMemo(() => activityActorOptions(events, members), [events, members]);
+  const actorById = useMemo(
+    () => new Map(actors.map((actor) => [actor.userId, actor])),
+    [actors],
+  );
+  const filteredEvents = useMemo(
+    () => filterActivityEvents(events, actionFilter, actorFilter),
+    [events, actionFilter, actorFilter],
+  );
+  const clearFilters = () => {
+    setActionFilter("all");
+    setActorFilter("all");
+  };
+
   const load = useCallback(async (refresh = false) => {
+    const requestId = ++requestSequence.current;
     if (!session?.access_token || !household?.id) {
       setEvents([]);
+      setMembers([]);
       setLoading(false);
       setRefreshing(false);
       return;
@@ -54,21 +83,36 @@ export default function HouseholdActivityScreen() {
     refresh ? setRefreshing(true) : setLoading(true);
     setError("");
     try {
-      const result = await fetchHouseholdActivity(
-        session.access_token,
-        household.id,
-      );
-      setEvents(result);
+      // Member lookup is supplementary: a failed profile request must never
+      // prevent loading the activity feed or filtering historical authors.
+      const [activityResult, memberResult] = await Promise.allSettled([
+        fetchHouseholdActivity(session.access_token, household.id, 100),
+        getHouseholdMembers(household.id, session.access_token),
+      ]);
+      if (requestId !== requestSequence.current) return;
+      if (memberResult.status === "fulfilled") setMembers(memberResult.value);
+      else setMembers([]);
+      if (activityResult.status === "rejected") throw activityResult.reason;
+      setEvents(activityResult.value);
     } catch (e) {
+      if (requestId !== requestSequence.current) return;
       setError(e instanceof Error ? e.message : "Could not load household activity.");
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === requestSequence.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [household?.id, session?.access_token]);
 
   useEffect(() => {
+    clearFilters();
+    setEvents([]);
+    setMembers([]);
     void load();
+    return () => {
+      requestSequence.current += 1;
+    };
   }, [load]);
 
   const openEvent = (event: HouseholdActivityEvent) => {
