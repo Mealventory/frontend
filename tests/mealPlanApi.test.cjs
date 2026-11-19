@@ -7,8 +7,25 @@ const Module = require("node:module");
 process.env.EXPO_PUBLIC_BACKEND_URL = "https://test.example";
 
 function loadApi() {
+  // Transpile the actual shared parser rather than stubbing validation.
+  const mealPlan = new Module("mealPlan");
+  mealPlan.require = (name) => {
+    if (name === "react-native") return { Platform: { OS: "ios" } };
+    if (name === "expo-secure-store") return {};
+    throw new Error(`Unexpected import: ${name}`);
+  };
+  mealPlan._compile(ts.transpileModule(
+    fs.readFileSync("src/lib/mealPlan.ts", "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+    }
+  ).outputText, "mealPlan.cjs");
+
   const source = fs.readFileSync("src/lib/mealPlanApi.ts", "utf8");
   const mod = new Module("mealPlanApi");
+  mod.require = (name) => {
+    if (name === "./mealPlan") return mealPlan.exports;
+    throw new Error(`Unexpected import: ${name}`);
+  };
   mod._compile(ts.transpileModule(source, {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
@@ -91,4 +108,27 @@ test("local import only forwards valid dates with version preconditions", () => 
   assert.equal(request.meals.length, 1);
   assert.equal(request.meals[0].date, "2026-11-24");
   assert.equal(Object.hasOwn(request.meals[0].recipe, "servings"), false);
+});
+
+test("household API rejects malformed and impossible dates before network writes", async () => {
+  const previous = global.fetch;
+  let requests = 0;
+  global.fetch = async () => {
+    requests += 1;
+    throw new Error("The API must not be called for invalid dates.");
+  };
+  try {
+    for (const date of ["2027-02-29", "2026-02-30", "2026-00-15", "2026-11-00"]) {
+      assert.throws(() => api.assignSharedMeal(TOKEN, HOME, {
+        date, slot: "dinner", recipe: RECIPE,
+      }, 0), RangeError);
+      assert.throws(() => api.removeSharedMeal(TOKEN, HOME, date, "lunch", 0), RangeError);
+      assert.throws(() => api.moveSharedMeal(
+        TOKEN, HOME, "2026-11-24", "lunch", date, "dinner", 0, 0
+      ), RangeError);
+    }
+    assert.equal(requests, 0);
+  } finally {
+    global.fetch = previous;
+  }
 });

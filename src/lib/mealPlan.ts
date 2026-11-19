@@ -34,7 +34,30 @@ function entryKey(
   return `${scopePrefix(userId, householdId)}.${safeScopePart(date)}.${slot}`;
 }
 
+// A single strict calendar parser is shared by local storage, UI dates,
+// warning windows and the household API's import validation. Never allow
+// JavaScript's Date constructor to silently normalize an impossible day.
+export function parseMealDateKey(
+  value: string
+): { year: number; month: number; day: number } | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (year < 100 || month < 1 || month > 12 || day < 1) return null;
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day <= daysInMonth ? { year, month, day } : null;
+}
+
+export function validMealDate(value: string): boolean {
+  return parseMealDateKey(value) !== null;
+}
+
 export function mealSlotKey(date: string, slot: MealSlot): string {
+  if (!validMealDate(date) || !isMealSlot(slot)) {
+    throw new RangeError("Invalid meal plan calendar date or slot.");
+  }
   return `${date}:${slot}`;
 }
 
@@ -46,8 +69,19 @@ export function localDateKey(date: Date): string {
 }
 
 export function parseLocalDateKey(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day, 12, 0, 0, 0);
+  const parts = parseMealDateKey(value);
+  if (!parts) throw new RangeError("Invalid meal plan calendar date.");
+  const { year, month, day } = parts;
+  // Local noon avoids midnight DST edges while preserving the calendar day.
+  const result = new Date(year, month - 1, day, 12, 0, 0, 0);
+  if (
+    result.getFullYear() !== year ||
+    result.getMonth() + 1 !== month ||
+    result.getDate() !== day
+  ) {
+    throw new RangeError("Calendar date is unavailable in this timezone.");
+  }
+  return result;
 }
 
 export function startOfWeek(date = new Date()): Date {
@@ -199,10 +233,9 @@ export function weeklyMissingIngredients(
 }
 
 function dateKeyOrdinal(value: string): number | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  const timestamp = Date.UTC(year, month - 1, day);
-  return Number.isFinite(timestamp) ? Math.floor(timestamp / 86_400_000) : null;
+  const parts = parseMealDateKey(value);
+  if (!parts) return null;
+  return Math.floor(Date.UTC(parts.year, parts.month - 1, parts.day) / 86_400_000);
 }
 
 export function isMealDateWithinWarningWindow(
@@ -249,10 +282,9 @@ export function applyMealMove(
   targetDate: string,
   targetSlot: MealSlot
 ): PlannedMeal[] {
-  if (sourceDate === targetDate && sourceSlot === targetSlot) return meals;
-
   const sourceKey = mealSlotKey(sourceDate, sourceSlot);
   const targetKey = mealSlotKey(targetDate, targetSlot);
+  if (sourceKey === targetKey) return meals;
   const source = meals.find(
     (meal) => mealSlotKey(meal.date, meal.slot) === sourceKey
   );
@@ -308,7 +340,7 @@ function isPlannedMeal(value: unknown): value is PlannedMeal {
   const meal = value as Partial<PlannedMeal>;
   return (
     typeof meal.date === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(meal.date) &&
+    validMealDate(meal.date) &&
     isMealSlot(meal.slot) &&
     isRecipe(meal.recipe)
   );
@@ -358,9 +390,7 @@ function parseSlotKey(key: string): { date: string; slot: MealSlot } | null {
   if (split < 0) return null;
   const date = key.slice(0, split);
   const slot = key.slice(split + 1);
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) && isMealSlot(slot)
-    ? { date, slot }
-    : null;
+  return validMealDate(date) && isMealSlot(slot) ? { date, slot } : null;
 }
 
 export async function loadMealPlan(
@@ -381,6 +411,8 @@ export async function loadMealPlan(
       if (!raw) continue;
       const parsed = JSON.parse(raw);
       if (!isPlannedMeal(parsed)) continue;
+      // A corrupt index must not attach a valid but different day's meal.
+      if (parsed.date !== parsedKey.date || parsed.slot !== parsedKey.slot) continue;
       meals.push(parsed);
       validKeys.push(key);
     } catch {

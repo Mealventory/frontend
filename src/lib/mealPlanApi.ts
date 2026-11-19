@@ -1,5 +1,7 @@
 import type { Recipe } from "../types";
-import type { MealSlot, PlannedMeal } from "./mealPlan";
+import { mealSlotKey, validMealDate, type MealSlot, type PlannedMeal } from "./mealPlan";
+
+export { validMealDate };
 
 const base = (
   process.env.EXPO_PUBLIC_BACKEND_URL ||
@@ -49,19 +51,6 @@ export function recipeSnapshot(recipe: Recipe): Recipe {
   };
 }
 
-export function validMealDate(date: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  if (year < 100 || month < 1 || month > 12 || day < 1 || day > 31) return false;
-  const parsed = new Date(Date.UTC(year, month - 1, day));
-  return parsed.getUTCFullYear() === year &&
-    parsed.getUTCMonth() + 1 === month &&
-    parsed.getUTCDate() === day;
-}
-
 async function request<T>(
   token: string, householdId: string, path = "", body?: unknown, method = "GET"
 ): Promise<T> {
@@ -107,6 +96,7 @@ export function listSharedMealPlan(token: string, householdId: string) {
 export function assignSharedMeal(
   token: string, householdId: string, meal: PlannedMeal, expectedRevision: number
 ) {
+  mealSlotKey(meal.date, meal.slot);
   return request<SharedMealPlanState>(token, householdId, "/slots", {
     ...meal, recipe: recipeSnapshot(meal.recipe), expected_revision: expectedRevision,
   }, "PUT");
@@ -118,6 +108,8 @@ export function moveSharedMeal(
   targetDate: string, targetSlot: MealSlot,
   sourceRevision: number, targetRevision: number
 ) {
+  mealSlotKey(sourceDate, sourceSlot);
+  mealSlotKey(targetDate, targetSlot);
   return request<SharedMealPlanState>(token, householdId, "/move", {
     source_date: sourceDate, source_slot: sourceSlot,
     target_date: targetDate, target_slot: targetSlot,
@@ -129,6 +121,7 @@ export function removeSharedMeal(
   token: string, householdId: string,
   date: string, slot: MealSlot, expectedRevision: number
 ) {
+  mealSlotKey(date, slot);
   return request<SharedMealPlanState>(token, householdId, "/slots/remove", {
     date, slot, expected_revision: expectedRevision,
   }, "POST");
@@ -137,7 +130,14 @@ export function removeSharedMeal(
 export function importPayload(meals: MealImportEntry[]): MealImportRequest {
   return {
     import_key: "local-v1",
-    meals: meals.filter(meal => validMealDate(meal.date)).map(meal => ({
+    meals: meals.filter(meal => {
+      try {
+        mealSlotKey(meal.date, meal.slot);
+        return true;
+      } catch {
+        return false;
+      }
+    }).map(meal => ({
       ...meal, recipe: recipeSnapshot(meal.recipe),
     })),
   };
