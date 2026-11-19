@@ -157,3 +157,45 @@ test('stacked inventory row maps accumulated quantity and updated remaining perc
   assert.equal(item.remainingPercent, 100);
   assert.equal(item.isLowStock, false);
 });
+
+test('versioned PATCH sends If-Match and a stale 409 maps to a conflict error',async()=>{
+ const request = {name:'Milk',quantity:3};
+ let sent = null;
+ global.fetch = async (url,init)=>{
+  sent={url,...init};
+  return new Response(JSON.stringify({detail:'Inventory item changed since you opened it.'}),{status:409});
+ };
+ await assert.rejects(
+  inventoryRequest('jwt','house','PATCH','item',request,undefined,7),
+  e=>e instanceof mod.exports.InventoryConflictError
+ );
+ assert.equal(sent.method,'PATCH');
+ assert.equal(sent.headers['If-Match'],'7');
+ assert.equal(sent.headers['X-Household-ID'],'house');
+});
+
+test('inventory PATCH rejects missing revision without contacting backend',async()=>{
+ let called=false;
+ global.fetch=async()=>{called=true;throw Error('unexpected fetch');};
+ await assert.rejects(
+  inventoryRequest('jwt','house','PATCH','item',{quantity:4}),
+  /version unavailable/
+ );
+ assert.equal(called,false);
+});
+
+test('deleted or merged items report an explicit actionable error',async()=>{
+ global.fetch=async()=>new Response(JSON.stringify({detail:'Item not found in this household'}),{status:404});
+ await assert.rejects(
+  inventoryRequest('jwt','house','PATCH','item',{quantity:4},undefined,2),
+  e=>e instanceof mod.exports.InventoryItemGoneError
+ );
+});
+
+test('inventory row retains version for subsequent edits',()=>{
+ const row=toFoodItem({
+   id:'item', household_id:'home', version:9, name:'Apple',category:'Produce',
+   quantity:2,unit:'units',expiry_date:null,status:'active'
+ });
+ assert.equal(row.version,9);
+});
