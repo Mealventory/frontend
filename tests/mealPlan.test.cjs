@@ -297,3 +297,91 @@ test("recipe entry points expose Meal Plan and Add to Meal Plan actions", () => 
   assert.match(recipes, /label="Meal Plan"/);
   assert.match(detail, /Add to Meal Plan/);
 });
+
+
+test("strict meal plan calendar dates reject impossible days and accept leap years", () => {
+  const { api } = loadMealPlan();
+  for (const invalid of [
+    "2027-02-29", "2026-02-30", "2026-00-10", "2026-01-00",
+    "2026-13-01", "2026-04-31", "2026-2-09", "0099-12-31",
+  ]) {
+    assert.equal(api.validMealDate(invalid), false, invalid);
+    assert.equal(api.parseMealDateKey(invalid), null, invalid);
+    assert.throws(() => api.parseLocalDateKey(invalid), RangeError);
+    assert.throws(() => api.mealSlotKey(invalid, "lunch"), RangeError);
+    assert.equal(api.isMealDateWithinWarningWindow(invalid, new Date(2026, 1, 28, 12)), false);
+  }
+  for (const valid of ["2028-02-29", "2024-02-29", "2026-11-19", "2026-12-31"]) {
+    assert.equal(api.validMealDate(valid), true, valid);
+    assert.equal(api.localDateKey(api.parseLocalDateKey(valid)), valid);
+  }
+});
+
+test("warning window uses calendar days even across DST and timezone changes", () => {
+  const originalTimezone = process.env.TZ;
+  try {
+    for (const timezone of ["America/Toronto", "Pacific/Auckland", "UTC"]) {
+      process.env.TZ = timezone;
+      const { api } = loadMealPlan();
+      for (const today of ["2026-03-07", "2026-10-31"]) {
+        const current = api.parseLocalDateKey(today);
+        const tomorrow = new Date(current);
+        tomorrow.setDate(current.getDate() + 1);
+        const next = api.localDateKey(tomorrow);
+        assert.equal(api.isMealDateWithinWarningWindow(next, current, 1), true, timezone);
+        assert.equal(api.localDateKey(api.parseLocalDateKey(today)), today, timezone);
+        assert.equal(api.localDateKey(api.parseLocalDateKey(next)), next, timezone);
+      }
+    }
+  } finally {
+    if (originalTimezone === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTimezone;
+  }
+});
+
+test("corrupted legacy plans are skipped without moving them to another day", async () => {
+  const { api, values } = loadMealPlan();
+  const prefix = "mealventory.mealPlan.corrupt-user.corrupt-home";
+  const invalid = "2026-02-30:lunch";
+  const validLeap = "2028-02-29:dinner";
+  const mismatched = "2026-11-01:lunch";
+  const validNormal = "2026-11-02:dinner";
+  values.set(`${prefix}.index`, JSON.stringify([invalid, validLeap, mismatched, validNormal]));
+  values.set(`${prefix}.2026-02-30.lunch`, JSON.stringify({
+    date: "2026-02-30", slot: "lunch", recipe: recipe("bad", "Invalid", ["Rice"]),
+  }));
+  values.set(`${prefix}.2028-02-29.dinner`, JSON.stringify({
+    date: "2028-02-29", slot: "dinner", recipe: recipe("leap", "Leap", ["Rice"]),
+  }));
+  values.set(`${prefix}.2026-11-01.lunch`, JSON.stringify({
+    date: "2026-11-02", slot: "lunch", recipe: recipe("wrong-key", "Mismatch", ["Rice"]),
+  }));
+  values.set(`${prefix}.2026-11-02.dinner`, JSON.stringify({
+    date: "2026-11-02", slot: "dinner", recipe: recipe("normal", "Normal", ["Rice"]),
+  }));
+
+  const restored = await api.loadMealPlan("corrupt-user", "corrupt-home");
+  assert.deepEqual(restored.map(item => item.recipe.id), ["leap", "normal"]);
+  assert.deepEqual(JSON.parse(values.get(`${prefix}.index`)), [validLeap, validNormal]);
+});
+
+test("invalid local meal writes and moves fail before changing saved data", async () => {
+  const { api, values } = loadMealPlan();
+  const user = "writer";
+  const home = "home";
+  await assert.rejects(api.savePlannedMeal(user, home, {
+    date: "2026-02-30", slot: "dinner", recipe: recipe("bad", "Bad", ["Rice"]),
+  }), RangeError);
+  assert.equal(values.size, 0);
+
+  await api.savePlannedMeal(user, home, {
+    date: "2026-11-19", slot: "lunch", recipe: recipe("good", "Good", ["Rice"]),
+  });
+  const before = new Map(values);
+  await assert.rejects(
+    api.movePlannedMeal(user, home, "2026-11-19", "lunch", "2027-02-29", "dinner"),
+    RangeError
+  );
+  assert.deepEqual([...values], [...before]);
+  assert.deepEqual((await api.loadMealPlan(user, home)).map(item => item.recipe.id), ["good"]);
+});
