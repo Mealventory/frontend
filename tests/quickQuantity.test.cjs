@@ -17,7 +17,7 @@ function harness(value='2 units'){
   }
 },'./FoodItemCard':{FoodItemCard:'Card'},'../atoms':{Button:'Button'},'../atoms/Icon':{Icon:'Icon'},'../molecules/SwipeActionRow':{SwipeActionRow:({children})=>children},'@/src/context/InventoryContext':{useInventory:()=>api},'@/src/lib/quickQuantity':qty};
  const Card=compile('src/components/domain/PantryItemCard.tsx',mocks).PantryItemCard;
- let item={id:'one',name:'Yogurt',quantity:value};
+ let item={id:'one',name:'Yogurt',quantity:value,version:1};
  const walk=n=>Array.isArray(n)?n.flatMap(walk):!n||typeof n!=='object'?[]:[n,...walk(n.props?.children),...walk(n.props?.quantityControls)];
  function render(change={}){item={...item,...change};cursor=0;const nodes=walk(Card({item,today:'2026-09-30',onPress:()=>opens++}));while(effects.length)effects.shift()();return nodes;}
   return {render,resolve,reject,calls,transitions,alerts,get refreshes(){return refreshes;},get opens(){return opens;},dispose:()=>slots.forEach(v=>v?.cleanup?.())};
@@ -33,7 +33,7 @@ test('quantity parsing preserves fractions and units and clamps decrement to zer
 });
 test('optimistic quantity updates only quantity and blocks duplicate taps/detail while saving',async()=>{
  const h=harness();h.render();const nodes=h.render();press(nodes,'Increase');press(nodes,'Increase');
- assert.deepEqual(h.calls,[['one',{quantity:3}]]);
+ assert.deepEqual(h.calls,[['one',{quantity:3},1]]);
  const pending=h.render();assert.equal(pending.find(n=>n.type==='Card').props.item.quantity,'3 units');
  pending.find(n=>n.type==='Card').props.onPress();assert.equal(h.opens,0);
  assert.equal(pending.find(n=>n.props?.accessibilityLabel?.startsWith('Decrease')).props.disabled,true);
@@ -111,4 +111,16 @@ test('failed lifecycle preserves quantity and reports failure',async()=>{
 test('remote quantity change closes an outdated zero prompt',()=>{
  const h=harness('1 units');h.render();press(h.render(),'Decrease');h.render({quantity:'5 units'});
  assert.equal(h.render().some(n=>n.props?.label==='Consumed'),false);h.dispose();
+});
+
+test('quick quantity sends the original rendered version and surfaces stale conflicts',async()=>{
+ const h=harness();h.render();press(h.render(),'Increase');
+ assert.deepEqual(h.calls,[['one',{quantity:3},1]]);
+ h.reject(Error('Another household member changed this item. Refresh and review.'));
+ await flush();
+ const nodes=h.render({quantity:'5 units',version:2});
+ assert.equal(nodes.find(n=>n.type==='Card').props.item.quantity,'5 units');
+ assert.equal(nodes.some(n=>n.props?.label==='Reload latest quantity'),true);
+ assert.equal(h.refreshes,1);
+ h.dispose();
 });
