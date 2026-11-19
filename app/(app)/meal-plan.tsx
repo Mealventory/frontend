@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -922,7 +923,19 @@ export default function MealPlanScreen() {
         )}
 
         {!!pickerTarget && (
-          <View className="mt-5 p-4 rounded-[22px] bg-ground-card border border-border-default">
+          <Modal
+            visible
+            transparent
+            animationType="fade"
+            onRequestClose={() => setPickerTarget(null)}
+          >
+            <View className="flex-1 justify-center bg-black/60 px-4">
+              <View className="max-h-[80%] rounded-[22px] bg-ground-card border border-border-default overflow-hidden">
+                <ScrollView
+                  contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
             <View className="flex-row items-start justify-between gap-3 mb-3">
               <View className="flex-1">
                 <Typography variant="body" className="font-bold">Choose a recipe</Typography>
@@ -944,13 +957,28 @@ export default function MealPlanScreen() {
               </TouchableOpacity>
             </View>
 
+            {!!error && (
+              <View accessibilityRole="alert" className="mb-3 p-3 rounded-xl bg-urgency-critical-bg border border-urgency-critical/30">
+                <Typography variant="caption" className="text-urgency-critical">{error}</Typography>
+              </View>
+            )}
+            {Boolean(busyKey) && (
+              <View className="flex-row items-center gap-2 mb-3">
+                <ActivityIndicator size="small" color="#10B981" />
+                <Typography variant="caption" color="muted">Saving meal…</Typography>
+              </View>
+            )}
+
             {recipeChoices.length === 0 ? (
               <EmptyState
                 icon="BookOpen"
                 title="Save a recipe first"
                 description="Saved recipes appear here so you can schedule them for the week."
                 actionLabel="Browse Recipes"
-                onAction={() => router.push("/(app)/(tabs)/recipes" as any)}
+                onAction={() => {
+                  setPickerTarget(null);
+                  router.push("/(app)/(tabs)/recipes" as any);
+                }}
               />
             ) : (
               <View className="gap-2">
@@ -980,7 +1008,10 @@ export default function MealPlanScreen() {
                 })}
               </View>
             )}
-          </View>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
         )}
 
         {visibleMeals.length > 0 && (
