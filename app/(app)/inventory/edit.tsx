@@ -113,9 +113,9 @@ function EditForm({ item }: { item: FoodItem }) {
       contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 48 }}
     >
       <View className="flex-row items-center mb-6">
-        <Button label="Cancel" variant="ghost" disabled={saving} onPress={() => router.back()} />
+        <Button label="Cancel" singleLine size="sm" className="w-24 shrink-0 px-2" variant="ghost" disabled={saving} onPress={() => router.back()} />
         <Typography variant="h3" className="flex-1 text-center">Edit item</Typography>
-        <View style={{ width: 80 }} />
+        <View style={{ width: 96 }} />
       </View>
       <View className="gap-5">
         <ItemPhotoField

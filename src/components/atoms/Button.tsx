@@ -26,6 +26,7 @@ export interface ButtonProps extends PressableProps {
   trailingIcon?: React.ReactNode;
   className?: string;
   labelClassName?: string;
+  singleLine?: boolean;
 }
 
 const variantButtonStyles: Record<ButtonVariant, string> = {
@@ -79,6 +80,7 @@ export function Button({
   trailingIcon,
   className = "",
   labelClassName = "",
+  singleLine = false,
   disabled,
   style,
   accessibilityLabel,
@@ -110,6 +112,7 @@ export function Button({
         <>
           {leadingIcon && <View className="mr-2.5">{leadingIcon}</View>}
           <Text
+            numberOfLines={singleLine ? 1 : undefined}
             className={`text-center flex-shrink ${sizeTextStyles[size]} ${variantTextStyles[variant]} ${labelClassName}`}
           >
             {label}

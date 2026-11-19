@@ -33,3 +33,38 @@ test('selection changes use native shadows without dynamically adding shadow cla
     assert.equal(style[2].elevation, ['primary', 'danger', 'social'].includes(variant) ? 1 : 0);
   }
 });
+
+test('singleLine buttons render an unwrapped label without changing other buttons', () => {
+  const single = mod.exports.Button({ label: 'Cancel', singleLine: true });
+  const defaultButton = mod.exports.Button({ label: 'Add ingredients to shopping' });
+  function findText(node) {
+    if (!node || typeof node !== 'object') return null;
+    if (node.type === 'Text') return node;
+    const children = node.props?.children;
+    for (const child of Array.isArray(children) ? children : [children]) {
+      const result = findText(child);
+      if (result) return result;
+    }
+    return null;
+  }
+  assert.equal(findText(single)?.props.numberOfLines, 1);
+  assert.equal(findText(defaultButton)?.props.numberOfLines, undefined);
+});
+
+test('all compact top-left Cancel actions reserve enough width for one line', () => {
+  const manual = fs.readFileSync('app/(modal)/manual-add.tsx', 'utf8');
+  const edit = fs.readFileSync('app/(app)/inventory/edit.tsx', 'utf8');
+  const review = fs.readFileSync('src/components/organisms/ReceiptReviewSheet.tsx', 'utf8');
+  for (const [screen, content] of [
+    ['Manual Entry', manual], ['Edit Item', edit], ['Scan Review', review],
+  ]) {
+    const cancelLabel = content.indexOf('label="Cancel"');
+    assert.ok(cancelLabel >= 0, screen + ' should have a Cancel button');
+    const opening = content.lastIndexOf('<Button', cancelLabel);
+    const closing = content.indexOf('/>', cancelLabel);
+    assert.ok(opening >= 0 && closing > cancelLabel, screen + ' should have a complete Cancel button');
+    const button = content.slice(opening, closing + 2);
+    assert.match(button, /singleLine/);
+    assert.match(button, /w-24 shrink-0 px-2/);
+  }
+});
