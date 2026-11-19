@@ -378,20 +378,33 @@ export default function HouseholdScreen({
                   <HouseholdInviteCard
                     householdName={selected.name}
                     inviteCode={selected.invite_code}
-                  />
+                  >
+                    <Pressable
+                      accessibilityRole="button"
+                      testID="e2e-enter-kitchen"
+                      accessibilityLabel={`Enter ${selected.name} Kitchen`}
+                      onPress={() => { selectHousehold(selected); router.push('/(app)/(tabs)' as any); }}
+                      style={styles.cardEnterButton}
+                    >
+                      <Text style={styles.cardEnterButtonText}>Enter kitchen</Text>
+                      <ArrowRight color="white" size={16} />
+                    </Pressable>
+                  </HouseholdInviteCard>
                 ) : (
-                  <Text style={styles.muted}>This household does not currently have an invite code.</Text>
+                  <>
+                    <Text style={styles.muted}>This household does not currently have an invite code.</Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      testID="e2e-enter-kitchen"
+                      accessibilityLabel={`Enter ${selected.name} Kitchen`}
+                      onPress={() => { selectHousehold(selected); router.push('/(app)/(tabs)' as any); }}
+                      style={styles.cardEnterButton}
+                    >
+                      <Text style={styles.cardEnterButtonText}>Enter kitchen</Text>
+                      <ArrowRight color="white" size={16} />
+                    </Pressable>
+                  </>
                 )}
-                <Pressable
-                  accessibilityRole="button"
-                  testID="e2e-enter-kitchen"
-                  accessibilityLabel={`Enter ${selected.name} Kitchen`}
-                  onPress={() => { selectHousehold(selected); router.push('/(app)/(tabs)' as any); }}
-                  style={styles.cardEnterButton}
-                >
-                  <Text style={styles.cardEnterButtonText}>Enter kitchen</Text>
-                  <ArrowRight color="white" size={16} />
-                </Pressable>
               </View>
               <View style={styles.card}><View style={styles.row}><Text style={styles.heading}>At the table</Text><Pressable accessibilityRole="button" accessibilityLabel="Refresh members" onPress={refreshMembers}><RefreshCw size={18} color={accent} /></Pressable></View>
                 {memberLoading ? <ActivityIndicator color={accent} /> : members.map(member => {
