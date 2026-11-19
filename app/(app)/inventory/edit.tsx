@@ -3,8 +3,8 @@ import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
 import { E2E_EDITED_ITEM_NAME } from '@/src/lib/e2e';
-import { useRef, useState } from 'react';
-import { ScrollView, View, Text } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FormField, TagChipGroup } from '@/src/components/molecules';
@@ -41,6 +41,19 @@ function EditForm({ item }: { item: FoodItem }) {
   const [error, setError] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const expiryInputFocused = useRef(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const listener = Keyboard.addListener('keyboardDidShow', () => {
+      if (expiryInputFocused.current) {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }
+    });
+    return () => listener.remove();
+  }, []);
+
   const liveQuantity = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
   const save = async () => {
     if (lock.current) return;
@@ -88,8 +101,14 @@ function EditForm({ item }: { item: FoodItem }) {
     finally { lock.current = false; setSaving(false); }
   };
   return <SafeAreaView className="flex-1 bg-ground-canvas">
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
     <ScrollView
+      ref={scrollRef}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       style={{ width: '100%', maxWidth: 560, alignSelf: 'center' }}
       contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 48 }}
     >
@@ -123,7 +142,16 @@ function EditForm({ item }: { item: FoodItem }) {
         </Typography>
         <FormField label="Category" value={category} onChangeText={setCategory} editable={!saving} maxLength={80} />
         <ExpiryPrediction name={name} zone={zone} value={date} onApply={setDate} itemId={item.id} disabled={saving} />
-        <ExpiryDateField value={date} onChangeText={setDate} editable={!saving} />
+        <ExpiryDateField
+          value={date}
+          onChangeText={setDate}
+          editable={!saving}
+          onInputFocus={() => {
+            expiryInputFocused.current = true;
+            scrollRef.current?.scrollToEnd({ animated: true });
+          }}
+          onInputBlur={() => { expiryInputFocused.current = false; }}
+        />
         <View pointerEvents={saving ? 'none' : 'auto'}>
           <Typography variant="caption" className="mb-2">Storage location</Typography>
           <TagChipGroup tags={['pantry', 'fridge', 'freezer', 'spicerack']} selectedTag={zone} onSelectTag={v => setZone(v as StorageZone)} />
@@ -132,5 +160,6 @@ function EditForm({ item }: { item: FoodItem }) {
         <Button testID="e2e-save-edit" label={saving ? 'Saving…' : 'Save changes'} disabled={saving} onPress={save} />
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   </SafeAreaView>;
 }

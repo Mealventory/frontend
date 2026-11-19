@@ -2,8 +2,8 @@ import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
-import { useState } from 'react';
-import { View, ScrollView } from "react-native";
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Typography, Button, Icon } from "@/src/components/atoms";
@@ -40,6 +40,20 @@ export default function ManualAddModal() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const expiryInputFocused = useRef(false);
+
+  // iOS form sheets do not always scroll lower inputs above the keyboard.
+  // Wait until the keyboard has finished appearing, then reveal the field.
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    const listener = Keyboard.addListener('keyboardDidShow', () => {
+      if (expiryInputFocused.current) {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }
+    });
+    return () => listener.remove();
+  }, []);
 
   const handleSave = async () => {
     if (saving) return;
@@ -91,8 +105,14 @@ export default function ManualAddModal() {
 
   return (
     <SafeAreaView className="flex-1 bg-ground-canvas">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScrollView
+        ref={scrollRef}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         style={{ width: "100%", maxWidth: 560, alignSelf: "center" }}
         contentContainerStyle={{ paddingHorizontal: APP_GUTTER, paddingTop: APP_PAGE_TOP, paddingBottom: 40 }}
       >
@@ -169,7 +189,16 @@ export default function ManualAddModal() {
           />
 
           <ExpiryPrediction name={name} zone={storageZone} value={expDate} onApply={setExpDate} disabled={saving} />
-          <ExpiryDateField value={expDate} onChangeText={setExpDate} editable={!saving} />
+          <ExpiryDateField
+            value={expDate}
+            onChangeText={setExpDate}
+            editable={!saving}
+            onInputFocus={() => {
+              expiryInputFocused.current = true;
+              scrollRef.current?.scrollToEnd({ animated: true });
+            }}
+            onInputBlur={() => { expiryInputFocused.current = false; }}
+          />
         </View>
 
         <Button
@@ -181,6 +210,7 @@ export default function ManualAddModal() {
           disabled={saving || !name.trim()}
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
