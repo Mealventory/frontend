@@ -29,6 +29,8 @@ export interface FoodItem {
 }
 
 export interface Recipe {
+  /** Marks a user-authored recipe so it can be edited in the household collection. */
+  origin?: "custom";
   /** Optional recipe yield. Older generated and saved recipes may omit it. */
   servings?: number;
   priorityIngredients?: string[];

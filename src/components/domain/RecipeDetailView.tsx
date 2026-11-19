@@ -10,6 +10,7 @@ export interface RecipeDetailViewProps {
   onBack: () => void;
   saved?: boolean;
   onToggleSaved?: () => void | Promise<void>;
+  onEdit?: () => void;
   onStartCooking?: () => void;
   onPlanMeal?: () => void;
   onAddMissingIngredients?: (
@@ -23,6 +24,7 @@ export function RecipeDetailView({
   onBack,
   saved = false,
   onToggleSaved,
+  onEdit,
   onStartCooking,
   onPlanMeal,
   onAddMissingIngredients,
@@ -90,6 +92,17 @@ export function RecipeDetailView({
         <Text className="text-[17px] font-bold text-text-primary flex-1">
           Recipe
         </Text>
+        {onEdit && (
+          <TouchableOpacity
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${recipe.name}`}
+            onPress={onEdit}
+            className="w-11 h-11 rounded-[14px] bg-ground-subtle dark:bg-ground-elevated items-center justify-center border border-border-default"
+          >
+            <Icon name="Pencil" size={17} color="#64748B" />
+          </TouchableOpacity>
+        )}
         {onToggleSaved && (
           <TouchableOpacity
             activeOpacity={0.7}
@@ -97,18 +110,19 @@ export function RecipeDetailView({
             accessibilityState={{ selected: saved }}
             accessibilityLabel={saved ? "Remove from household saved recipes" : "Save recipe for household"}
             onPress={() => void onToggleSaved()}
-            className={`w-11 h-11 rounded-[14px] border items-center justify-center ${
+            className={`h-11 rounded-[14px] border items-center justify-center flex-row gap-1.5 ${saved ? "px-3" : "w-11"} ${
               saved
                 ? "bg-brand-500 border-brand-500"
                 : "bg-ground-subtle dark:bg-ground-elevated border-border-default"
             }`}
           >
             <Icon
-              name="Heart"
+              name={saved ? "Trash2" : "Heart"}
               size={18}
               color={saved ? "#FFFFFF" : "#64748B"}
-              strokeWidth={saved ? 2.8 : 2}
+              strokeWidth={2.5}
             />
+            {saved && <Text className="text-[13px] font-bold text-white">Remove</Text>}
           </TouchableOpacity>
         )}
       </View>

@@ -8,6 +8,8 @@ export interface RecipeCardProps {
   onPress: (recipe: Recipe) => void;
   saved?: boolean;
   onToggleSaved?: (recipe: Recipe) => void | Promise<void>;
+  onRemove?: (recipe: Recipe) => void | Promise<void>;
+  onEdit?: (recipe: Recipe) => void;
   className?: string;
 }
 
@@ -17,6 +19,8 @@ export function RecipeCard({
   onPress,
   saved = false,
   onToggleSaved,
+  onRemove,
+  onEdit,
   className = "",
 }: RecipeCardProps) {
   const haveCount = recipe.uses.filter((u) =>
@@ -48,6 +52,33 @@ export function RecipeCard({
             </Text>
 
             <View className="flex-row items-center gap-2">
+              {onEdit && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Edit ${recipe.name}`}
+                  onPress={(event) => {
+                    event.stopPropagation?.();
+                    onEdit(recipe);
+                  }}
+                  className="w-11 h-11 rounded-full border border-border-default bg-ground-subtle dark:bg-ground-elevated items-center justify-center"
+                >
+                  <Icon name="Pencil" size={17} color="#64748B" />
+                </Pressable>
+              )}
+              {onRemove && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Remove ${recipe.name} from Saved`}
+                  accessibilityHint="You'll be asked to confirm before the recipe is removed."
+                  onPress={(event) => {
+                    event.stopPropagation?.();
+                    void onRemove(recipe);
+                  }}
+                  className="w-11 h-11 rounded-full border border-urgency-critical/30 bg-urgency-critical-bg items-center justify-center"
+                >
+                  <Icon name="Trash2" size={17} color="#E11D48" />
+                </Pressable>
+              )}
               {onToggleSaved && (
                 <Pressable
                   accessibilityRole="button"
