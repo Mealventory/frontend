@@ -119,8 +119,9 @@ export default function ManualAddModal() {
         {/* Top Header */}
         <View className="flex-row items-center justify-between mb-5">
           <Button
-            className="w-20 px-0"
+            className="w-24 shrink-0 px-2"
             label="Cancel"
+            singleLine
             variant="ghost"
             size="sm"
             onPress={() => router.back()}
@@ -128,7 +129,7 @@ export default function ManualAddModal() {
           <Typography variant="h3" className="font-bold text-center flex-1">
             Manual Entry
           </Typography>
-          <View className="w-20" />
+          <View className="w-24 shrink-0" />
         </View>
 
         <Typography variant="caption" color="muted" className="mb-6">
