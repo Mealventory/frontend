@@ -58,9 +58,13 @@ test('all compact top-left Cancel actions reserve enough width for one line', ()
   for (const [screen, content] of [
     ['Manual Entry', manual], ['Edit Item', edit], ['Scan Review', review],
   ]) {
-    const button = content.match(/<Button\\b[^>]*label="Cancel"[^>]*\\/>/s);
-    assert.ok(button, screen + ' should have a Cancel button');
-    assert.match(button[0], /singleLine/);
-    assert.match(button[0], /w-24 shrink-0 px-2/);
+    const cancelLabel = content.indexOf('label="Cancel"');
+    assert.ok(cancelLabel >= 0, screen + ' should have a Cancel button');
+    const opening = content.lastIndexOf('<Button', cancelLabel);
+    const closing = content.indexOf('/>', cancelLabel);
+    assert.ok(opening >= 0 && closing > cancelLabel, screen + ' should have a complete Cancel button');
+    const button = content.slice(opening, closing + 2);
+    assert.match(button, /singleLine/);
+    assert.match(button, /w-24 shrink-0 px-2/);
   }
 });
