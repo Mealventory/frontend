@@ -10,7 +10,7 @@ import {
   recipeSaveKey,
 } from "../lib/savedRecipes";
 
-import { householdSavedRecipes } from "../lib/householdSavedRecipes";
+import { householdSavedRecipes, updateHouseholdSavedRecipe } from "../lib/householdSavedRecipes";
 import { INVENTORY_QUERY_ROOT, inventoryQueryKey } from "../lib/queryClient";
 
 export const initialInventory: FoodItem[] = [
@@ -133,6 +133,7 @@ interface InventoryContextType {
   shareLocalRecipes: () => Promise<void>;
   isRecipeSaved: (recipe: Recipe) => boolean;
   toggleSavedRecipe: (recipe: Recipe) => Promise<boolean>;
+  updateSavedRecipe: (previous: Recipe, recipe: Recipe) => Promise<void>;
   currentScreen: FigmaScreen;
   selectedItem: FoodItem | null;
   selectedRecipe: Recipe | null;
@@ -576,6 +577,25 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     } else await mutateSharedRecipes([recipe], wasSaved);
     return !wasSaved;
   };
+  const updateSavedRecipe = async (previous: Recipe, recipe: Recipe) => {
+    if (demo) {
+      const previousKey = recipeSaveKey(previous);
+      setSavedRecipes(current => current.map(saved => recipeSaveKey(saved) === previousKey ? recipe : saved));
+      return;
+    }
+    if (!session || !household) throw new Error('Choose a household first.');
+    if (savingScope.current === scope) throw new Error('Please wait for the current recipe to finish saving.');
+    savingScope.current = scope;
+    savedRevision.current++;
+    try {
+      const access = await token();
+      if (activeScope.current !== scope) return;
+      await updateHouseholdSavedRecipe(access, household.id, previous, recipe);
+    } finally {
+      if (savingScope.current === scope) savingScope.current = null;
+      if (activeScope.current === scope) await refreshSavedRecipes();
+    }
+  };
   const shareLocalRecipes = async () => {
     if (!session || !household) throw new Error('Choose a household first.');
     const local = await loadSavedRecipes(session.user.id, household.id);
@@ -614,6 +634,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         savedRecipesLoading,
         isRecipeSaved,
         toggleSavedRecipe,
+        updateSavedRecipe,
         currentScreen,
         selectedItem,
         selectedRecipe,

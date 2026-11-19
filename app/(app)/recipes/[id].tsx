@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity } from "react-native";
+import { ActivityIndicator, Alert, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { RecipeDetailView } from "@/src/components/domain/RecipeDetailView";
@@ -66,7 +66,7 @@ export default function RecipeDetailRouteScreen() {
     );
   }
 
-  const toggleSaved = async () => {
+  const updateSaved = async () => {
     setSaveError("");
     try {
       await toggleSavedRecipe(recipe);
@@ -75,6 +75,21 @@ export default function RecipeDetailRouteScreen() {
         error instanceof Error ? error.message : "Could not update saved recipes."
       );
     }
+  };
+
+  const toggleSaved = () => {
+    if (!isRecipeSaved(recipe)) {
+      void updateSaved();
+      return;
+    }
+    Alert.alert(
+      "Remove saved recipe?",
+      `“${recipe.name}” will be removed from this household's Saved collection.`,
+      [
+        { text: "Keep recipe", style: "cancel" },
+        { text: "Remove recipe", style: "destructive", onPress: () => void updateSaved() },
+      ]
+    );
   };
 
   const addMissing = async (ingredients: string[]) => {
@@ -103,6 +118,10 @@ export default function RecipeDetailRouteScreen() {
         inventoryItemNames={inventoryNames}
         saved={isRecipeSaved(recipe)}
         onToggleSaved={toggleSaved}
+        onEdit={(recipe.origin === "custom" || recipe.tag === "Custom") ? () => router.push({
+          pathname: "/(app)/recipes/[id]/edit",
+          params: { id: recipe.id },
+        } as any) : undefined}
         onStartCooking={() =>
           router.push({
             pathname: "/(app)/recipes/[id]/cook",

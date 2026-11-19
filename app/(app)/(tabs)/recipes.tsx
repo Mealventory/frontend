@@ -1,20 +1,23 @@
 import { BrandLogo } from "@/src/components/atoms/BrandLogo";
 import { useState, useEffect, useRef } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Typography, Button, Icon } from "@/src/components/atoms";
 import { RecipeCard } from "@/src/components/domain/RecipeCard";
+import { RecipeCreateForm } from "@/src/components/domain/RecipeCreateForm";
 import { EmptyState } from "@/src/components/molecules/EmptyState";
 import { useInventory } from "@/src/context/InventoryContext";
 import { useAuth } from "@/src/context/AuthContext";
 import { generateRecipes } from "@/src/lib/recipeApi";
 import { batchCreateInventoryItems } from "@/src/lib/inventoryApi";
 import { missingDevTestPantryItems } from "@/src/lib/devTestData";
+import { recipeSaveKey } from "@/src/lib/savedRecipes";
 import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import type { Recipe } from "@/src/types";
 
 type RecipeView = "recommended" | "saved";
+const isCustomRecipe = (recipe: Recipe) => recipe.origin === "custom" || recipe.tag === "Custom";
 
 const TEST_RECIPE: Recipe = {
   id: "dev-creamy-chicken-pasta",
@@ -55,6 +58,7 @@ export default function RecipesTabScreen() {
     savedRecipesError, refreshSavedRecipes, shareLocalRecipes,
     isRecipeSaved,
     toggleSavedRecipe,
+    updateSavedRecipe,
     refreshInventory,
   } = useInventory();
   const { session, household } = useAuth();
@@ -69,6 +73,8 @@ export default function RecipesTabScreen() {
   const [saveError, setSaveError] = useState("");
   const [testDataBusy, setTestDataBusy] = useState(false);
   const [testDataNotice, setTestDataNotice] = useState("");
+  const [creatingRecipe, setCreatingRecipe] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
 
   useEffect(() => {
     setResult(null);
@@ -76,6 +82,8 @@ export default function RecipesTabScreen() {
     setSaveError("");
     setBusy(false);
     setView("recommended");
+    setCreatingRecipe(false);
+    setEditingRecipe(null);
     return () => {
       request.current?.abort();
       request.current = null;
@@ -127,6 +135,38 @@ export default function RecipesTabScreen() {
         e instanceof Error ? e.message : "Could not update saved recipes."
       );
     }
+  };
+
+  const saveCustomRecipe = async (recipe: Recipe) => {
+    if (editingRecipe) {
+      const collides = savedRecipes.some(saved =>
+        saved.id !== editingRecipe.id && recipeSaveKey(saved) === recipeSaveKey(recipe)
+      );
+      if (collides) {
+        throw new Error("Another saved recipe already has this name and ingredients. Change the name or ingredients to keep both recipes.");
+      }
+      await updateSavedRecipe(editingRecipe, recipe);
+      return;
+    }
+    if (isRecipeSaved(recipe)) {
+      throw new Error("A recipe with this name and ingredients is already in your household's Saved collection.");
+    }
+    await toggleSavedRecipe(recipe);
+  };
+
+  const confirmRemoveSavedRecipe = (recipe: Recipe) => {
+    Alert.alert(
+      "Remove saved recipe?",
+      `“${recipe.name}” will be removed from this household's Saved collection.`,
+      [
+        { text: "Keep recipe", style: "cancel" },
+        {
+          text: "Remove recipe",
+          style: "destructive",
+          onPress: () => void toggleSaved(recipe),
+        },
+      ]
+    );
   };
 
   const loadTestPantry = async () => {
@@ -225,6 +265,18 @@ export default function RecipesTabScreen() {
           })}
         </View>
 
+        {view === "saved" && !creatingRecipe && !editingRecipe && (
+          <Button
+            label="Create recipe"
+            leadingIcon={<Icon name="Plus" size={18} color="#FFFFFF" />}
+            className="mb-4"
+            onPress={() => {
+              setEditingRecipe(null);
+              setCreatingRecipe(true);
+            }}
+          />
+        )}
+
         {!!saveError && (
           <View
             accessibilityRole="alert"
@@ -236,7 +288,22 @@ export default function RecipesTabScreen() {
           </View>
         )}
 
-        {view === "recommended" ? (
+        {view === "saved" && (creatingRecipe || editingRecipe) ? (
+          <RecipeCreateForm
+            key={editingRecipe?.id ?? "new-recipe"}
+            initialRecipe={editingRecipe ?? undefined}
+            onCancel={() => {
+              setCreatingRecipe(false);
+              setEditingRecipe(null);
+            }}
+            onSave={saveCustomRecipe}
+            onSaved={() => {
+              setCreatingRecipe(false);
+              setEditingRecipe(null);
+              setView("saved");
+            }}
+          />
+        ) : view === "recommended" ? (
           <>
             <View className="mb-5 p-5 rounded-3xl bg-brand-50 border border-brand-500/20">
               <Typography variant="h2">Good food, less waste</Typography>
@@ -373,7 +440,11 @@ export default function RecipesTabScreen() {
                     recipe={recipe}
                     inventoryItemNames={inventoryNames}
                     saved
-                    onToggleSaved={toggleSaved}
+                    onRemove={confirmRemoveSavedRecipe}
+                    onEdit={isCustomRecipe(recipe) ? () => {
+                      setCreatingRecipe(false);
+                      setEditingRecipe(recipe);
+                    } : undefined}
                     onPress={open}
                   />
                   <Typography

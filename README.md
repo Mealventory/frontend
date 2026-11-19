@@ -154,6 +154,10 @@ Expo Go remains usable with an in-memory fallback, but persistent cold-start off
 
 See [Offline inventory cache](docs/offline-cache.md) for architecture, setup, and the airplane-mode verification flow.
 
+## Household saved recipes
+
+Recipes can be created from the **Saved** view and shared with the selected household. See [Household saved recipes](docs/saved-recipes.md) for the entry flow, snapshot defaults, and duplicate behavior.
+
 ## Mobile end-to-end smoke tests
 
 Critical mobile journeys are covered with Maestro using an isolated in-memory test mode. The suite does not require production credentials or production data.
