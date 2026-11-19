@@ -83,17 +83,22 @@ export default function HouseholdActivityScreen() {
     refresh ? setRefreshing(true) : setLoading(true);
     setError("");
     try {
-      // Member lookup is supplementary: a failed profile request must never
-      // prevent loading the activity feed or filtering historical authors.
-      const [activityResult, memberResult] = await Promise.allSettled([
-        fetchHouseholdActivity(session.access_token, household.id, 100),
-        getHouseholdMembers(household.id, session.access_token),
-      ]);
+      // Load optional member profile images independently so a slow/unavailable
+      // members endpoint never delays the recent activity list.
+      void getHouseholdMembers(household.id, session.access_token)
+        .then((rows) => {
+          if (requestId === requestSequence.current) setMembers(rows);
+        })
+        .catch(() => {
+          if (requestId === requestSequence.current) setMembers([]);
+        });
+      const result = await fetchHouseholdActivity(
+        session.access_token,
+        household.id,
+        100,
+      );
       if (requestId !== requestSequence.current) return;
-      if (memberResult.status === "fulfilled") setMembers(memberResult.value);
-      else setMembers([]);
-      if (activityResult.status === "rejected") throw activityResult.reason;
-      setEvents(activityResult.value);
+      setEvents(result);
     } catch (e) {
       if (requestId !== requestSequence.current) return;
       setError(e instanceof Error ? e.message : "Could not load household activity.");
