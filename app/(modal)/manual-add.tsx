@@ -2,7 +2,7 @@ import { ExpiryPrediction } from '@/src/components/molecules/ExpiryPrediction';
 import { ExpiryDateField } from '@/src/components/molecules/ExpiryDateField';
 import { normalizeExpiryDate } from '@/src/lib/expiryDate';
 import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -40,7 +40,7 @@ export default function ManualAddModal() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const expiryInputFocused = useRef(false);
 
   // iOS form sheets do not always scroll lower inputs above the keyboard.
