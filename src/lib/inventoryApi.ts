@@ -1,8 +1,23 @@
 import type { FoodItem, StorageZone } from '../types';
 const backendUrl = (process.env.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_API_URL || '').replace(/\/$/, '');
+
+export class InventoryConflictError extends Error {
+  constructor() {
+    super('Another household member changed this item. Review the latest details before saving.');
+    this.name = 'InventoryConflictError';
+  }
+}
+
+export class InventoryItemGoneError extends Error {
+  constructor() {
+    super('This item was removed or merged by another household member. Your unsaved edits are still on this screen.');
+    this.name = 'InventoryItemGoneError';
+  }
+}
 export type InventoryRow = {
   id: string;
   household_id: string;
+  version: number;
   name: string;
   category: string | null;
   quantity: number | string;
@@ -30,14 +45,18 @@ export async function inventoryRequest<T>(
   method = 'GET',
   id?: string,
   body?: Partial<NewItem> | { reason: 'expired' | 'spoiled' | 'bought_too_much' | 'didnt_like' | 'other' },
-  action?: 'consume' | 'discard'
+  action?: 'consume' | 'discard',
+  expectedVersion?: number,
 ): Promise<T> {
+  if (method === 'PATCH' && (!Number.isSafeInteger(expectedVersion) || (expectedVersion ?? 0) < 1)) {
+    throw new Error('Inventory version unavailable. Refresh your kitchen before editing.');
+  }
   if (!backendUrl) throw new Error('The backend connection is not configured.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
     const response = await fetch(`${backendUrl}/api/v1/items${id ? `/${encodeURIComponent(id)}` : ''}${action ? `/${action}` : ''}`, {
-      method, headers: { Authorization: `Bearer ${token}`, 'X-Household-ID': household, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      method, headers: { Authorization: `Bearer ${token}`, 'X-Household-ID': household, ...(body ? { 'Content-Type': 'application/json' } : {}), ...(method === 'PATCH' ? { 'If-Match': String(expectedVersion) } : {}) },
       body: body ? JSON.stringify(body) : undefined, signal: controller.signal,
     });
     // Deleting an already-removed item is safe when another phone deleted first.
@@ -47,6 +66,9 @@ export async function inventoryRequest<T>(
     }
     if (!response.ok) {
       if (action && response.status === 400) throw new Error('This item is no longer active. Refresh your kitchen.');
+      if (method === 'PATCH' && response.status === 409) throw new InventoryConflictError();
+      if (method === 'PATCH' && response.status === 404) throw new InventoryItemGoneError();
+      if (method === 'PATCH' && response.status === 428) throw new Error('Inventory version required. Refresh the app before editing.');
       if (response.status === 401) throw new Error('Please sign in again.');
       if (response.status === 403) throw new Error('You no longer have access to this household.');
       if (response.status === 404) throw new Error('The backend needs the household inventory update.');
@@ -114,7 +136,7 @@ export async function batchCreateInventoryItems<T = InventoryRow[]>(
 export function toFoodItem(row: InventoryRow): FoodItem {
   const expiry = row.expiry_date ? new Date(`${row.expiry_date}T00:00:00`) : null;
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  return { id: row.id, name: row.name, category: row.category || 'Pantry',
+  return { id: row.id, version: row.version, name: row.name, category: row.category || 'Pantry',
     quantity: `${Number(row.quantity)} ${row.unit}`,
     remainingPercent: row.remaining_percent == null ? null : Number(row.remaining_percent),
     isLowStock: Boolean(row.is_low_stock),
