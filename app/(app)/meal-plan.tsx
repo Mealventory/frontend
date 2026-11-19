@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -20,7 +21,6 @@ import {
   type ShoppingItem,
 } from "@/src/lib/shoppingApi";
 import {
-  applyMealMove,
   isMealDateWithinWarningWindow,
   loadMealPlan,
   localDateKey,
@@ -28,9 +28,6 @@ import {
   mealMatchPercent,
   mealSlotKey,
   mealsForWeek,
-  movePlannedMeal,
-  removePlannedMeal,
-  savePlannedMeal,
   shiftWeek,
   startOfWeek,
   upcomingMealReadinessWarnings,
@@ -39,6 +36,18 @@ import {
   type MealSlot,
   type PlannedMeal,
 } from "@/src/lib/mealPlan";
+import {
+  assignSharedMeal,
+  importLocalMealPlan,
+  importPayload,
+  listSharedMealPlan,
+  moveSharedMeal,
+  previewLocalMealImport,
+  removeSharedMeal,
+  validMealDate,
+  type ImportCandidate,
+  type SharedMealPlanState,
+} from "@/src/lib/mealPlanApi";
 import { recipeSaveKey } from "@/src/lib/savedRecipes";
 import type { Recipe } from "@/src/types";
 
@@ -100,11 +109,24 @@ export default function MealPlanScreen() {
   const [movingFrom, setMovingFrom] = useState<SlotTarget | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [slotVersions, setSlotVersions] = useState<Record<string, number>>({});
+  const [legacyMeals, setLegacyMeals] = useState<PlannedMeal[]>([]);
+  const [importCandidates, setImportCandidates] = useState<ImportCandidate[] | null>(null);
+  const [dismissedImportScope, setDismissedImportScope] = useState<string | null>(null);
+  const [importBusy, setImportBusy] = useState(false);
 
+  const applySharedPlan = (state: SharedMealPlanState) => {
+    setMeals(state.meals);
+    setSlotVersions(state.slot_versions);
+    if (state.imported_local_plan) setImportCandidates(null);
+  };
 
   const load = useCallback(async () => {
     if (!session || !household) {
       setMeals([]);
+      setSlotVersions({});
+      setLegacyMeals([]);
+      setImportCandidates(null);
       setShoppingItems([]);
       setLoading(false);
       return;
@@ -112,18 +134,66 @@ export default function MealPlanScreen() {
     setLoading(true);
     setError("");
     try {
-      const [loadedMeals, loadedShopping] = await Promise.all([
-        loadMealPlan(session.user.id, household.id),
+      const [shared, loadedShopping] = await Promise.all([
+        listSharedMealPlan(session.access_token, household.id),
         listShoppingItems(session.access_token, household.id).catch(() => []),
       ]);
-      setMeals(loadedMeals);
+      setMeals(shared.meals);
+      setSlotVersions(shared.slot_versions);
       setShoppingItems(loadedShopping);
+
+      // Local plans are never uploaded without a deliberate review and confirmation.
+      const scope = `${session.user.id}:${household.id}`;
+      if (!shared.imported_local_plan && dismissedImportScope !== scope) {
+        const oldPlans = (await loadMealPlan(session.user.id, household.id))
+          .filter(meal => validMealDate(meal.date));
+        if (oldPlans.length) {
+          const payload = importPayload(oldPlans.map(meal => ({
+            ...meal, expected_revision: shared.slot_versions[mealSlotKey(meal.date, meal.slot)] ?? 0,
+          })));
+          const preview = await previewLocalMealImport(
+            session.access_token, household.id, payload
+          );
+          setLegacyMeals(oldPlans);
+          setImportCandidates(preview.imported_local_plan ? null : preview.candidates);
+        } else {
+          setImportCandidates(null);
+        }
+      } else {
+        setImportCandidates(null);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load the meal plan.");
     } finally {
       setLoading(false);
     }
-  }, [household?.id, session?.access_token, session?.user.id]);
+  }, [household?.id, session?.access_token, session?.user.id, dismissedImportScope]);
+
+  const confirmLocalImport = async () => {
+    if (!session || !household || !importCandidates || importBusy) return;
+    const allowed = legacyMeals.flatMap(meal => {
+      const candidate = importCandidates.find(c =>
+        c.date === meal.date && c.slot === meal.slot && c.status === "available"
+      );
+      return candidate ? [{ ...meal, expected_revision: candidate.revision }] : [];
+    });
+    if (!allowed.length) return;
+    setImportBusy(true);
+    setError("");
+    try {
+      const state = await importLocalMealPlan(
+        session.access_token, household.id, importPayload(allowed)
+      );
+      applySharedPlan(state);
+      setNotice(`${allowed.length} local planned meals imported into this household.`);
+    } catch (e) {
+      // Re-preview conflicts without modifying either local or shared plans.
+      await load();
+      setError(e instanceof Error ? e.message : "Could not import the local plan.");
+    } finally {
+      setImportBusy(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -216,29 +286,15 @@ export default function MealPlanScreen() {
       setBusyKey(targetKey);
       setError("");
       setNotice("");
-      const optimistic = applyMealMove(
-        meals,
-        movingFrom.date,
-        movingFrom.slot,
-        target.date,
-        target.slot
-      );
-      setMeals(optimistic);
       try {
-        const next = await movePlannedMeal(
-          session.user.id,
-          household.id,
-          movingFrom.date,
-          movingFrom.slot,
-          target.date,
-          target.slot
+        const state = await moveSharedMeal(
+          session.access_token, household.id,
+          movingFrom.date, movingFrom.slot, target.date, target.slot,
+          slotVersions[sourceKey] ?? 0, slotVersions[targetKey] ?? 0
         );
-        setMeals(next);
-        setNotice(
-          mealBySlot.has(targetKey)
-            ? "Meals swapped successfully."
-            : "Meal moved successfully."
-        );
+        applySharedPlan(state);
+        setNotice(mealBySlot.has(targetKey)
+          ? "Meals swapped successfully." : "Meal moved successfully.");
         setMovingFrom(null);
       } catch (e) {
         await load();
@@ -253,7 +309,6 @@ export default function MealPlanScreen() {
       await assignRecipe(target, requestedRecipe);
       return;
     }
-
     setPickerTarget(target);
   };
 
@@ -264,19 +319,16 @@ export default function MealPlanScreen() {
     setBusyKey(key);
     setError("");
     setNotice("");
-    setMeals((current) => [
-      ...current.filter(
-        (item) => mealSlotKey(item.date, item.slot) !== key
-      ),
-      meal,
-    ]);
-
     try {
-      await savePlannedMeal(session.user.id, household.id, meal);
+      const state = await assignSharedMeal(
+        session.access_token, household.id, meal, slotVersions[key] ?? 0
+      );
+      applySharedPlan(state);
       setPickerTarget(null);
       setNotice(`${recipe.name} added to ${target.slot}.`);
     } catch (e) {
       await load();
+      setPickerTarget(target);
       setError(e instanceof Error ? e.message : "Could not plan this meal.");
     } finally {
       setBusyKey(null);
@@ -289,22 +341,15 @@ export default function MealPlanScreen() {
     setBusyKey(key);
     setError("");
     setNotice("");
-    setMeals((current) =>
-      current.filter((item) => mealSlotKey(item.date, item.slot) !== key)
-    );
     try {
-      await removePlannedMeal(
-        session.user.id,
-        household.id,
-        meal.date,
-        meal.slot
+      const state = await removeSharedMeal(
+        session.access_token, household.id,
+        meal.date, meal.slot, slotVersions[key] ?? 0
       );
+      applySharedPlan(state);
       setMovingFrom((current) =>
-        current &&
-        current.date === meal.date &&
-        current.slot === meal.slot
-          ? null
-          : current
+        current && current.date === meal.date && current.slot === meal.slot
+          ? null : current
       );
       setNotice("Meal removed from the plan.");
     } catch (e) {
@@ -541,6 +586,56 @@ export default function MealPlanScreen() {
             <Typography variant="caption" className="text-brand-700 dark:text-brand-300">
               {notice}
             </Typography>
+          </View>
+        )}
+
+        {!loading && importCandidates && legacyMeals.length > 0 && (
+          <View className="mb-5 p-4 rounded-2xl bg-ground-card border border-border-default">
+            <Typography variant="body" className="font-bold">
+              Review your device meal plan
+            </Typography>
+            <Typography variant="caption" color="muted" className="mt-1">
+              These meals are saved only on this device. Importing shares available
+              slots with everyone in this kitchen. Existing shared meals are never replaced.
+            </Typography>
+            <View className="mt-3 gap-2">
+              {importCandidates.map(candidate => {
+                const meal = legacyMeals.find(item =>
+                  item.date === candidate.date && item.slot === candidate.slot
+                );
+                return (
+                  <View key={mealSlotKey(candidate.date, candidate.slot)}
+                    className="p-2 rounded-xl border border-border-default">
+                    <Text className="text-text-primary text-[12px]">
+                      {candidate.date} · {candidate.slot} · {meal?.recipe.name ?? "Unknown recipe"}
+                    </Text>
+                    <Text className="text-text-muted text-[11px] mt-1">
+                      {candidate.status === "available"
+                        ? "Available to import" : "Already planned by household · keep shared meal"}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            <View className="mt-3 gap-2">
+              {importCandidates.some(c => c.status === "available") && (
+                <Button
+                  label={`Import ${importCandidates.filter(c => c.status === "available").length} available meals`}
+                  loading={importBusy}
+                  disabled={importBusy}
+                  onPress={() => void confirmLocalImport()}
+                />
+              )}
+              <Button
+                label="Not now · keep meals on this device"
+                variant="ghost"
+                disabled={importBusy}
+                onPress={() => {
+                  setDismissedImportScope(`${session?.user.id}:${household?.id}`);
+                  setImportCandidates(null);
+                }}
+              />
+            </View>
           </View>
         )}
 
@@ -828,7 +923,19 @@ export default function MealPlanScreen() {
         )}
 
         {!!pickerTarget && (
-          <View className="mt-5 p-4 rounded-[22px] bg-ground-card border border-border-default">
+          <Modal
+            visible
+            transparent
+            animationType="fade"
+            onRequestClose={() => setPickerTarget(null)}
+          >
+            <View className="flex-1 justify-center bg-black/60 px-4">
+              <View className="max-h-[80%] rounded-[22px] bg-ground-card border border-border-default overflow-hidden">
+                <ScrollView
+                  contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
             <View className="flex-row items-start justify-between gap-3 mb-3">
               <View className="flex-1">
                 <Typography variant="body" className="font-bold">Choose a recipe</Typography>
@@ -850,13 +957,28 @@ export default function MealPlanScreen() {
               </TouchableOpacity>
             </View>
 
+            {!!error && (
+              <View accessibilityRole="alert" className="mb-3 p-3 rounded-xl bg-urgency-critical-bg border border-urgency-critical/30">
+                <Typography variant="caption" className="text-urgency-critical">{error}</Typography>
+              </View>
+            )}
+            {Boolean(busyKey) && (
+              <View className="flex-row items-center gap-2 mb-3">
+                <ActivityIndicator size="small" color="#10B981" />
+                <Typography variant="caption" color="muted">Saving meal…</Typography>
+              </View>
+            )}
+
             {recipeChoices.length === 0 ? (
               <EmptyState
                 icon="BookOpen"
                 title="Save a recipe first"
                 description="Saved recipes appear here so you can schedule them for the week."
                 actionLabel="Browse Recipes"
-                onAction={() => router.push("/(app)/(tabs)/recipes" as any)}
+                onAction={() => {
+                  setPickerTarget(null);
+                  router.push("/(app)/(tabs)/recipes" as any);
+                }}
               />
             ) : (
               <View className="gap-2">
@@ -886,7 +1008,10 @@ export default function MealPlanScreen() {
                 })}
               </View>
             )}
-          </View>
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
         )}
 
         {visibleMeals.length > 0 && (
