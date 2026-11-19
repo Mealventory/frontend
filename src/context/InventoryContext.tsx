@@ -140,7 +140,8 @@ interface InventoryContextType {
   user: UserProfile;
   isAuthenticated: boolean;
   navigate: (screen: FigmaScreen) => void;
-  updateItem: (id: string, patch: Partial<NewItem>) => Promise<void>;
+  updateItem: (id: string, patch: Partial<NewItem>, expectedVersion?: number) => Promise<void>;
+  getLatestItem: (id: string) => Promise<FoodItem | null>;
   addItem: (item: FoodItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   transitionItem: (
@@ -406,7 +407,15 @@ export function InventoryProvider({ children, demo = false }: { children: React.
     } finally { mutations.current--; }
   };
 
-  const updateItem = async (id: string, patch: Partial<NewItem>) => {
+  const getLatestItem = async (id: string): Promise<FoodItem | null> => {
+    if (demo) return demoInventory.find(item => item.id === id) ?? null;
+    if (!household || !session) throw new Error('Choose a household first.');
+    const rows = await inventoryRequest<InventoryRow[]>(await token(), household.id);
+    const latest = rows.find(row => row.id === id);
+    return latest ? toFoodItem(latest) : null;
+  };
+
+  const updateItem = async (id: string, patch: Partial<NewItem>, expectedVersion?: number) => {
     if (demo) {
       const updateDemoItem = (item: FoodItem): FoodItem => {
         if (item.id !== id) return item;
@@ -419,6 +428,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         today.setHours(0, 0, 0, 0);
         return {
           ...item,
+          version: (item.version ?? 1) + 1,
           name: patch.name ?? item.name,
           category: patch.category ?? item.category,
           quantity: `${quantityValue} ${quantityUnit}`,
@@ -438,10 +448,16 @@ export function InventoryProvider({ children, demo = false }: { children: React.
       return;
     }
     if (!household || !session) throw new Error('Choose a household first.');
+    const sourceVersion = expectedVersion ?? inventory.find(item => item.id === id)?.version;
+    if (!Number.isSafeInteger(sourceVersion) || (sourceVersion ?? 0) < 1) {
+      throw new Error('Inventory version unavailable. Refresh your kitchen before editing.');
+    }
     mutations.current++;
     try {
       await queryClient.cancelQueries({ queryKey: inventoryKey, exact: true });
-      const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'PATCH', id, patch);
+      const row = await inventoryRequest<InventoryRow>(
+        await token(), household.id, 'PATCH', id, patch, undefined, sourceVersion,
+      );
       if (activeScope.current === scope) {
         const updated = toFoodItem(row);
         queryClient.setQueryData<FoodItem[]>(inventoryKey, previous => {
@@ -607,6 +623,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
         navigate: setCurrentScreen,
         addItem,
         updateItem,
+        getLatestItem,
         removeItem,
         transitionItem,
         openItem,
