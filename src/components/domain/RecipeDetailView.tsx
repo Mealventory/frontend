@@ -7,6 +7,8 @@ import { Icon } from "../atoms/Icon";
 export interface RecipeDetailViewProps {
   recipe: Recipe;
   inventoryItemNames: Set<string>;
+  pantryLoading?: boolean;
+  pantryError?: string;
   onBack: () => void;
   saved?: boolean;
   onToggleSaved?: () => void | Promise<void>;
@@ -15,12 +17,14 @@ export interface RecipeDetailViewProps {
   onPlanMeal?: () => void;
   onAddMissingIngredients?: (
     ingredients: string[]
-  ) => Promise<{ added: number; skipped: number }>;
+  ) => Promise<{ addedIngredients: string[]; skippedIngredients: string[] }>;
 }
 
 export function RecipeDetailView({
   recipe,
   inventoryItemNames,
+  pantryLoading = false,
+  pantryError = "",
   onBack,
   saved = false,
   onToggleSaved,
@@ -35,7 +39,7 @@ export function RecipeDetailView({
 
   const { missingIngredients, match } = useMemo(() => {
     const missing = recipe.uses.filter(
-      (ingredient) => !inventoryItemNames.has(ingredient.toLowerCase())
+      (ingredient) => !inventoryItemNames.has(ingredient.trim().toLocaleLowerCase())
     );
     const have = recipe.uses.length - missing.length;
     return {
@@ -44,7 +48,8 @@ export function RecipeDetailView({
     };
   }, [inventoryItemNames, recipe.uses]);
 
-  const haveAll = missingIngredients.length === 0;
+  const pantryUnavailable = pantryLoading || Boolean(pantryError);
+  const haveAll = !pantryUnavailable && missingIngredients.length === 0;
 
   const addMissing = async () => {
     if (!onAddMissingIngredients || missingIngredients.length === 0 || shoppingBusy) return;
@@ -53,15 +58,13 @@ export function RecipeDetailView({
     setShoppingNotice("");
     try {
       const result = await onAddMissingIngredients(missingIngredients);
-      if (result.added === 0 && result.skipped > 0) {
-        setShoppingNotice("Those ingredients are already on your shopping list.");
-      } else {
-        const addedText = `${result.added} ${result.added === 1 ? "ingredient" : "ingredients"} added to Shopping.`;
-        const skippedText = result.skipped
-          ? ` ${result.skipped} already ${result.skipped === 1 ? "was" : "were"} on the list.`
-          : "";
-        setShoppingNotice(addedText + skippedText);
-      }
+      const addedText = result.addedIngredients.length
+        ? `Added: ${result.addedIngredients.join(", ")}.`
+        : "Added: none.";
+      const skippedText = result.skippedIngredients.length
+        ? ` Already listed: ${result.skippedIngredients.join(", ")}.`
+        : " Already listed: none.";
+      setShoppingNotice(addedText + skippedText);
     } catch (error) {
       setShoppingError(
         error instanceof Error
@@ -162,7 +165,7 @@ export function RecipeDetailView({
 
       {recipe.priorityIngredients?.length ? (
         <Text className="text-brand-500 mb-3">
-          Use soon: {recipe.priorityIngredients.join(", ")}
+          Expiring soon: {recipe.priorityIngredients.join(", ")}
         </Text>
       ) : null}
 
@@ -202,14 +205,15 @@ export function RecipeDetailView({
               Ingredients
             </Text>
             <Text className="text-[12px] text-text-muted mt-1">
-              {recipe.uses.length - missingIngredients.length} available · {missingIngredients.length} missing
+              {pantryError ? "Pantry readiness unavailable" : pantryLoading ? "Checking pantry…" : `${recipe.uses.length - missingIngredients.length} available · ${missingIngredients.length} missing`}
             </Text>
           </View>
         </View>
 
         <View className="gap-2">
           {recipe.uses.map((ing) => {
-            const have = inventoryItemNames.has(ing.toLowerCase());
+            const have = !pantryUnavailable && inventoryItemNames.has(ing.trim().toLocaleLowerCase());
+            const status = pantryError ? "Unavailable" : pantryLoading ? "Checking" : have ? "Available" : "Missing";
             return (
               <View
                 key={ing}
@@ -251,7 +255,7 @@ export function RecipeDetailView({
                       have ? "text-brand-500" : "text-text-muted"
                     }`}
                   >
-                    {have ? "In stock" : "Missing"}
+                    {status}
                   </Text>
                 </View>
               </View>
@@ -259,7 +263,9 @@ export function RecipeDetailView({
           })}
         </View>
 
-        {missingIngredients.length > 0 && onAddMissingIngredients && (
+        {pantryError ? <Text accessibilityRole="alert" className="mb-3 text-[12px] font-semibold text-urgency-critical">{pantryError}</Text> : null}
+
+        {!pantryUnavailable && missingIngredients.length > 0 && onAddMissingIngredients && (
           <TouchableOpacity
             activeOpacity={0.75}
             accessibilityRole="button"

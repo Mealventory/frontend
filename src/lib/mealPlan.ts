@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import type { FoodItem, Recipe } from "../types";
+import { expiryDays } from "./pantryExpiry";
 
 export type MealSlot = "lunch" | "dinner";
 
@@ -133,6 +134,46 @@ export interface MealIngredientReadiness {
   unresolvedIngredients: string[];
 }
 
+/** Normalize ingredient names the same way across Recipes and Meal Plan. */
+export function normalizeIngredientName(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+/** Pantry rows are active by API contract; expired dated rows are ineligible. */
+export function eligiblePantryItems<T extends { name: string; expiryDate?: string | null }>(
+  inventory: T[],
+  today = localDateKey(new Date())
+): T[] {
+  return inventory.filter((item) => {
+    if (!item.expiryDate) return true;
+    const days = expiryDays(item.expiryDate, today);
+    return days !== null && days >= 0;
+  });
+}
+
+export function expiringRecipeIngredients<T extends { name: string; expiryDate?: string | null }>(
+  recipe: Pick<Recipe, "uses">,
+  inventory: T[],
+  today = localDateKey(new Date()),
+  leadDays = 3
+): string[] {
+  const pantryByName = new Map<string, T[]>();
+  for (const item of inventory) {
+    const key = normalizeIngredientName(item.name);
+    if (!key || !item.expiryDate) continue;
+    const days = expiryDays(item.expiryDate, today);
+    if (days === null || days < 0 || days > leadDays) continue;
+    pantryByName.set(key, [...(pantryByName.get(key) ?? []), item]);
+  }
+  const seen = new Set<string>();
+  return recipe.uses.flatMap((ingredient) => {
+    const key = normalizeIngredientName(ingredient);
+    if (!key || seen.has(key) || !pantryByName.has(key)) return [];
+    seen.add(key);
+    return [ingredient.trim()];
+  });
+}
+
 type IngredientNameSource = Array<{ name: string }> | Set<string>;
 
 function normalizedNameSet(source: IngredientNameSource): Set<string> {
@@ -143,7 +184,7 @@ function normalizedNameSet(source: IngredientNameSource): Set<string> {
 
   return new Set(
     values
-      .map((name) => name.trim().toLocaleLowerCase())
+      .map(normalizeIngredientName)
       .filter(Boolean)
   );
 }
@@ -173,7 +214,7 @@ export function mealIngredientReadiness(
   let availableCount = 0;
 
   for (const ingredient of listedIngredients) {
-    const key = ingredient.toLocaleLowerCase();
+    const key = normalizeIngredientName(ingredient);
     if (inventoryNames.has(key)) {
       availableCount += 1;
     } else if (!missing.has(key)) {
@@ -183,10 +224,10 @@ export function mealIngredientReadiness(
 
   const missingIngredients = [...missing.values()];
   const shoppingCoveredIngredients = missingIngredients.filter((ingredient) =>
-    shoppingNames.has(ingredient.toLocaleLowerCase())
+    shoppingNames.has(normalizeIngredientName(ingredient))
   );
   const unresolvedIngredients = missingIngredients.filter(
-    (ingredient) => !shoppingNames.has(ingredient.toLocaleLowerCase())
+    (ingredient) => !shoppingNames.has(normalizeIngredientName(ingredient))
   );
 
   return {
@@ -222,7 +263,7 @@ export function weeklyMissingIngredients(
   for (const meal of meals) {
     for (const ingredient of meal.recipe.uses) {
       const name = ingredient.trim();
-      const key = name.toLocaleLowerCase();
+      const key = normalizeIngredientName(name);
       if (name && !names.has(key) && !missing.has(key)) {
         missing.set(key, name);
       }

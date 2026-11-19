@@ -13,6 +13,7 @@ import { generateRecipes } from "@/src/lib/recipeApi";
 import { batchCreateInventoryItems } from "@/src/lib/inventoryApi";
 import { missingDevTestPantryItems } from "@/src/lib/devTestData";
 import { recipeSaveKey } from "@/src/lib/savedRecipes";
+import { eligiblePantryItems, expiringRecipeIngredients } from "@/src/lib/mealPlan";
 import { APP_GUTTER, APP_PAGE_TOP } from "@/src/lib/layout";
 import type { Recipe } from "@/src/types";
 
@@ -60,6 +61,7 @@ export default function RecipesTabScreen() {
     toggleSavedRecipe,
     updateSavedRecipe,
     refreshInventory,
+    inventoryError,
   } = useInventory();
   const { session, household } = useAuth();
   const scope = `${session?.user.id}:${household?.id}`;
@@ -75,6 +77,9 @@ export default function RecipesTabScreen() {
   const [testDataNotice, setTestDataNotice] = useState("");
   const [creatingRecipe, setCreatingRecipe] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  useEffect(() => {
+    void refreshInventory();
+  }, [scope, refreshInventory]);
 
   useEffect(() => {
     setResult(null);
@@ -200,11 +205,8 @@ export default function RecipesTabScreen() {
   };
 
   const generatedRecipes = result?.scope === scope ? result.recipes : [];
-  const inventoryNames = new Set(
-    inventory
-      .filter((item) => !item.expiryDate || item.daysLeft >= 0)
-      .map((item) => item.name.toLowerCase())
-  );
+  const eligibleInventory = eligiblePantryItems(inventory);
+  const inventoryNames = new Set(eligibleInventory.map((item) => item.name.trim().toLocaleLowerCase()));
 
   const open = (recipe: Recipe) => {
     openRecipe(recipe);
@@ -430,35 +432,29 @@ export default function RecipesTabScreen() {
               </Typography>
             </View>
 
-            {savedRecipes.map((recipe) => {
-              const missing = recipe.uses.filter(
-                (ingredient) => !inventoryNames.has(ingredient.toLowerCase())
-              );
-              return (
-                <View key={`${recipe.id}-saved`}>
-                  <RecipeCard
-                    recipe={recipe}
-                    inventoryItemNames={inventoryNames}
-                    saved
-                    onRemove={confirmRemoveSavedRecipe}
-                    onEdit={isCustomRecipe(recipe) ? () => {
-                      setCreatingRecipe(false);
-                      setEditingRecipe(recipe);
-                    } : undefined}
-                    onPress={open}
-                  />
-                  <Typography
-                    variant="caption"
-                    color={missing.length ? "muted" : "fresh"}
-                    className="mt-2"
-                  >
-                    {missing.length
-                      ? `Missing now: ${missing.join(", ")}`
-                      : "You currently have every listed ingredient."}
-                  </Typography>
-                </View>
-              );
-            })}
+            {inventoryError ? <Typography accessibilityRole="alert" variant="caption" color="critical" className="mb-3">{inventoryError}</Typography> : null}
+            {(() => {
+              const expiringRecipes = savedRecipes.filter((recipe) => expiringRecipeIngredients(recipe, eligibleInventory).length > 0);
+              const expiringIds = new Set(expiringRecipes.map((recipe) => recipe.id));
+              const orderedRecipes = [...expiringRecipes, ...savedRecipes.filter((recipe) => !expiringIds.has(recipe.id))];
+              return <View className="gap-4">
+                {expiringRecipes.length > 0 && <Typography variant="h3" className="mb-[-4px]">Uses food expiring soon · {expiringRecipes.length}</Typography>}
+                {orderedRecipes.map((recipe) => {
+                  const expiring = expiringRecipeIngredients(recipe, eligibleInventory);
+                  return <View key={`${recipe.id}-saved`}>
+                    {expiring.length > 0 && <Typography variant="caption" color="critical" className="mb-1">Expiring soon: {expiring.join(", ")}</Typography>}
+                    <RecipeCard
+                      recipe={recipe}
+                      inventoryItemNames={inventoryNames}
+                      saved
+                      onRemove={confirmRemoveSavedRecipe}
+                      onEdit={isCustomRecipe(recipe) ? () => { setCreatingRecipe(false); setEditingRecipe(recipe); } : undefined}
+                      onPress={open}
+                    />
+                  </View>;
+                })}
+              </View>;
+            })()}
           </View>
         )}
       </ScrollView>
