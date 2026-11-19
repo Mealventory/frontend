@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, Share, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
@@ -10,10 +10,12 @@ export function HouseholdInviteCard({
   householdName,
   inviteCode,
   compact = false,
+  children,
 }: {
   householdName: string;
   inviteCode: string;
   compact?: boolean;
+  children?: ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
@@ -84,6 +86,8 @@ export function HouseholdInviteCard({
           <Text className="text-xs font-semibold text-brand-500">{copied ? 'Copied!' : 'Copy'}</Text>
         </Pressable>
       </View>
+
+      {children}
 
       <Pressable
         accessibilityRole="button"
