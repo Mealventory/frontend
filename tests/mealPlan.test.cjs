@@ -15,11 +15,22 @@ function loadMealPlan() {
       values.delete(key);
     },
   };
+  const expiry = new Module("pantryExpiry");
+  expiry._compile(
+    ts.transpileModule(fs.readFileSync("src/lib/pantryExpiry.ts", "utf8"), {
+      compilerOptions: {
+        module: ts.ModuleKind.CommonJS,
+        target: ts.ScriptTarget.ES2020,
+      },
+    }).outputText,
+    "pantryExpiry.cjs"
+  );
   const source = fs.readFileSync("src/lib/mealPlan.ts", "utf8");
   const mod = new Module("mealPlan");
   mod.require = (name) => {
     if (name === "react-native") return { Platform: { OS: "ios" } };
     if (name === "expo-secure-store") return secureStore;
+    if (name === "./pantryExpiry") return expiry.exports;
     throw new Error(`Unexpected import: ${name}`);
   };
   mod._compile(
@@ -124,6 +135,31 @@ test("ingredient readiness separates pantry gaps, shopping coverage, and unresol
     inventory
   );
   assert.deepEqual(missing, ["Garlic", "Spinach"]);
+});
+
+test("saved recipe pantry helpers exclude expired and invalid dates and match the three-day window", () => {
+  const { api } = loadMealPlan();
+  const recipeWithWhitespace = recipe("soon", "Soon", ["  SPINACH ", "Milk", "Bread", "Eggs"]);
+  const pantry = [
+    { name: "Spinach", expiryDate: "2026-11-19" },
+    { name: "Milk", expiryDate: "2026-11-22" },
+    { name: "Bread", expiryDate: "2026-11-23" },
+    { name: "Eggs", expiryDate: "not-a-date" },
+    { name: "Cheese", expiryDate: "2026-11-18" },
+  ];
+
+  assert.deepEqual(
+    api.eligiblePantryItems(pantry, "2026-11-19").map((item) => item.name),
+    ["Spinach", "Milk", "Bread"]
+  );
+  assert.deepEqual(
+    api.expiringRecipeIngredients(recipeWithWhitespace, pantry, "2026-11-19"),
+    ["SPINACH", "Milk"]
+  );
+  assert.deepEqual(
+    api.mealIngredientReadiness(recipeWithWhitespace, api.eligiblePantryItems(pantry, "2026-11-19")).missingIngredients,
+    ["Eggs"]
+  );
 });
 
 test("upcoming readiness warnings include only unresolved meals in the lead window", () => {

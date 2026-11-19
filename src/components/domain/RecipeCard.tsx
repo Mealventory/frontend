@@ -24,7 +24,7 @@ export function RecipeCard({
   className = "",
 }: RecipeCardProps) {
   const haveCount = recipe.uses.filter((u) =>
-    inventoryItemNames.has(u.toLowerCase())
+    inventoryItemNames.has(u.trim().toLocaleLowerCase())
   ).length;
   const pct = Math.round((haveCount / Math.max(1, recipe.uses.length)) * 100);
   const isHighMatch = pct >= 90;

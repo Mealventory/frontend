@@ -5,7 +5,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { RecipeDetailView } from "@/src/components/domain/RecipeDetailView";
 import { useInventory } from "@/src/context/InventoryContext";
 import { useAuth } from "@/src/context/AuthContext";
-import { addMissingIngredientsToShopping } from "@/src/lib/shoppingApi";
+import { addMissingIngredientsToShoppingDetailed } from "@/src/lib/shoppingApi";
+import { eligiblePantryItems, normalizeIngredientName } from "@/src/lib/mealPlan";
 
 export default function RecipeDetailRouteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,6 +17,8 @@ export default function RecipeDetailRouteScreen() {
     savedRecipes,
     savedRecipesLoading,
     inventory,
+    inventoryLoading,
+    inventoryError,
     selectedRecipe,
     isRecipeSaved,
     toggleSavedRecipe,
@@ -30,9 +33,7 @@ export default function RecipeDetailRouteScreen() {
   const inventoryNames = useMemo(
     () =>
       new Set(
-        inventory
-          .filter((item) => !item.expiryDate || item.daysLeft >= 0)
-          .map((item) => item.name.toLowerCase())
+        eligiblePantryItems(inventory).map((item) => normalizeIngredientName(item.name))
       ),
     [inventory]
   );
@@ -96,7 +97,7 @@ export default function RecipeDetailRouteScreen() {
     if (!session || !household) {
       throw new Error("Choose a household before updating the shopping list.");
     }
-    return addMissingIngredientsToShopping(
+    return addMissingIngredientsToShoppingDetailed(
       session.access_token,
       household.id,
       ingredients
@@ -116,6 +117,8 @@ export default function RecipeDetailRouteScreen() {
       <RecipeDetailView
         recipe={recipe}
         inventoryItemNames={inventoryNames}
+        pantryLoading={inventoryLoading}
+        pantryError={inventoryError}
         saved={isRecipeSaved(recipe)}
         onToggleSaved={toggleSaved}
         onEdit={(recipe.origin === "custom" || recipe.tag === "Custom") ? () => router.push({

@@ -159,6 +159,15 @@ export async function addMissingIngredientsToShopping(
   householdId: string,
   ingredients: string[]
 ): Promise<{ added: number; skipped: number }> {
+  const result = await addMissingIngredientsToShoppingDetailed(token, householdId, ingredients);
+  return { added: result.addedIngredients.length, skipped: result.skippedIngredients.length };
+}
+
+export async function addMissingIngredientsToShoppingDetailed(
+  token: string,
+  householdId: string,
+  ingredients: string[]
+): Promise<{ addedIngredients: string[]; skippedIngredients: string[] }> {
   // Keep the first spelling while comparing names without case or edge spaces.
   const names = new Map<string, string>();
   for (const ingredient of ingredients) {
@@ -167,24 +176,24 @@ export async function addMissingIngredientsToShopping(
     if (name && !names.has(key)) names.set(key, name);
   }
   const unique = [...names.values()];
-  if (unique.length === 0) return { added: 0, skipped: 0 };
+  if (unique.length === 0) return { addedIngredients: [], skippedIngredients: [] };
 
   const existing = await listShoppingItems(token, householdId);
   const existingNames = new Set(
     existing.map((item) => item.name.trim().toLocaleLowerCase())
   );
-  let added = 0;
-  let skipped = 0;
+  const addedIngredients: string[] = [];
+  const skippedIngredients: string[] = [];
 
   for (const name of unique) {
     if (existingNames.has(name.toLocaleLowerCase())) {
-      skipped += 1;
+      skippedIngredients.push(name);
       continue;
     }
     await addShoppingItem(token, householdId, name);
     existingNames.add(name.toLocaleLowerCase());
-    added += 1;
+    addedIngredients.push(name);
   }
 
-  return { added, skipped };
+  return { addedIngredients, skippedIngredients };
 }
