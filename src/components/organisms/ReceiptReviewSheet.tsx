@@ -170,6 +170,8 @@ export function ReceiptReviewSheet({
           {onCancel && (
             <Button
               label="Cancel"
+              singleLine
+              className="w-24 shrink-0 px-2"
               variant="ghost"
               size="sm"
               onPress={onCancel}
