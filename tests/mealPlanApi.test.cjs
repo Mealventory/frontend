@@ -7,11 +7,18 @@ const Module = require("node:module");
 process.env.EXPO_PUBLIC_BACKEND_URL = "https://test.example";
 
 function loadApi() {
+  const expiry = new Module("pantryExpiry");
+  expiry._compile(ts.transpileModule(
+    fs.readFileSync("src/lib/pantryExpiry.ts", "utf8"), {
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+    }
+  ).outputText, "pantryExpiry.cjs");
   // Transpile the actual shared parser rather than stubbing validation.
   const mealPlan = new Module("mealPlan");
   mealPlan.require = (name) => {
     if (name === "react-native") return { Platform: { OS: "ios" } };
     if (name === "expo-secure-store") return {};
+    if (name === "./pantryExpiry") return expiry.exports;
     throw new Error(`Unexpected import: ${name}`);
   };
   mealPlan._compile(ts.transpileModule(
