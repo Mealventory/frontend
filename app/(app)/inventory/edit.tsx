@@ -21,11 +21,18 @@ export default function EditInventoryItemScreen() {
   const { inventory, inventoryLoading } = useInventory();
   const router = useRouter();
   const item = inventory.find(i => i.id === id);
-  if (!item) return <SafeAreaView className="flex-1 bg-ground-canvas justify-center p-6 gap-4">
+  // Retain the item being edited even if a background refresh discovers it
+  // was merged or deleted. The draft must remain visible until the user leaves.
+  const snapshot = useRef<{ id: string; item: FoodItem } | null>(null);
+  if (item && (!snapshot.current || snapshot.current.id !== id)) {
+    snapshot.current = { id: item.id, item };
+  }
+  const editableItem = item ?? (snapshot.current?.id === id ? snapshot.current.item : null);
+  if (!editableItem) return <SafeAreaView className="flex-1 bg-ground-canvas justify-center p-6 gap-4">
     <Typography>{inventoryLoading ? 'Loading item…' : 'This item is no longer in your pantry.'}</Typography>
     <Button label="Back" onPress={() => router.back()} />
   </SafeAreaView>;
-  return <EditForm key={item.id} item={item} />;
+  return <EditForm key={editableItem.id} item={editableItem} />;
 }
 
 function EditForm({ item }: { item: FoodItem }) {
