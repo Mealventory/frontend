@@ -89,7 +89,7 @@ test("initials handle one name, multiple names, and missing identity", () => {
 test("activity screen shows attribution and filters while keeping its recent-history limit clear", () => {
   const screen = fs.readFileSync("app/(app)/activity.tsx", "utf8");
   assert.match(screen, /getHouseholdMembers\(household\.id, session\.access_token\)/);
-  assert.match(screen, /fetchHouseholdActivity\(session\.access_token, household\.id, 100\)/);
+  assert.match(screen, /fetchHouseholdActivity\(\s*session\.access_token,\s*household\.id,\s*100,?\s*\)/);
   assert.match(screen, /filterActivityEvents\(events, actionFilter, actorFilter\)/);
   assert.match(screen, /<Avatar/);
   assert.match(screen, /activityActorInitials\(actorName\)/);
