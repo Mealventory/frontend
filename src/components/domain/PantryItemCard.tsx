@@ -39,7 +39,7 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
   if(amount!==null)setOptimistic(amount);
   try{
    if(action)await transitionItem(item.id,action,reason);
-   else await updateItem(item.id,{quantity:amount!});
+   else await updateItem(item.id,{quantity:amount!},item.version);
   }catch(e){
    if(mounted.current){setOptimistic(null);setError(e instanceof Error?e.message:'Could not save this change. Please retry.');}
    try{await refreshInventory();}catch{/* Keep the original save error visible. */}
@@ -114,7 +114,17 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
     <Button label="Discarded" variant="outline" onPress={discardWithReason} />
     <Button label="Cancel" variant="ghost" onPress={()=>setFinish(false)} />
    </View>}
-   {!!error&&<Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>}
+   {!!error&&(
+    <View className="gap-2">
+      <Text accessibilityRole="alert" className="text-urgency-critical">{error}</Text>
+      <Button label="Reload latest quantity" variant="secondary" onPress={() => {
+        setError('');
+        void refreshInventory().catch(e =>
+          setError(e instanceof Error ? e.message : 'Could not reload the pantry.')
+        );
+      }} />
+    </View>
+   )}
   </View>}
  </View>;
 }
