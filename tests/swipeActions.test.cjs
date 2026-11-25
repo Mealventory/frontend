@@ -84,15 +84,12 @@ test("pantry maps right swipe to consumed and left swipe to discarded", () => {
     /actions=\{\[\s*\{\s*key:'discard'[\s\S]*?onPress:discardWithReason/
   );
 
+  assert.match(pantry, /<DiscardReasonModal/);
   assert.match(
     pantry,
-    /Alert\.alert\(/
+    /onSelect=\{reason=>\{setDiscardPrompt\(false\);void save\(null,'discard',reason\);\}\}/
   );
-
-  assert.match(
-    pantry,
-    /save\(null,'discard','expired'\)/
-  );
+  assert.doesNotMatch(pantry, /Alert\.alert\(/);
 
   // Existing per-card lock remains in place in addition to the swipe-row lock.
   assert.match(pantry, /if\(locked\.current\)return/);
