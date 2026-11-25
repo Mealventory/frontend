@@ -26,6 +26,8 @@ export default function AppGroupLayout() {
       <Stack.Screen name="recipes/[id]/cook" />
       <Stack.Screen name="household/members" />
       <Stack.Screen name="household/storage-zones" />
+      <Stack.Screen name="household/storage-labels" />
+      <Stack.Screen name="household/storage-location" />
     </Stack>
   );
 }

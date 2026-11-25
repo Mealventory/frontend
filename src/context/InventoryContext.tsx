@@ -143,7 +143,7 @@ interface InventoryContextType {
   navigate: (screen: FigmaScreen) => void;
   updateItem: (id: string, patch: Partial<NewItem>, expectedVersion?: number) => Promise<void>;
   getLatestItem: (id: string) => Promise<FoodItem | null>;
-  addItem: (item: FoodItem) => Promise<void>;
+  addItem: (item: FoodItem) => Promise<FoodItem | void>;
   removeItem: (id: string) => Promise<void>;
   transitionItem: (
   id: string,
@@ -383,7 +383,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
 
         return [item, ...prev];
       });
-      return;
+      return item;
     }
     if (!household || !session) throw new Error('Choose a household first.');
     const quantity = item.quantity.trim().match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
@@ -394,9 +394,9 @@ export function InventoryProvider({ children, demo = false }: { children: React.
       const row = await inventoryRequest<InventoryRow>(await token(), household.id, 'POST', undefined, {
         storage_zone: item.storageZone, name: item.name, category: item.category, quantity: Number(quantity[1]), unit: quantity[2] || 'units', expiry_date: item.expiryDate || null, image_ref: item.imageRef ?? null,
       });
+      const updated = toFoodItem(row);
       if (activeScope.current === scope) {
         queryClient.setQueryData<FoodItem[]>(inventoryKey, previous => {
-          const updated = toFoodItem(row);
           const list = previous ?? [];
           const exists = list.some(i => i.id === updated.id);
           if (exists) {
@@ -405,6 +405,7 @@ export function InventoryProvider({ children, demo = false }: { children: React.
           return [updated, ...list];
         });
       }
+      return updated;
     } finally { mutations.current--; }
   };
 

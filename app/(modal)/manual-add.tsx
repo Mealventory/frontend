@@ -5,7 +5,7 @@ import { APP_GUTTER, APP_PAGE_TOP } from '@/src/lib/layout';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Typography, Button, Icon } from "@/src/components/atoms";
 import { FormField, TagChipGroup } from "@/src/components/molecules";
 import { useInventory } from "@/src/context/InventoryContext";
@@ -13,6 +13,12 @@ import { useAuth } from "@/src/context/AuthContext";
 import { ItemPhotoField, type SelectedItemPhoto } from "@/src/components/molecules/ItemPhotoField";
 import { deleteItemPhoto, uploadItemPhoto } from "@/src/lib/itemPhotoStorage";
 import { E2E_MANUAL_ITEM_NAME, E2E_MANUAL_ITEM_QUANTITY } from "@/src/lib/e2e";
+import {
+  assignItemToSubLocation,
+  isValidStorageZone,
+  loadStorageLocationStore,
+  saveStorageLocationStore,
+} from "@/src/lib/storageLocations";
 
 import type { StorageZone } from "@/src/types";
 
@@ -28,15 +34,29 @@ const categoryEmojis: Record<string, string> = {
   Snacks: "🥨",
 };
 
+function singleParam(val: string | string[] | undefined): string | undefined {
+  return Array.isArray(val) ? val[0] : val;
+}
+
 export default function ManualAddModal() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    zone?: string | string[];
+    locationId?: string | string[];
+    locationName?: string | string[];
+  }>();
+  const initialZoneParam = singleParam(params.zone);
+  const initialLocationId = singleParam(params.locationId);
+  const initialLocationName = singleParam(params.locationName);
   const { addItem } = useInventory();
   const { household, e2eMode } = useAuth();
   const [name, setName] = useState(e2eMode ? E2E_MANUAL_ITEM_NAME : "");
   const [quantity, setQuantity] = useState(e2eMode ? E2E_MANUAL_ITEM_QUANTITY : "");
   const [expDate, setExpDate] = useState("");
   const [selectedCat, setSelectedCat] = useState("Produce");
-  const [storageZone, setStorageZone] = useState<StorageZone>("pantry");
+  const [storageZone, setStorageZone] = useState<StorageZone>(
+    isValidStorageZone(initialZoneParam) ? initialZoneParam : "pantry"
+  );
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedItemPhoto | null>(null);
@@ -76,7 +96,7 @@ export default function ManualAddModal() {
         selectedPhoto.mimeType,
       );
     }
-    await addItem({
+    const created = await addItem({
       id: Date.now().toString(),
       name: trimmedName,
       category: selectedCat,
@@ -88,6 +108,16 @@ export default function ManualAddModal() {
       emoji: categoryEmojis[selectedCat] || "🍽️",
       imageRef: uploadedRef,
     });
+
+    if (initialLocationId && household?.id && created?.id) {
+      try {
+        const currentStore = loadStorageLocationStore(household.id);
+        const nextStore = assignItemToSubLocation(currentStore, created.id, initialLocationId);
+        saveStorageLocationStore(household.id, nextStore);
+      } catch {
+        // Ignore if the sub-location was removed or archived concurrently.
+      }
+    }
 
     if (router.canGoBack()) {
       router.back();
@@ -133,7 +163,9 @@ export default function ManualAddModal() {
         </View>
 
         <Typography variant="caption" color="muted" className="mb-6">
-          Manually input food item details when camera scanning is unavailable
+          {initialLocationId
+            ? `Adding item to ${initialLocationName || 'selected shelf or bin'}`
+            : 'Manually input food item details when camera scanning is unavailable'}
         </Typography>
 
         <View className="gap-4 mb-6">

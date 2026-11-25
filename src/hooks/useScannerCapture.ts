@@ -134,6 +134,15 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
           // Graceful fallback on web or unsupported environments
         }
 
+        if (barcodeData.startsWith("mealventory://storage-location")) {
+          if (!activeRef.current || generation !== scanGeneration.current) return;
+          router.push({
+            pathname: "/(app)/household/storage-location",
+            params: { qr: barcodeData },
+          } as any);
+          return;
+        }
+
         const token = await getAccessToken();
         const resolvedProduct = await fetchProductByBarcode(barcodeData, token);
 
@@ -219,6 +228,15 @@ export function useScannerCapture(options: UseScannerCaptureOptions = {}) {
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch {
           // Graceful fallback
+        }
+
+        if (barcodeData.startsWith("mealventory://storage-location")) {
+          if (!activeRef.current || generation !== scanGeneration.current) return;
+          router.push({
+            pathname: "/(app)/household/storage-location",
+            params: { qr: barcodeData },
+          } as any);
+          return;
         }
 
         try {

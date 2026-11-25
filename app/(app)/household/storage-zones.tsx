@@ -75,6 +75,12 @@ export default function StorageZonesScreen() {
         </View>
       ) : (
         <View className="gap-4">
+          <Button
+            label="QR Shelf & Bin Labels"
+            variant="outline"
+            leadingIcon={<Icon name="QrCode" size={18} color="#10B981" />}
+            onPress={() => router.push("/(app)/household/storage-labels" as any)}
+          />
           {summaries.map((zone) => (
             <View
               key={zone.id}
