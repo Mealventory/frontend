@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 
 import { FoodItem } from "@/src/types";
@@ -13,6 +12,8 @@ import { Button, Icon } from "../atoms";
 import { SwipeActionRow } from "../molecules/SwipeActionRow";
 import { useInventory } from "@/src/context/InventoryContext";
 import { parseQuantity, adjustQuantity } from "@/src/lib/quickQuantity";
+import { DiscardReasonModal } from "./DiscardReasonModal";
+import type { WasteReason } from "@/src/lib/activityApi";
 
 // Parent keys this component by account, household and item to isolate pending UI.
 export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;onPress:(item:FoodItem)=>void}) {
@@ -20,6 +21,7 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
  const [optimistic,setOptimistic]=useState<number|null>(null);
  const [busy,setBusy]=useState(false);
  const [finish,setFinish]=useState(false);
+ const [discardPrompt,setDiscardPrompt]=useState(false);
  const [error,setError]=useState('');
  const locked=useRef(false);
  const mounted=useRef(true);
@@ -32,7 +34,7 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
  const save=async(
   amount:number|null,
   action?:'consume'|'discard',
-  reason?:'expired'|'spoiled'|'bought_too_much'|'didnt_like'|'other'
+  reason?:WasteReason
  )=>{
   if(locked.current)return;
   locked.current=true;setBusy(true);setError('');setFinish(false);
@@ -49,21 +51,7 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
   }
  };
 
- const discardWithReason = () => {
-  Alert.alert(
-   'Discard item',
-   `Why are you discarding ${item.name}?`,
-   [
-    {text:'Expired',onPress:()=>void save(null,'discard','expired')},
-    {text:'Spoiled',onPress:()=>void save(null,'discard','spoiled')},
-    {text:'Bought too much',onPress:()=>void save(null,'discard','bought_too_much')},
-    {text:"Didn't like it",onPress:()=>void save(null,'discard','didnt_like')},
-    {text:'Other',onPress:()=>void save(null,'discard','other')},
-    {text:'Cancel',style:'cancel'},
-   ],
-   {cancelable:true}
-  );
- };
+ const discardWithReason = () => {if(!locked.current)setDiscardPrompt(true);};
  const change=(delta:1|-1)=>{
   if(locked.current||!quantity)return;
   const amount=adjustQuantity(quantity.amount,delta);
@@ -126,5 +114,12 @@ export function PantryItemCard({item,today,onPress}:{item:FoodItem;today:string;
     </View>
    )}
   </View>}
+  <DiscardReasonModal
+   visible={discardPrompt}
+   itemName={item.name}
+   busy={busy}
+   onCancel={()=>setDiscardPrompt(false)}
+   onSelect={reason=>{setDiscardPrompt(false);void save(null,'discard',reason);}}
+  />
  </View>;
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, View, ScrollView, TouchableOpacity, Text } from "react-native";
+import { View, ScrollView, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Icon } from "@/src/components/atoms/Icon";
@@ -8,6 +8,8 @@ import { FreshnessMeter } from "@/src/components/domain/FreshnessMeter";
 import { useInventory } from "@/src/context/InventoryContext";
 import { deleteItemPhoto } from "@/src/lib/itemPhotoStorage";
 import { APP_GUTTER } from "@/src/lib/layout";
+import { DiscardReasonModal } from "@/src/components/domain/DiscardReasonModal";
+import type { WasteReason } from "@/src/lib/activityApi";
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,6 +17,7 @@ export default function ItemDetailScreen() {
   const { inventory, removeItem, transitionItem } = useInventory();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [discardPrompt, setDiscardPrompt] = useState(false);
 
   const item = inventory.find((i) => i.id === id);
 
@@ -39,7 +42,7 @@ export default function ItemDetailScreen() {
 
   const handleAction = async (
     action: "delete" | "consume" | "discard",
-    reason?: "expired" | "spoiled" | "bought_too_much" | "didnt_like" | "other"
+    reason?: WasteReason
   ) => {
     if (deleting) return;
 
@@ -68,39 +71,7 @@ export default function ItemDetailScreen() {
   };
 
   const handleDiscard = () => {
-    Alert.alert(
-      "Discard item",
-      `Why are you discarding ${item.name}?`,
-      [
-        {
-          text: "Expired",
-          onPress: () => handleAction("discard", "expired"),
-        },
-        {
-          text: "Spoiled",
-          onPress: () => handleAction("discard", "spoiled"),
-        },
-        {
-          text: "Bought too much",
-          onPress: () => handleAction("discard", "bought_too_much"),
-        },
-        {
-          text: "Didn't like it",
-          onPress: () => handleAction("discard", "didnt_like"),
-        },
-        {
-          text: "Other",
-          onPress: () => handleAction("discard", "other"),
-        },
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-      ],
-      {
-        cancelable: true,
-      }
-    );
+    if (!deleting) setDiscardPrompt(true);
   };
 
   const infoRows = [
@@ -325,6 +296,16 @@ export default function ItemDetailScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+      <DiscardReasonModal
+        visible={discardPrompt}
+        itemName={item.name}
+        busy={deleting}
+        onCancel={() => setDiscardPrompt(false)}
+        onSelect={(reason) => {
+          setDiscardPrompt(false);
+          void handleAction("discard", reason);
+        }}
+      />
     </SafeAreaView>
   );
 }
