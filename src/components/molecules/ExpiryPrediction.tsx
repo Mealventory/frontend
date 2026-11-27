@@ -53,7 +53,17 @@ export function ExpiryPrediction({name, zone, value, onApply, disabled=false, it
   {!!message&&<Text accessibilityRole="alert" className="text-text-muted">{message}</Text>}
   {result&&<View className="gap-3">
    <Text className="text-text-muted">{result.explanation}</Text>
-   {!!result.source_url&&<Button label={`Source: ${result.source_name||'Storage guide'}`} variant="ghost" onPress={()=>{void Linking.openURL(result.source_url!).catch(()=>setMessage('Could not open the source. Try again later.'));}} />}
+   {!!result.source_url&&<Button label={`Source: ${result.source_name||'Storage guide'}`} variant="ghost" onPress={()=>{
+    try {
+     const sourceUrl = new URL(result.source_url!.trim());
+     if ((sourceUrl.protocol !== 'http:' && sourceUrl.protocol !== 'https:') || !sourceUrl.hostname) {
+      throw new Error('Unsupported source URL');
+     }
+     void Linking.openURL(sourceUrl.toString()).catch(()=>setMessage('Could not open the source. Try again later.'));
+    } catch {
+     setMessage('This source link is invalid and cannot be opened.');
+    }
+   }} />}
    {result.predicted_expiry_date&&<><Text className="text-brand-500 font-bold">{result.source==='catalogue'?'Storage guide estimate':'Experimental estimate'}: {result.predicted_expiry_date}</Text>
     <Button label={value?'Replace date with estimate':'Apply estimate'} disabled={disabled} onPress={()=>{const date=result.predicted_expiry_date!;setApplied(date);onApply(date);setResult(null);}} /></>}
    <Button label={value?'Keep current date':'Enter date manually'} variant="ghost" onPress={()=>setResult(null)} />

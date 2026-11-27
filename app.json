@@ -19,8 +19,7 @@
     "android": {
       "package": "com.mealventory.app",
       "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/adaptive-icon.png",
@@ -38,7 +37,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Mealventory to access your camera to scan food items and receipts."
+          "cameraPermission": "Allow Mealventory to access your camera to scan food items and receipts.",
+          "recordAudioAndroid": false
         }
       ],
       "expo-secure-store",
